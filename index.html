@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+<!-- 0) 일부 번들이 process.env.NODE_ENV를 참조하므로 간단 폴리필 -->
+<script>window.process = window.process || { env: { NODE_ENV: 'production' } };</script>
+
+<!-- 1) Live2D Cubism Core -->
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js" crossorigin="anonymous"></script>
+
+<!-- 2) PixiJS v7 (정확한 경로: dist/pixi.min.js) -->
+<script src="https://unpkg.com/pixi.js@7.4.0/dist/pixi.min.js" crossorigin="anonymous"></script>
+<!-- (백업 CDN 원하면 아래 줄을 추가로 넣고 위가 실패할 때만 확인)
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.0/dist/pixi.min.js" crossorigin="anonymous"></script> -->
+
+<!-- 3) pixi-live2d-display (Cubism4 빌드, v7 호환: 0.5.0-beta) -->
+<script src="https://unpkg.com/pixi-live2d-display@0.5.0-beta/dist/cubism4.min.js" crossorigin="anonymous"></script>
+
+
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Kiosk</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
