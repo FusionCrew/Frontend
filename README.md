@@ -207,4 +207,4 @@ docker run -p 3000:3000 aikiosk-frontend
 
 ## 👥 팀 정보
 
-**FusionCrew** © 2024
+**FusionCrew** © 2025~2026
