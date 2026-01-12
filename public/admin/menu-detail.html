@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>메뉴 상세 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #FFFFFF; } ::-webkit-scrollbar-thumb { background: #000000; border-radius: 10px; }
+        .sidebar-item-active { @apply bg-[#0F172A] text-white shadow-md; }
+        .sidebar-item-inactive { @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all; }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
+                            BURGER SHOP</h1>
+                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="index.html"><span class="material-symbols-outlined">dashboard</span>
+                        <p class="text-sm font-medium">대시보드</p>
+                    </a>
+                    <div class="mt-4 mb-2 px-4">
+                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+                    </div>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active" href="menu.html"><span
+                            class="material-symbols-outlined fill text-primary">lunch_dining</span>
+                        <p class="text-sm font-bold">메뉴 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="inventory.html"><span class="material-symbols-outlined">inventory_2</span>
+                        <p class="text-sm font-medium">재고 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="orders.html"><span class="material-symbols-outlined">receipt_long</span>
+                        <p class="text-sm font-medium">주문 내역</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="payment.html"><span class="material-symbols-outlined">payments</span>
+                        <p class="text-sm font-medium">결제 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="analytics.html"><span class="material-symbols-outlined">analytics</span>
+                        <p class="text-sm font-medium">매출 분석</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="staff.html"><span class="material-symbols-outlined">notifications_active</span>
+                        <p class="text-sm font-medium">직원 호출</p>
+                    </a>
+                    <div class="mt-auto pt-8 flex flex-col gap-1">
+                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="account.html"><span class="material-symbols-outlined text-sm">manage_accounts</span>
+                            <p class="text-sm font-medium">계정 설정</p>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="ai-logs.html"><span class="material-symbols-outlined text-sm">smart_toy</span>
+                            <p class="text-sm font-medium">AI 로그 관리</p>
+                        </a>
+                    </div>
+                </nav>
+                <button
+                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                        통합 리포트
+                    </span>
+                </button>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-white">
+            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4 shrink-0">
+                <div class="flex items-center gap-4">
+                    <a href="menu.html"
+                        class="flex items-center gap-2 text-text-muted hover:text-text-dark transition-colors">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span class="text-sm font-medium">메뉴 목록</span>
+                    </a>
+                    <div class="h-6 w-px bg-border-light"></div>
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-2xl">lunch_dining</span>
+                        <h2 class="text-text-dark text-lg font-black italic uppercase">메뉴 상세</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-bold hidden sm:block">최고관리자님</span>
+                    <div
+                        class="size-9 rounded-full ring-2 ring-primary ring-offset-2 bg-primary/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-primary">person</span>
+                    </div>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- 로딩 상태 -->
+                <div id="loading-state" class="text-center py-24">
+                    <span
+                        class="material-symbols-outlined text-5xl text-text-muted animate-spin">progress_activity</span>
+                    <p class="text-sm text-text-muted mt-3">메뉴 정보를 불러오는 중...</p>
+                </div>
+
+                <!-- 에러 상태 -->
+                <div id="error-state" class="hidden text-center py-24">
+                    <span class="material-symbols-outlined text-5xl text-primary">error</span>
+                    <p class="text-sm text-text-muted mt-3">메뉴를 찾을 수 없습니다.</p>
+                    <a href="menu.html"
+                        class="mt-4 inline-block px-6 py-2 bg-primary text-white rounded-lg text-sm font-bold">
+                        메뉴 목록으로 돌아가기
+                    </a>
+                </div>
+
+                <!-- 메뉴 상세 컨텐츠 -->
+                <div id="menu-content" class="hidden max-w-4xl mx-auto">
+                    <div class="bg-white border-2 border-border-light rounded-xl overflow-hidden shadow-sm">
+                        <!-- 메뉴 헤더 -->
+                        <div class="bg-black text-white px-8 py-6 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div id="menu-image-container"
+                                    class="w-20 h-20 bg-primary/20 rounded-lg flex items-center justify-center overflow-hidden">
+                                    <span class="material-symbols-outlined text-primary text-4xl">lunch_dining</span>
+                                </div>
+                                <div>
+                                    <span id="category-badge"
+                                        class="text-[10px] font-bold text-white bg-primary px-2 py-0.5 rounded uppercase tracking-widest">BURGER</span>
+                                    <div id="name-view" class="mt-1">
+                                        <h1 id="menu-name" class="text-2xl font-black italic">메뉴 이름</h1>
+                                    </div>
+                                    <div id="name-edit" class="hidden mt-1">
+                                        <input type="text" id="name-input"
+                                            class="bg-white/10 border-2 border-white/30 text-white text-xl font-bold px-3 py-1 rounded-lg focus:outline-none focus:border-white"
+                                            value="메뉴 이름">
+                                    </div>
+                                    <p id="menu-id" class="text-xs text-zinc-400 mt-1">menu_xxx</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button id="edit-toggle-btn" onclick="toggleEditMode()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-sm">edit</span>
+                                    <span>수정</span>
+                                </button>
+                                <button onclick="confirmDelete()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                    <span>삭제</span>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- 메뉴 정보 -->
+                        <div class="p-8 space-y-6">
+                            <!-- 가격 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">payments</span>
+                                    <span class="font-bold">가격</span>
+                                </div>
+                                <div id="price-view" class="text-xl font-black">₩0</div>
+                                <div id="price-edit" class="hidden">
+                                    <input type="number" id="price-input"
+                                        class="w-32 px-3 py-2 border-2 border-primary rounded-lg text-right font-bold focus:outline-none"
+                                        placeholder="가격">
+                                </div>
+                            </div>
+
+                            <!-- 이미지 URL -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">image</span>
+                                    <span class="font-bold">이미지 URL</span>
+                                </div>
+                                <div id="image-view" class="text-sm text-text-muted max-w-xs truncate">없음</div>
+                                <div id="image-edit" class="hidden flex-1 ml-8">
+                                    <input type="text" id="image-input"
+                                        class="w-full px-3 py-2 border-2 border-primary rounded-lg text-sm focus:outline-none"
+                                        placeholder="https://example.com/image.jpg">
+                                </div>
+                            </div>
+
+                            <!-- 숨김 상태 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">visibility_off</span>
+                                    <span class="font-bold">숨김 상태</span>
+                                </div>
+                                <div id="hidden-view">
+                                    <span id="hidden-badge"
+                                        class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-600">공개</span>
+                                </div>
+                                <div id="hidden-edit" class="hidden">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="checkbox" id="hidden-input"
+                                            class="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary cursor-pointer">
+                                        <span class="text-sm font-medium">메뉴 숨기기</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 카테고리 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">category</span>
+                                    <span class="font-bold">카테고리</span>
+                                </div>
+                                <div id="category-view" class="text-sm font-bold text-primary">-</div>
+                                <div id="category-edit" class="hidden">
+                                    <select id="category-input"
+                                        class="px-3 py-2 border-2 border-primary rounded-lg text-sm font-bold focus:outline-none appearance-none cursor-pointer">
+                                        <option value="cat_burger">버거 (BURGER)</option>
+                                        <option value="cat_side">사이드 (SIDE)</option>
+                                        <option value="cat_drink">음료 (DRINK)</option>
+                                        <option value="cat_set">세트 (SET)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 메뉴 상세 설명 -->
+                            <div class="py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <span class="material-symbols-outlined text-primary">description</span>
+                                    <span class="font-bold">메뉴 상세 설명</span>
+                                </div>
+                                <div id="description-view"
+                                    class="text-sm text-text-muted leading-relaxed whitespace-pre-line">-</div>
+                                <div id="description-edit" class="hidden mt-2">
+                                    <textarea id="description-input" rows="4"
+                                        class="w-full px-4 py-3 border-2 border-primary rounded-xl text-sm focus:outline-none resize-none"
+                                        placeholder="메뉴 설명을 입력하세요..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- 재료 목록 -->
+                            <div class="py-4">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-primary">inventory_2</span>
+                                        <span class="font-bold">연결된 재료</span>
+                                    </div>
+                                    <button onclick="openAddIngredientModal()"
+                                        class="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg text-xs font-bold transition-all">
+                                        <span class="material-symbols-outlined text-sm">add_circle</span>
+                                        <span>재료 추가</span>
+                                    </button>
+                                </div>
+                                <div id="ingredients-list" class="space-y-2">
+                                    <p class="text-sm text-text-muted">재료가 없습니다.</p>
+                                </div>
+                            </div>
+
+                            <!-- 수정 버튼 영역 -->
+                            <div id="edit-actions" class="hidden pt-6 flex gap-3 justify-end">
+                                <button onclick="cancelEdit()"
+                                    class="px-6 py-3 border-2 border-border-light text-text-muted font-bold rounded-lg hover:bg-bg-sub transition-colors">
+                                    취소
+                                </button>
+                                <button onclick="saveChanges()"
+                                    class="px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-red-800 transition-colors flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">save</span>
+                                    저장하기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 재료 추가 모달 -->
+    <div id="add-ingredient-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddIngredientModal()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-black text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-black italic flex items-center gap-2 uppercase tracking-tight">
+                    <span class="material-symbols-outlined text-primary">add_circle</span>
+                    재료 추가하기
+                </h3>
+                <button onclick="closeAddIngredientModal()" class="hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">search</span>
+                        <input type="text" id="ingredient-search" oninput="filterAvailableIngredients()"
+                            class="w-full pl-10 pr-4 py-2 bg-bg-sub border-2 border-transparent focus:border-primary rounded-xl text-sm focus:outline-none transition-all"
+                            placeholder="재료 이름 검색...">
+                    </div>
+                </div>
+                <div id="available-ingredients" class="max-h-80 overflow-y-auto space-y-2 pr-2">
+                    <!-- 재료 목록 로딩 중 -->
+                    <div class="text-center py-8 text-text-muted italic text-sm">
+                        가용 재료를 불러오는 중...
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 bg-bg-sub border-t border-border-light flex gap-3">
+                <button onclick="closeAddIngredientModal()"
+                    class="flex-1 py-3 bg-white border-2 border-border-light text-text-muted font-bold rounded-xl hover:bg-zinc-50 transition-colors">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        let menuData = null;
+        let isEditMode = false;
+
+        const CATEGORY_LABELS = {
+            'cat_burger': 'BURGER',
+            'cat_side': 'SIDE',
+            'cat_drink': 'DRINK',
+            'cat_set': 'SET',
+            'default': 'MENU'
+        };
+
+        // URL에서 메뉴 ID 추출 (해시 방식: #menu_xxx)
+        function getMenuIdFromUrl() {
+            // 해시에서 ID 추출 (예: #menu_19f8a3f7)
+            const hash = window.location.hash;
+            if (hash && hash.length > 1) {
+                return hash.substring(1); // # 제거
+            }
+            // 쿼리 파라미터 방식도 지원 (fallback)
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // 메뉴 정보 불러오기
+        async function loadMenuDetail() {
+            const menuId = getMenuIdFromUrl();
+            console.log('📦 요청된 메뉴 ID:', menuId);
+
+            if (!menuId) {
+                console.error('❌ URL에 메뉴 ID가 없습니다.');
+                showError('URL에 메뉴 ID가 없습니다.');
+                return;
+            }
+
+            try {
+                const url = `${API_BASE_URL}/api/v1/admin/menu-items/${menuId}`;
+                console.log('🔗 API 요청 URL:', url);
+
+                const response = await fetch(url);
+                console.log('📡 응답 상태:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ API 오류 응답:', errorText);
+                    throw new Error(`API 요청 실패: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('✅ API 응답 데이터:', result);
+
+                if (!result.success) throw new Error('메뉴 조회 실패');
+
+                menuData = result.data;
+                renderMenuDetail();
+            } catch (error) {
+                console.error('❌ 메뉴 로딩 실패:', error);
+                showError(error.message);
+            }
+        }
+
+
+        // 메뉴 상세 렌더링
+        function renderMenuDetail() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('menu-content').classList.remove('hidden');
+
+            const categoryLabel = CATEGORY_LABELS[menuData.categoryId] || CATEGORY_LABELS['default'];
+
+            // 메뉴 상세 정보 바인딩
+            document.getElementById('menu-name').textContent = menuData.name;
+            document.getElementById('name-input').value = menuData.name;
+            document.getElementById('menu-id').textContent = menuData.menuItemId;
+            document.getElementById('category-badge').textContent = categoryLabel;
+            document.getElementById('category-view').textContent = categoryLabel;
+            document.getElementById('category-input').value = menuData.categoryId || 'cat_burger';
+
+            document.getElementById('description-view').textContent = menuData.description || '현재 등록된 설명이 없습니다.';
+            document.getElementById('description-input').value = menuData.description || '';
+
+            // 이미지
+            const imageContainer = document.getElementById('menu-image-container');
+            if (menuData.imageUrl) {
+                imageContainer.innerHTML = `<img src="${menuData.imageUrl}" alt="${menuData.name}" class="w-full h-full object-cover">`;
+            } else {
+                imageContainer.innerHTML = `<span class="material-symbols-outlined text-primary text-4xl">lunch_dining</span>`;
+            }
+
+            // 가격
+            document.getElementById('price-view').textContent = `₩${menuData.price.toLocaleString()}`;
+            document.getElementById('price-input').value = menuData.price;
+
+            // 이미지 URL
+            document.getElementById('image-view').textContent = menuData.imageUrl || '공백 (기본 아이콘 표시)';
+            document.getElementById('image-input').value = menuData.imageUrl || '';
+
+            // 숨김 상태
+            updateHiddenBadge(menuData.hidden);
+            document.getElementById('hidden-input').checked = menuData.hidden;
+
+            // 재료 목록 렌더링
+            renderIngredients(menuData.ingredients || []);
+        }
+
+        // 재료 목록 렌더링 함수
+        function renderIngredients(ingredients) {
+            const listEl = document.getElementById('ingredients-list');
+            if (!ingredients || ingredients.length === 0) {
+                listEl.innerHTML = '<p class="text-sm text-text-muted italic bg-bg-sub p-4 rounded-lg border border-dashed border-border-light">공식적으로 등록된 재료가 없습니다.</p>';
+                return;
+            }
+
+            listEl.innerHTML = ingredients.map(ing => `
+                <div class="flex items-center justify-between p-4 bg-white border border-border-light rounded-xl hover:border-primary/30 transition-all group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-bg-sub rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined">restaurant</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm">${ing.name}</span>
+                                ${ing.allergyTag ? `<span class="px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[9px] font-black rounded uppercase">${ing.allergyTag}</span>` : ''}
+                            </div>
+                            <p class="text-[10px] text-text-muted mt-0.5 uppercase tracking-wider">${ing.ingredientId}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="text-right">
+                            <p class="text-[10px] text-text-muted uppercase font-bold">calories</p>
+                            <p class="text-sm font-black text-primary">${ing.calories || 0} <span class="text-[10px] font-normal text-text-muted">kcal</span></p>
+                        </div>
+                        <div class="h-8 w-px bg-border-light"></div>
+                        <div class="text-right min-w-[60px]">
+                            <p class="text-[10px] text-text-muted uppercase font-bold">extra</p>
+                            <p class="text-sm font-black">+₩${(ing.extraPrice || 0).toLocaleString()}</p>
+                        </div>
+                        <button onclick="removeIngredient('${ing.ingredientId}')" class="p-2 text-text-muted hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-xl">delete_sweep</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 재료 삭제 기능
+        async function removeIngredient(ingredientId) {
+            if (!confirm(`해당 재료(${ingredientId})를 메뉴에서 제외하시겠습니까?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}/ingredients/${ingredientId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success && result.data.deleted) {
+                    // 데이터 갱신 및 재렌더링
+                    menuData.ingredients = menuData.ingredients.filter(ing => ing.ingredientId !== ingredientId);
+                    renderIngredients(menuData.ingredients);
+                    console.log('✅ 재료 삭제 성공:', ingredientId);
+                } else {
+                    throw new Error('재료 삭제 실패');
+                }
+            } catch (error) {
+                console.error('❌ 재료 삭제 중 오류:', error);
+                alert('재료 삭제 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 재료 추가 모달 열기
+        let allAvailableIngredients = [];
+        async function openAddIngredientModal() {
+            document.getElementById('add-ingredient-modal').classList.remove('hidden');
+            document.getElementById('ingredient-search').value = '';
+
+            try {
+                // 전체 재료 목록 조회
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // 현재 이미 메뉴에 포함된 재료 필터링
+                    const currentIds = (menuData.ingredients || []).map(ing => ing.ingredientId);
+                    allAvailableIngredients = result.data.items.filter(ing => !currentIds.includes(ing.ingredientId));
+                    renderAvailableIngredients(allAvailableIngredients);
+                }
+            } catch (error) {
+                console.error('❌ 재료 목록 조회 실패:', error);
+                document.getElementById('available-ingredients').innerHTML = '<p class="text-center py-8 text-red-500 text-sm italic">재료 목록을 불러오지 못했습니다.</p>';
+            }
+        }
+
+        // 모달 닫기
+        function closeAddIngredientModal() {
+            document.getElementById('add-ingredient-modal').classList.add('hidden');
+        }
+
+        // 가용 재료 목록 렌더링
+        function renderAvailableIngredients(ingredients) {
+            const listEl = document.getElementById('available-ingredients');
+            if (ingredients.length === 0) {
+                listEl.innerHTML = '<p class="text-center py-8 text-text-muted italic text-sm">추가할 수 있는 새로운 재료가 없습니다.</p>';
+                return;
+            }
+
+            listEl.innerHTML = ingredients.map(ing => `
+                <div class="flex items-center justify-between p-3 bg-white border border-border-light rounded-xl hover:border-primary/30 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-bg-sub rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-xl">restaurant</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm">${ing.name}</p>
+                            <p class="text-[10px] text-text-muted uppercase tracking-wider">${ing.ingredientId}</p>
+                        </div>
+                    </div>
+                    <button onclick="addIngredientToMenu('${ing.ingredientId}')"
+                        class="px-3 py-1.5 bg-zinc-900 text-white hover:bg-primary rounded-lg text-xs font-bold transition-colors">
+                        추가
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 재료 검색 필터링
+        function filterAvailableIngredients() {
+            const query = document.getElementById('ingredient-search').value.toLowerCase();
+            const filtered = allAvailableIngredients.filter(ing =>
+                ing.name.toLowerCase().includes(query) ||
+                ing.ingredientId.toLowerCase().includes(query)
+            );
+            renderAvailableIngredients(filtered);
+        }
+
+        // 재료 추가 실행
+        async function addIngredientToMenu(ingredientId) {
+            try {
+                // 현재 재료 ID 리스트 + 추가할 ID
+                const currentIds = (menuData.ingredients || []).map(ing => ing.ingredientId);
+                const updatedIds = [...currentIds, ingredientId];
+
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}/ingredients`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ingredientIds: updatedIds })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // 전체 데이터를 다시 불러와서 갱신 (이미지, 설명 등 최신화 겸사겸사)
+                    await loadMenuDetail();
+                    // 모달 내 리스트도 갱신 (추가된 건 제외)
+                    allAvailableIngredients = allAvailableIngredients.filter(ing => ing.ingredientId !== ingredientId);
+                    renderAvailableIngredients(allAvailableIngredients);
+
+                    console.log('✅ 재료 추가 성공:', ingredientId);
+                } else {
+                    throw new Error('재료 추가 실패');
+                }
+            } catch (error) {
+                console.error('❌ 재료 추가 중 오류:', error);
+                alert('재료 추가 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 숨김 배지 업데이트
+        function updateHiddenBadge(isHidden) {
+            const badge = document.getElementById('hidden-badge');
+            if (isHidden) {
+                badge.textContent = '숨김';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600';
+            } else {
+                badge.textContent = '공개';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-600';
+            }
+        }
+
+        // 에러 표시
+        function showError(message = '메뉴를 찾을 수 없습니다.') {
+            document.getElementById('loading-state').classList.add('hidden');
+            const errorState = document.getElementById('error-state');
+            errorState.classList.remove('hidden');
+            // 에러 메시지 표시
+            const errorMsg = errorState.querySelector('p');
+            if (errorMsg) errorMsg.textContent = message;
+        }
+
+
+        // 수정 모드 토글
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('edit-toggle-btn');
+
+            if (isEditMode) {
+                // 수정 모드 활성화
+                btn.innerHTML = `<span class="material-symbols-outlined text-sm">close</span><span>취소</span>`;
+                btn.classList.add('bg-primary', 'text-white');
+                btn.classList.remove('bg-white/10');
+
+                document.getElementById('name-view').classList.add('hidden');
+                document.getElementById('name-edit').classList.remove('hidden');
+
+                document.getElementById('price-view').classList.add('hidden');
+                document.getElementById('price-edit').classList.remove('hidden');
+
+                document.getElementById('image-view').classList.add('hidden');
+                document.getElementById('image-edit').classList.remove('hidden');
+
+                document.getElementById('category-view').classList.add('hidden');
+                document.getElementById('category-edit').classList.remove('hidden');
+
+                document.getElementById('description-view').classList.add('hidden');
+                document.getElementById('description-edit').classList.remove('hidden');
+
+                document.getElementById('hidden-view').classList.add('hidden');
+                document.getElementById('hidden-edit').classList.remove('hidden');
+
+                document.getElementById('edit-actions').classList.remove('hidden');
+            } else {
+                cancelEdit();
+            }
+        }
+
+        // 수정 취소
+        function cancelEdit() {
+            isEditMode = false;
+            const btn = document.getElementById('edit-toggle-btn');
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">edit</span><span>수정</span>`;
+            btn.classList.remove('bg-primary', 'text-white');
+            document.getElementById('name-view').classList.remove('hidden');
+            document.getElementById('name-edit').classList.add('hidden');
+
+            document.getElementById('price-view').classList.remove('hidden');
+            document.getElementById('price-edit').classList.add('hidden');
+
+            document.getElementById('image-view').classList.remove('hidden');
+            document.getElementById('image-edit').classList.add('hidden');
+
+            document.getElementById('category-view').classList.remove('hidden');
+            document.getElementById('category-edit').classList.add('hidden');
+
+            document.getElementById('description-view').classList.remove('hidden');
+            document.getElementById('description-edit').classList.add('hidden');
+
+            document.getElementById('hidden-view').classList.remove('hidden');
+            document.getElementById('hidden-edit').classList.add('hidden');
+
+            document.getElementById('edit-actions').classList.add('hidden');
+
+            // 원래 값으로 복원
+            document.getElementById('name-input').value = menuData.name;
+            document.getElementById('price-input').value = menuData.price;
+            document.getElementById('image-input').value = menuData.imageUrl || '';
+            document.getElementById('category-input').value = menuData.categoryId || 'cat_burger';
+            document.getElementById('description-input').value = menuData.description || '';
+            document.getElementById('hidden-input').checked = menuData.hidden;
+        }
+
+        // 변경사항 저장
+        async function saveChanges() {
+            const newName = document.getElementById('name-input').value.trim();
+            const newPrice = parseInt(document.getElementById('price-input').value);
+            const newImageUrl = document.getElementById('image-input').value.trim();
+            const newCategoryId = document.getElementById('category-input').value;
+            const newDescription = document.getElementById('description-input').value.trim();
+            const newHidden = document.getElementById('hidden-input').checked;
+
+            // 변경된 값만 전송
+            const updateData = {};
+            if (newName !== menuData.name) updateData.name = newName;
+            if (newPrice !== menuData.price) updateData.price = newPrice;
+            if (newImageUrl !== (menuData.imageUrl || '')) updateData.imageUrl = newImageUrl || null;
+            if (newCategoryId !== menuData.categoryId) updateData.categoryId = newCategoryId;
+            if (newDescription !== (menuData.description || '')) updateData.description = newDescription;
+            if (newHidden !== menuData.hidden) updateData.hidden = newHidden;
+
+            if (Object.keys(updateData).length === 0) {
+                alert('변경된 내용이 없습니다.');
+                cancelEdit();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+                if (!result.success) throw new Error('수정 실패');
+
+                // 로컬 데이터 업데이트
+                menuData.name = result.data.name;
+                menuData.price = result.data.price;
+                menuData.imageUrl = result.data.imageUrl;
+                menuData.categoryId = result.data.categoryId;
+                menuData.description = result.data.description;
+                menuData.hidden = result.data.hidden;
+
+                // UI 업데이트
+                renderMenuDetail();
+                cancelEdit();
+                alert('✅ 메뉴 정보가 성공적으로 수정되었습니다!');
+            } catch (error) {
+                console.error('❌ 메뉴 수정 실패:', error);
+                alert('메뉴 수정 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 메뉴 삭제 확인
+        function confirmDelete() {
+            const confirmed = confirm(`⚠️ 정말로 "${menuData.name}" 메뉴를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.\n(단종 처리는 '수정'에서 숨김 상태를 켜는 것을 권장합니다.)`);
+            if (confirmed) {
+                deleteMenu();
+            }
+        }
+
+        // 메뉴 삭제 API 호출
+        async function deleteMenu() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (!result.success) throw new Error('삭제 실패');
+
+                alert('✅ 메뉴가 삭제되었습니다.');
+                // 메뉴 목록 페이지로 이동
+                window.location.href = 'menu.html';
+            } catch (error) {
+                console.error('❌ 메뉴 삭제 실패:', error);
+                alert('메뉴 삭제 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', loadMenuDetail);
+    </script>
+
+</body>
+
+</html>

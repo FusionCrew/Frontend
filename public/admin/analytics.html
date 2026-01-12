@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>매출 분석 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #FFFFFF; } ::-webkit-scrollbar-thumb { background: #000000; border-radius: 10px; }
+        .sidebar-item-active { @apply bg-[#0F172A] text-white shadow-md; }
+        .sidebar-item-inactive { @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all; }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <aside
+            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
+                            BURGER SHOP</h1>
+                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="index.html"><span class="material-symbols-outlined">dashboard</span>
+                        <p class="text-sm font-medium">대시보드</p>
+                    </a>
+                    <div class="mt-4 mb-2 px-4">
+                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+                    </div>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="menu.html"><span
+                            class="material-symbols-outlined">lunch_dining</span>
+                        <p class="text-sm font-medium">메뉴 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="inventory.html"><span class="material-symbols-outlined">inventory_2</span>
+                        <p class="text-sm font-medium">재고 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="orders.html"><span class="material-symbols-outlined">receipt_long</span>
+                        <p class="text-sm font-medium">주문 내역</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="payment.html"><span class="material-symbols-outlined">payments</span>
+                        <p class="text-sm font-medium">결제 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active"
+                        href="analytics.html"><span class="material-symbols-outlined fill text-primary">analytics</span>
+                        <p class="text-sm font-bold">매출 분석</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="staff.html"><span class="material-symbols-outlined">notifications_active</span>
+                        <p class="text-sm font-medium">직원 호출</p>
+                    </a>
+                    <div class="mt-auto pt-8 flex flex-col gap-1">
+                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="account.html"><span class="material-symbols-outlined text-sm">manage_accounts</span>
+                            <p class="text-sm font-medium">계정 설정</p>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="ai-logs.html"><span class="material-symbols-outlined text-sm">smart_toy</span>
+                            <p class="text-sm font-medium">AI 로그 관리</p>
+                        </a>
+                    </div>
+                </nav>
+                <button
+                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                        통합 리포트
+                    </span>
+                </button>
+            </div>
+        </aside>
+        <main class="flex-1 flex flex-col overflow-hidden bg-white">
+            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4 shrink-0">
+                <div class="flex items-center gap-6 flex-1">
+                    <div class="flex items-center gap-2"><span
+                            class="material-symbols-outlined text-primary text-2xl">analytics</span>
+                        <h2 class="text-text-dark text-lg font-black italic uppercase">매출 분석</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 bg-bg-sub px-3 py-1.5 rounded-lg border border-border-light">
+                        <span class="material-symbols-outlined text-sm text-text-muted">calendar_today</span><span
+                            class="text-xs font-semibold">2024.05.01 - 2024.05.31</span>
+                    </div>
+                    <div class="size-px h-6 bg-border-light"></div>
+                    <div class="flex items-center gap-3"><span class="text-sm font-bold hidden sm:block">최고관리자님</span>
+                        <div
+                            class="size-9 rounded-full ring-2 ring-primary ring-offset-2 bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-8 space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="flex flex-col gap-3 bg-black text-white border border-black rounded-xl p-6 shadow-xl">
+                        <div class="flex items-center justify-between">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider">총 매출액</p><span
+                                class="material-symbols-outlined text-primary bg-white/10 p-1.5 rounded-lg">monetization_on</span>
+                        </div>
+                        <p class="text-2xl font-black tracking-tight italic">₩12,450,000</p>
+                        <p class="flex items-center gap-1 text-emerald-400 text-xs font-bold uppercase"><span
+                                class="material-symbols-outlined text-sm">trending_up</span>지난달 대비 8.2% 증가</p>
+                    </div>
+                    <div class="flex flex-col gap-3 bg-white border-2 border-border-light rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <p class="text-text-muted text-xs font-bold uppercase tracking-wider">평균 객단가</p><span
+                                class="material-symbols-outlined text-primary bg-primary/5 p-1.5 rounded-lg">shopping_bag</span>
+                        </div>
+                        <p class="text-text-dark text-2xl font-black tracking-tight italic">₩18,200</p>
+                        <p class="text-primary text-xs font-bold">↑ 지난달 대비 2.1% 증가</p>
+                    </div>
+                    <div class="flex flex-col gap-3 bg-white border-2 border-border-light rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <p class="text-text-muted text-xs font-bold uppercase tracking-wider">총 방문객 수</p><span
+                                class="material-symbols-outlined text-primary bg-primary/5 p-1.5 rounded-lg">groups</span>
+                        </div>
+                        <p class="text-text-dark text-2xl font-black tracking-tight italic">842명</p>
+                        <p class="text-primary text-xs font-bold">↓ 지난달 대비 1.4% 감소</p>
+                    </div>
+                    <div class="flex flex-col gap-3 bg-white border-2 border-border-light rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <p class="text-text-muted text-xs font-bold uppercase tracking-wider">재방문율</p><span
+                                class="material-symbols-outlined text-zinc-900 bg-zinc-100 p-1.5 rounded-lg">refresh</span>
+                        </div>
+                        <p class="text-text-dark text-2xl font-black tracking-tight italic">34.5%</p>
+                        <p class="flex items-center gap-1 text-emerald-600 text-xs font-bold"><span
+                                class="material-symbols-outlined text-sm">check_circle</span>안정적 유지 중</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 bg-white border-2 border-border-light p-6 rounded-xl shadow-sm">
+                        <h3 class="font-black uppercase italic mb-6">인기 메뉴 Top 5</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="size-10 rounded-lg bg-primary/10 flex items-center justify-center font-black text-primary italic">
+                                    1</div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold">더블 베이컨 치즈버거</p>
+                                    <div class="w-full bg-bg-sub h-1.5 rounded-full mt-1">
+                                        <div class="bg-primary h-full w-[92%] rounded-full"></div>
+                                    </div>
+                                </div><span class="text-xs font-black text-text-muted">428개</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="size-10 rounded-lg bg-bg-sub flex items-center justify-center font-bold">2
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold">스파이시 상하이 버거</p>
+                                    <div class="w-full bg-bg-sub h-1.5 rounded-full mt-1">
+                                        <div class="bg-primary/80 h-full w-[85%] rounded-full"></div>
+                                    </div>
+                                </div><span class="text-xs font-bold text-text-muted">386개</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="size-10 rounded-lg bg-bg-sub flex items-center justify-center font-bold">3
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold">트러플 머쉬룸 버거</p>
+                                    <div class="w-full bg-bg-sub h-1.5 rounded-full mt-1">
+                                        <div class="bg-primary/60 h-full w-[64%] rounded-full"></div>
+                                    </div>
+                                </div><span class="text-xs font-bold text-text-muted">212개</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="size-10 rounded-lg bg-bg-sub flex items-center justify-center font-bold">4
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold">갈릭 소스 프라이즈</p>
+                                    <div class="w-full bg-bg-sub h-1.5 rounded-full mt-1">
+                                        <div class="bg-primary/40 h-full w-[48%] rounded-full"></div>
+                                    </div>
+                                </div><span class="text-xs font-bold text-text-muted">156개</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="size-10 rounded-lg bg-bg-sub flex items-center justify-center font-bold">5
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold">밀크 쉐이크</p>
+                                    <div class="w-full bg-bg-sub h-1.5 rounded-full mt-1">
+                                        <div class="bg-primary/20 h-full w-[35%] rounded-full"></div>
+                                    </div>
+                                </div><span class="text-xs font-bold text-text-muted">98개</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="lg:col-span-2 bg-white p-6 rounded-xl border-2 border-border-light shadow-sm border-t-4 border-t-primary">
+                        <div class="flex items-center gap-2 mb-6"><span
+                                class="material-symbols-outlined text-primary fill">psychology</span>
+                            <h3 class="font-black uppercase italic">AI 분석 인사이트</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                <p class="text-sm font-bold text-primary">피크 타임 인력 보강 제안</p>
+                                <p class="text-xs text-text-muted mt-1">이번 주 금요일과 토요일 19시~21시 사이 주문량이 평소보다 25% 높을 것으로
+                                    예상됩니다.</p>
+                            </div>
+                            <div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                <p class="text-sm font-bold text-primary">메뉴 구성 최적화</p>
+                                <p class="text-xs text-text-muted mt-1">'더블 베이컨 치즈버거'의 세트 판매 비중이 상승하고 있습니다. 런치 세트 강화를
+                                    권장합니다.</p>
+                            </div>
+                            <div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                <p class="text-sm font-bold text-primary">재방문 프로모션 제안</p>
+                                <p class="text-xs text-text-muted mt-1">최근 신규 고객은 증가했으나 재방문율이 소폭 하락했습니다. 쿠폰 발급 이벤트를
+                                    제안합니다.</p>
+                            </div>
+                            <div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                <p class="text-sm font-bold text-primary">재고 효율 분석</p>
+                                <p class="text-xs text-text-muted mt-1">신선 식품(패티, 채소류)의 폐기율이 지난주 대비 4% 감소했습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>주문 상세 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #FFFFFF; } ::-webkit-scrollbar-thumb { background: #000000; border-radius: 10px; }
+        .sidebar-item-active { @apply bg-[#0F172A] text-white shadow-md; }
+        .sidebar-item-inactive { @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all; }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <!-- 사이드바 (orders.html과 동일) -->
+        <aside
+            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
+                            BURGER SHOP</h1>
+                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="index.html">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <p class="text-sm font-medium">대시보드</p>
+                    </a>
+                    <div class="mt-4 mb-2 px-4">
+                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+                    </div>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="menu.html">
+                        <span class="material-symbols-outlined">lunch_dining</span>
+                        <p class="text-sm font-medium">메뉴 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="inventory.html">
+                        <span class="material-symbols-outlined">inventory_2</span>
+                        <p class="text-sm font-medium">재고 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active" href="orders.html">
+                        <span class="material-symbols-outlined fill text-primary">receipt_long</span>
+                        <p class="text-sm font-bold">주문 내역</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="payment.html">
+                        <span class="material-symbols-outlined">payments</span>
+                        <p class="text-sm font-medium">결제 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="analytics.html">
+                        <span class="material-symbols-outlined">analytics</span>
+                        <p class="text-sm font-medium">매출 분석</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="staff.html">
+                        <span class="material-symbols-outlined">notifications_active</span>
+                        <p class="text-sm font-medium">직원 호출</p>
+                    </a>
+                    <div class="mt-auto pt-8 flex flex-col gap-1">
+                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="account.html">
+                            <span class="material-symbols-outlined text-sm">manage_accounts</span>
+                            <p class="text-sm font-medium">계정 설정</p>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="ai-logs.html">
+                            <span class="material-symbols-outlined text-sm">smart_toy</span>
+                            <p class="text-sm font-medium">AI 로그 관리</p>
+                        </a>
+                    </div>
+                </nav>
+                <button
+                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                        통합 리포트
+                    </span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden bg-bg-sub">
+            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4 shrink-0">
+                <div class="flex items-center gap-4">
+                    <button onclick="history.back()"
+                        class="size-10 rounded-xl border border-border-light flex items-center justify-center hover:bg-bg-sub transition-all">
+                        <span class="material-symbols-outlined text-text-dark">arrow_back</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <h2 id="order-id-header" class="text-text-dark text-lg font-black italic uppercase">주문 상세</h2>
+                    </div>
+                </div>
+                <div id="action-buttons" class="flex items-center gap-3">
+                    <!-- 동적 버튼 생성 -->
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- 기본 정보 카드 -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-white p-6 rounded-2xl border border-border-light shadow-sm">
+                            <h3 class="text-sm font-black uppercase tracking-widest text-zinc-400 mb-6">기본 정보</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-[10px] font-bold text-text-muted uppercase mb-1">Status</p>
+                                    <div id="order-status-badge"></div>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-text-muted uppercase mb-1">Order ID</p>
+                                    <p id="order-id-val" class="text-sm font-black italic"></p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-text-muted uppercase mb-1">Time</p>
+                                    <p id="order-time-val" class="text-sm font-bold"></p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-text-muted uppercase mb-1">Session ID</p>
+                                    <p id="session-id-val" class="text-sm font-mono text-primary font-bold"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-2xl border border-border-light shadow-sm">
+                            <h3 class="text-sm font-black uppercase tracking-widest text-zinc-400 mb-6">결제 정보</h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-[10px] font-bold text-text-muted uppercase">Method</p>
+                                    <p id="payment-method-val" class="text-sm font-bold"></p>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <p class="text-[10px] font-bold text-text-muted uppercase">Status</p>
+                                    <span id="payment-status-badge"
+                                        class="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded">PAID</span>
+                                </div>
+                                <div class="pt-4 border-t border-zinc-100 flex justify-between items-center">
+                                    <p class="text-xs font-black uppercase">Total Price</p>
+                                    <p id="total-price-val" class="text-lg font-black text-primary italic"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 메뉴 목록 카드 -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-2xl border border-border-light shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-border-light">
+                                <h3 class="text-sm font-black uppercase tracking-widest text-zinc-400">주문 메뉴 목록</h3>
+                            </div>
+                            <table class="w-full text-left">
+                                <thead
+                                    class="bg-zinc-50 text-[10px] uppercase text-text-muted font-bold tracking-widest border-b">
+                                    <tr>
+                                        <th class="px-6 py-4">메뉴 정보</th>
+                                        <th class="px-6 py-4 text-center">수량</th>
+                                        <th class="px-6 py-4 text-right">단가</th>
+                                        <th class="px-6 py-4 text-right">소계</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="order-items-list" class="divide-y divide-border-light">
+                                    <!-- 동적 렌더링 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        const orderId = window.location.hash.substring(1);
+
+        async function loadOrderDetail() {
+            if (!orderId) {
+                alert('주문 ID가 없습니다.');
+                location.href = 'orders.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/admin/orders/${orderId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderDetail(result.data);
+                } else {
+                    alert('주문을 찾을 수 없습니다.');
+                    location.href = 'orders.html';
+                }
+            } catch (error) {
+                console.error('상세 정보 로딩 실패 상세:', error);
+                alert('데이터를 불러오는데 실패했습니다. 서버 상태와 콘솔을 확인해 주세요.');
+            }
+        }
+
+        function renderDetail(order) {
+            document.getElementById('order-id-header').innerText = `ORDER #${order.orderId}`;
+            document.getElementById('order-id-val').innerText = `#${order.orderId}`;
+            document.getElementById('order-time-val').innerText = new Date(order.createdAt).toLocaleString();
+            document.getElementById('session-id-val').innerText = order.sessionId || '-';
+            document.getElementById('payment-method-val').innerText = order.payment.method;
+            document.getElementById('total-price-val').innerText = `₩${order.totalPrice.toLocaleString()}`;
+
+            // 상태 배지
+            const statusBadge = document.getElementById('order-status-badge');
+            statusBadge.innerHTML = getStatusBadge(order.status);
+
+            // 메뉴 목록
+            const itemsList = document.getElementById('order-items-list');
+            itemsList.innerHTML = order.items.map(item => `
+                <tr>
+                    <td class="px-6 py-4">
+                        <p class="text-sm font-bold text-text-dark">${item.name}</p>
+                        <p class="text-[10px] text-text-muted font-mono uppercase">${item.menuItemId}</p>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-sm font-black text-secondary bg-zinc-100 px-2 py-1 rounded-lg">${item.quantity}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right text-sm font-medium">₩${item.price.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-sm font-black">₩${(item.price * item.quantity).toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+            // 액션 버튼
+            renderActionButtons(order.status);
+        }
+
+        function getStatusBadge(status) {
+            const statusMap = {
+                'CREATED': { text: '주문 생성', class: 'bg-zinc-100 text-zinc-600' },
+                'CONFIRMED': { text: '주문 확정', class: 'bg-emerald-50 text-emerald-600' },
+                'MAKING': { text: '조리 중', class: 'bg-black text-white' },
+                'READY': { text: '준비 완료', class: 'bg-primary text-white' },
+                'COMPLETED': { text: '수령 완료', class: 'bg-zinc-200 text-zinc-600' },
+                'CANCELLED': { text: '취소됨', class: 'bg-red-50 text-red-600' }
+            };
+            const config = statusMap[status] || { text: status, class: 'bg-gray-100 text-gray-500' };
+            return `<span class="px-3 py-1 ${config.class} text-[10px] font-black rounded-lg uppercase italic shadow-sm">${config.text}</span>`;
+        }
+
+        function renderActionButtons(status) {
+            const container = document.getElementById('action-buttons');
+            container.innerHTML = '';
+
+            let actions = [];
+            if (status === 'CREATED') {
+                actions = [
+                    { label: '주문 확정', status: 'CONFIRMED', primary: true },
+                    { label: '주문 취소', status: 'CANCELLED', primary: false }
+                ];
+            } else if (status === 'CONFIRMED') {
+                actions = [
+                    { label: '조리 시작', status: 'MAKING', primary: true },
+                    { label: '주문 취소', status: 'CANCELLED', primary: false }
+                ];
+            } else if (status === 'MAKING') {
+                actions = [
+                    { label: '준비 완료', status: 'READY', primary: true }
+                ];
+            } else if (status === 'READY') {
+                actions = [
+                    { label: '수령 완료', status: 'COMPLETED', primary: true }
+                ];
+            }
+
+            actions.forEach(action => {
+                const btn = document.createElement('button');
+                btn.className = action.primary
+                    ? 'bg-secondary text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:scale-[1.02] transition-all'
+                    : 'bg-white text-text-dark border border-border-light px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-bg-sub transition-all';
+                btn.innerText = action.label;
+                btn.onclick = () => updateStatus(action.status);
+                container.appendChild(btn);
+            });
+        }
+
+        async function updateStatus(newStatus) {
+            if (!confirm(`주문 상태를 [${newStatus}]로 변경하시겠습니까?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/admin/orders/${orderId}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('상태가 변경되었습니다.');
+                    location.reload();
+                } else {
+                    alert('상태 변경에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('상태 변경 실패:', error);
+                alert('네트워크 오류가 발생했습니다.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadOrderDetail);
+        window.onhashchange = loadOrderDetail;
+    </script>
+</body>
+
+</html>

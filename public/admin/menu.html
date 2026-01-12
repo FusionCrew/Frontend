@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>메뉴 관리 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#DC2626",
+                        "secondary": "#000000",
+                        "bg-main": "#FFFFFF",
+                        "bg-sub": "#F8FAFC",
+                        "border-light": "#E2E8F0",
+                        "text-dark": "#0F172A",
+                        "text-muted": "#64748B",
+                    },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #FFFFFF; }
+        ::-webkit-scrollbar-thumb { background: #000000; border-radius: 10px; }
+        .sidebar-item-active { @apply bg-[#0F172A] text-white shadow-md; }
+        .sidebar-item-inactive { @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all; }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
+                            BURGER SHOP</h1>
+                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="index.html">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <p class="text-sm font-medium">대시보드</p>
+                    </a>
+                    <div class="mt-4 mb-2 px-4">
+                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+                    </div>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active" href="menu.html">
+                        <span class="material-symbols-outlined fill text-primary">lunch_dining</span>
+                        <p class="text-sm font-bold">메뉴 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="inventory.html">
+                        <span class="material-symbols-outlined">inventory_2</span>
+                        <p class="text-sm font-medium">재고 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="orders.html">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <p class="text-sm font-medium">주문 내역</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="payment.html">
+                        <span class="material-symbols-outlined">payments</span>
+                        <p class="text-sm font-medium">결제 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="analytics.html">
+                        <span class="material-symbols-outlined">analytics</span>
+                        <p class="text-sm font-medium">매출 분석</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="staff.html">
+                        <span class="material-symbols-outlined">notifications_active</span>
+                        <p class="text-sm font-medium">직원 호출</p>
+                    </a>
+                    <div class="mt-auto pt-8 flex flex-col gap-1">
+                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="account.html">
+                            <span class="material-symbols-outlined text-sm">manage_accounts</span>
+                            <p class="text-sm font-medium">계정 설정</p>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="ai-logs.html">
+                            <span class="material-symbols-outlined text-sm">smart_toy</span>
+                            <p class="text-sm font-medium">AI 로그 관리</p>
+                        </a>
+                    </div>
+                </nav>
+                <button
+                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                        통합 리포트
+                    </span>
+                </button>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-white">
+            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4 shrink-0">
+                <div class="flex items-center gap-6 flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-2xl">lunch_dining</span>
+                        <h2 class="text-text-dark text-lg font-black italic uppercase">메뉴 관리</h2>
+                    </div>
+                    <div class="flex-1 max-w-md hidden md:block">
+                        <div class="relative group">
+                            <div
+                                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted group-focus-within:text-primary transition-colors">
+                                <span class="material-symbols-outlined text-xl">search</span>
+                            </div>
+                            <input
+                                class="w-full pl-10 pr-4 py-2 bg-bg-sub border border-border-light rounded-lg text-sm text-text-dark placeholder:text-text-muted focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none"
+                                placeholder="메뉴 검색..." type="text" />
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="menu-register-1.html"
+                        class="flex items-center gap-2 bg-secondary hover:scale-[1.02] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all">
+                        <span class="material-symbols-outlined text-sm text-primary font-bold">add</span>
+                        <span>메뉴 등록</span>
+                    </a>
+                    <div class="size-px h-6 bg-border-light"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold hidden sm:block">최고관리자님</span>
+                        <div
+                            class="size-9 rounded-full ring-2 ring-primary ring-offset-2 bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- 로딩 상태 표시 -->
+                <div id="loading-state" class="hidden text-center py-12">
+                    <span
+                        class="material-symbols-outlined text-4xl text-text-muted animate-spin">progress_activity</span>
+                    <p class="text-sm text-text-muted mt-2">메뉴를 불러오는 중...</p>
+                </div>
+                <!-- 에러 상태 표시 -->
+                <div id="error-state" class="hidden text-center py-12">
+                    <span class="material-symbols-outlined text-4xl text-primary">error</span>
+                    <p class="text-sm text-text-muted mt-2">메뉴를 불러올 수 없습니다.</p>
+                    <button onclick="loadMenuItems()"
+                        class="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold">다시 시도</button>
+                </div>
+                <!-- 메뉴 카드 그리드 -->
+                <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- 메뉴 카드는 JavaScript로 동적 생성 -->
+                    <!-- 새 메뉴 등록 카드 (항상 표시) -->
+                    <a href="menu-register-1.html" id="add-menu-card"
+                        class="bg-white border-2 border-dashed border-border-light rounded-xl p-4 flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-bg-sub transition-all min-h-32">
+                        <div class="text-center"><span
+                                class="material-symbols-outlined text-3xl text-text-muted">add_circle</span>
+                            <p class="text-sm font-bold text-text-muted mt-2">새 메뉴 등록</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // API 기본 URL (백엔드 서버 주소)
+        const API_BASE_URL = 'http://localhost:8080';
+
+        // 카테고리별 라벨 매핑
+        const CATEGORY_LABELS = {
+            'cat_burger': 'BURGER',
+            'cat_side': 'SIDE',
+            'cat_drink': 'DRINK',
+            'cat_set': 'SET',
+            'default': 'MENU'
+        };
+
+        // 메뉴 카드 HTML 생성
+        function createMenuCard(item) {
+            const categoryLabel = CATEGORY_LABELS[item.categoryId] || CATEGORY_LABELS['default'];
+            const icon = item.categoryId === 'cat_side' ? 'restaurant' :
+                item.categoryId === 'cat_drink' ? 'local_cafe' : 'lunch_dining';
+            const hiddenBadge = item.hidden ?
+                '<span class="ml-2 px-2 py-0.5 bg-gray-200 text-gray-500 text-[10px] font-bold rounded">숨김</span>' : '';
+
+            return `
+                <a href="menu-detail.html#${item.menuItemId}" class="block bg-white border-2 border-border-light rounded-xl p-4 hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer ${item.hidden ? 'opacity-60' : ''}">
+                    <div class="flex gap-4">
+                        <div class="w-24 h-24 bg-primary/10 rounded-lg flex items-center justify-center overflow-hidden">
+                            ${item.imageUrl ?
+                    `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover">` :
+                    `<span class="material-symbols-outlined text-primary text-4xl">${icon}</span>`
+                }
+                        </div>
+                        <div class="flex-1">
+                            <span class="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">${categoryLabel}</span>
+                            ${hiddenBadge}
+                            <h3 class="font-bold mt-1">${item.name}</h3>
+                            <p class="text-sm font-bold mt-1">₩${item.price.toLocaleString()}</p>
+                            <p class="text-xs text-text-muted mt-1">${item.menuItemId}</p>
+                        </div>
+                    </div>
+                </a>
+            `;
+        }
+
+
+        // 메뉴 목록 불러오기
+        async function loadMenuItems() {
+            const loadingEl = document.getElementById('loading-state');
+            const errorEl = document.getElementById('error-state');
+            const gridEl = document.getElementById('menu-grid');
+            const addCardEl = document.getElementById('add-menu-card');
+
+            // 로딩 상태 표시
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+
+            // 기존 메뉴 카드 제거 (새 메뉴 등록 카드만 남김)
+            Array.from(gridEl.children).forEach(card => {
+                if (card.id !== 'add-menu-card') card.remove();
+            });
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items`);
+                if (!response.ok) throw new Error('API 요청 실패');
+
+                const result = await response.json();
+                const items = result.data?.items || [];
+
+                // 로딩 완료, 메뉴 카드 생성
+                loadingEl.classList.add('hidden');
+
+                // 메뉴 카드 추가 (새 메뉴 등록 카드 앞에)
+                items.forEach(item => {
+                    console.log('📌 메뉴 아이템:', item.menuItemId, '→ 링크: menu-detail.html#' + item.menuItemId);
+                    addCardEl.insertAdjacentHTML('beforebegin', createMenuCard(item));
+                });
+
+                console.log(`✅ ${items.length}개의 메뉴를 불러왔습니다.`);
+
+            } catch (error) {
+                console.error('❌ 메뉴 로딩 실패:', error);
+                loadingEl.classList.add('hidden');
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        // 페이지 로드 시 메뉴 불러오기
+        document.addEventListener('DOMContentLoaded', loadMenuItems);
+    </script>
+</body>
+
+</html>

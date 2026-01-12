@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>계정 설정 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: theme('colors.bg-main');
+            color: theme('colors.text-dark');
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #FFFFFF;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #000000;
+            border-radius: 10px;
+        }
+
+        .sidebar-item-active {
+            @apply bg-[#0F172A] text-white shadow-md;
+        }
+
+        .sidebar-item-inactive {
+            @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #000;
+            border-radius: 10px
+        }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <aside
+            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
+                            BURGER SHOP</h1>
+                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="index.html"><span class="material-symbols-outlined">dashboard</span>
+                        <p class="text-sm font-medium">대시보드</p>
+                    </a>
+                    <div class="mt-4 mb-2 px-4">
+                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+                    </div>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="menu.html"><span
+                            class="material-symbols-outlined">lunch_dining</span>
+                        <p class="text-sm font-medium">메뉴 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="inventory.html"><span class="material-symbols-outlined">inventory_2</span>
+                        <p class="text-sm font-medium">재고 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="orders.html"><span class="material-symbols-outlined">receipt_long</span>
+                        <p class="text-sm font-medium">주문 내역</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="payment.html"><span class="material-symbols-outlined">payments</span>
+                        <p class="text-sm font-medium">결제 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="analytics.html"><span class="material-symbols-outlined">analytics</span>
+                        <p class="text-sm font-medium">매출 분석</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="staff.html"><span class="material-symbols-outlined">notifications_active</span>
+                        <p class="text-sm font-medium">직원 호출</p>
+                    </a>
+                    <div class="mt-auto pt-8 flex flex-col gap-1">
+                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active"
+                            href="account.html"><span
+                                class="material-symbols-outlined fill text-primary text-sm">manage_accounts</span>
+                            <p class="text-sm font-bold">계정 설정</p>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="ai-logs.html"><span class="material-symbols-outlined text-sm">smart_toy</span>
+                            <p class="text-sm font-medium">AI 로그 관리</p>
+                        </a>
+                    </div>
+                </nav>
+                <button
+                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                        통합 리포트
+                    </span>
+                </button>
+            </div>
+        </aside>
+        <main class="flex-1 flex flex-col overflow-hidden bg-white">
+            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4">
+                <div class="flex items-center gap-2"><span
+                        class="material-symbols-outlined text-primary text-2xl">manage_accounts</span>
+                    <h2 class="text-lg font-black italic uppercase">계정 관리</h2>
+                </div>
+                <div class="flex items-center gap-4"><a href="register.html"
+                        class="flex items-center gap-2 bg-secondary text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:scale-[1.02] transition-all"><span
+                            class="material-symbols-outlined text-sm text-primary font-bold">person_add</span>관리자 추가</a>
+                    <div class="size-px h-6 bg-border-light"></div>
+                    <div class="flex items-center gap-3"><span class="text-sm font-bold">최고관리자님</span>
+                        <div
+                            class="size-9 rounded-full ring-2 ring-primary ring-offset-2 bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-8 space-y-8">
+                <!-- 관리자 목록 -->
+                <div class="bg-white border-2 border-border-light rounded-xl overflow-hidden shadow-sm">
+                    <div class="px-6 py-4 bg-zinc-50 border-b flex items-center justify-between">
+                        <h3 class="font-black uppercase italic">관리자 계정 목록</h3><span class="text-xs text-text-muted">총
+                            2명</span>
+                    </div>
+                    <table class="w-full text-left">
+                        <thead class="bg-white text-[10px] uppercase text-text-muted font-bold border-b">
+                            <tr>
+                                <th class="px-6 py-4">관리자 정보</th>
+                                <th class="px-6 py-4">이메일</th>
+                                <th class="px-6 py-4">권한</th>
+                                <th class="px-6 py-4">마지막 접속</th>
+                                <th class="px-6 py-4">상태</th>
+                                <th class="px-6 py-4 text-center">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            <tr class="hover:bg-zinc-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-primary">shield_person</span>
+                                        </div>
+                                        <div><span class="font-bold block">홍길동</span><span
+                                                class="text-[10px] text-text-muted">마스터 관리자</span></div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-text-muted">gildong.hong@burgershop.com</td>
+                                <td class="px-6 py-4"><span
+                                        class="px-3 py-1 bg-primary text-white text-[10px] font-black rounded uppercase">마스터</span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-text-muted">2024.05.20 14:22</td>
+                                <td class="px-6 py-4"><span
+                                        class="flex items-center gap-1.5 text-emerald-600 text-[11px] font-bold"><span
+                                            class="size-2 bg-emerald-500 rounded-full animate-pulse"></span>온라인</span>
+                                </td>
+                                <td class="px-6 py-4 text-center"><button
+                                        class="p-2 text-text-muted hover:text-primary hover:bg-bg-sub rounded-lg"><span
+                                            class="material-symbols-outlined text-lg">edit</span></button><button
+                                        class="p-2 text-text-muted hover:text-primary hover:bg-bg-sub rounded-lg"><span
+                                            class="material-symbols-outlined text-lg">key</span></button></td>
+                            </tr>
+                            <tr class="hover:bg-zinc-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-10 rounded-full bg-slate-100 flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-slate-500">person</span>
+                                        </div>
+                                        <div><span class="font-bold block">김철수</span><span
+                                                class="text-[10px] text-text-muted">일반 관리자</span></div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-text-muted">chulsoo.kim@burgershop.com</td>
+                                <td class="px-6 py-4"><span
+                                        class="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded border">일반</span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-text-muted">2024.05.19 18:05</td>
+                                <td class="px-6 py-4"><span
+                                        class="flex items-center gap-1.5 text-text-muted text-[11px] font-bold"><span
+                                            class="size-2 bg-text-muted rounded-full"></span>오프라인</span></td>
+                                <td class="px-6 py-4 text-center"><button
+                                        class="p-2 text-text-muted hover:text-primary hover:bg-bg-sub rounded-lg"><span
+                                            class="material-symbols-outlined text-lg">edit</span></button><button
+                                        class="p-2 text-text-muted hover:text-primary hover:bg-bg-sub rounded-lg"><span
+                                            class="material-symbols-outlined text-lg">key</span></button><button
+                                        class="p-2 text-text-muted hover:text-red-600 hover:bg-red-50 rounded-lg"><span
+                                            class="material-symbols-outlined text-lg">delete</span></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- 정보 카드 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white border-2 border-border-light rounded-xl p-6">
+                        <h4 class="font-black flex items-center gap-2 mb-4"><span
+                                class="material-symbols-outlined text-primary">info</span>권한 가이드</h4>
+                        <div class="space-y-4">
+                            <div class="flex gap-3 items-start"><span
+                                    class="px-2 py-0.5 bg-primary text-white text-[10px] font-bold rounded shrink-0">마스터</span>
+                                <p class="text-xs text-text-muted">시스템의 모든 권한을 가집니다. 다른 관리자를 추가, 수정, 삭제할 수 있으며 시스템 설정을
+                                    변경할 수 있습니다.</p>
+                            </div>
+                            <div class="flex gap-3 items-start"><span
+                                    class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded border shrink-0">일반</span>
+                                <p class="text-xs text-text-muted">매장 운영에 필요한 메뉴 관리, 주문 확인, 재고 관리 권한을 가집니다. 계정 설정 및 시스템
+                                    관리 권한은 없습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white border-2 border-border-light rounded-xl p-6">
+                        <h4 class="font-black flex items-center gap-2 mb-4"><span
+                                class="material-symbols-outlined text-primary">security</span>최근 보안 활동</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-bg-sub rounded-lg">
+                                <div class="flex items-center gap-3"><span
+                                        class="material-symbols-outlined text-sm text-emerald-600">login</span>
+                                    <div>
+                                        <p class="text-xs font-bold">홍길동 마스터 로그인</p>
+                                        <p class="text-[10px] text-text-muted">IP: 192.168.1.45</p>
+                                    </div>
+                                </div><span class="text-[10px] text-text-muted">14분 전</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-bg-sub rounded-lg">
+                                <div class="flex items-center gap-3"><span
+                                        class="material-symbols-outlined text-sm text-orange-500">key</span>
+                                    <div>
+                                        <p class="text-xs font-bold">김철수 비밀번호 변경</p>
+                                        <p class="text-[10px] text-text-muted">보안 정책 적용</p>
+                                    </div>
+                                </div><span class="text-[10px] text-text-muted">3시간 전</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-bg-sub rounded-lg">
+                                <div class="flex items-center gap-3"><span
+                                        class="material-symbols-outlined text-sm text-red-500">logout</span>
+                                    <div>
+                                        <p class="text-xs font-bold">김철수 로그아웃</p>
+                                        <p class="text-[10px] text-text-muted">세션 만료</p>
+                                    </div>
+                                </div><span class="text-[10px] text-text-muted">어제 18:05</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 내 계정 정보 -->
+                <div class="bg-black text-white rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-black uppercase italic flex items-center gap-2"><span
+                                class="material-symbols-outlined text-primary">account_circle</span>내 계정 정보</h3><button
+                            class="px-4 py-2 bg-primary hover:bg-red-800 rounded-lg text-xs font-bold flex items-center gap-2"><span
+                                class="material-symbols-outlined text-sm">edit</span>정보 수정</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">이름</p>
+                            <p class="font-bold">홍길동</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">이메일</p>
+                            <p class="font-bold">gildong.hong@burgershop.com</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">권한 레벨</p>
+                            <p class="font-bold text-primary">마스터 관리자</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">가입일</p>
+                            <p class="font-bold">2023.01.15</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">마지막 비밀번호 변경</p>
+                            <p class="font-bold">2024.04.20</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">2단계 인증</p>
+                            <p class="font-bold text-emerald-400 flex items-center gap-1"><span
+                                    class="material-symbols-outlined text-sm">check_circle</span>활성화됨</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

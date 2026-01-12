@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>재료 상세 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #FFFFFF; } ::-webkit-scrollbar-thumb { background: #000000; border-radius: 10px; }
+        .sidebar-item-active { @apply bg-[#0F172A] text-white shadow-md; }
+        .sidebar-item-inactive { @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all; }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+            <div class="p-6 flex flex-col h-full">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
+                            BURGER SHOP</h1>
+                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="index.html"><span class="material-symbols-outlined">dashboard</span>
+                        <p class="text-sm font-medium">대시보드</p>
+                    </a>
+                    <div class="mt-4 mb-2 px-4">
+                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+                    </div>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive" href="menu.html"><span
+                            class="material-symbols-outlined">lunch_dining</span>
+                        <p class="text-sm font-medium">메뉴 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active"
+                        href="inventory.html"><span
+                            class="material-symbols-outlined fill text-primary">inventory_2</span>
+                        <p class="text-sm font-bold">재고 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="orders.html"><span class="material-symbols-outlined">receipt_long</span>
+                        <p class="text-sm font-medium">주문 내역</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="payment.html"><span class="material-symbols-outlined">payments</span>
+                        <p class="text-sm font-medium">결제 관리</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="analytics.html"><span class="material-symbols-outlined">analytics</span>
+                        <p class="text-sm font-medium">매출 분석</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                        href="staff.html"><span class="material-symbols-outlined">notifications_active</span>
+                        <p class="text-sm font-medium">직원 호출</p>
+                    </a>
+                    <div class="mt-auto pt-8 flex flex-col gap-1">
+                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="account.html"><span class="material-symbols-outlined text-sm">manage_accounts</span>
+                            <p class="text-sm font-medium">계정 설정</p>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
+                            href="ai-logs.html"><span class="material-symbols-outlined text-sm">smart_toy</span>
+                            <p class="text-sm font-medium">AI 로그 관리</p>
+                        </a>
+                    </div>
+                </nav>
+                <button
+                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                        통합 리포트
+                    </span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-white">
+            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4 shrink-0">
+                <div class="flex items-center gap-4">
+                    <a href="inventory.html"
+                        class="flex items-center gap-2 text-text-muted hover:text-text-dark transition-colors">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span class="text-sm font-medium">재료 목록</span>
+                    </a>
+                    <div class="h-6 w-px bg-border-light"></div>
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-2xl">inventory_2</span>
+                        <h2 class="text-text-dark text-lg font-black italic uppercase">재료 상세</h2>
+                    </div>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- 로딩 상태 -->
+                <div id="loading-state" class="text-center py-24">
+                    <span
+                        class="material-symbols-outlined text-5xl text-text-muted animate-spin">progress_activity</span>
+                    <p class="text-sm text-text-muted mt-3">재료 정보를 불러오는 중...</p>
+                </div>
+
+                <!-- 에러 상태 -->
+                <div id="error-state" class="hidden text-center py-24">
+                    <span class="material-symbols-outlined text-5xl text-primary">error</span>
+                    <p id="error-message" class="text-sm text-text-muted mt-3">재료를 찾을 수 없습니다.</p>
+                    <a href="inventory.html"
+                        class="mt-4 inline-block px-6 py-2 bg-primary text-white rounded-lg text-sm font-bold">재료 목록으로
+                        돌아가기</a>
+                </div>
+
+                <!-- 재료 상세 컨텐츠 -->
+                <div id="ingredient-content" class="hidden max-w-2xl mx-auto">
+                    <div class="bg-white border-2 border-border-light rounded-xl overflow-hidden shadow-sm">
+                        <!-- 헤더 -->
+                        <div class="bg-[#0F172A] text-white px-8 py-6 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-primary text-3xl">inventory_2</span>
+                                </div>
+                                <div>
+                                    <h1 id="ingredient-name" class="text-2xl font-black">재료 이름</h1>
+                                    <p id="ingredient-id" class="text-xs text-zinc-400 mt-1">ing_xxx</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button id="edit-toggle-btn" onclick="toggleEditMode()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-sm">edit</span>
+                                    <span>수정</span>
+                                </button>
+                                <button onclick="confirmDelete()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                    <span>삭제</span>
+                                </button>
+                            </div>
+                        </div>
+
+
+                        <!-- 재료 정보 -->
+                        <div class="p-8 space-y-6">
+                            <!-- 재료명 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">label</span>
+                                    <span class="font-bold">재료명</span>
+                                </div>
+                                <div id="name-view" class="font-bold">-</div>
+                                <div id="name-edit" class="hidden flex-1 ml-8">
+                                    <input type="text" id="name-input"
+                                        class="w-full px-3 py-2 border-2 border-primary rounded-lg text-sm focus:outline-none"
+                                        placeholder="재료명">
+                                </div>
+                            </div>
+
+                            <!-- 칼로리 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">local_fire_department</span>
+                                    <span class="font-bold">칼로리</span>
+                                </div>
+                                <div id="calories-view" class="font-bold">0 kcal</div>
+                                <div id="calories-edit" class="hidden">
+                                    <input type="number" id="calories-input"
+                                        class="w-32 px-3 py-2 border-2 border-primary rounded-lg text-right font-bold focus:outline-none"
+                                        placeholder="칼로리">
+                                </div>
+                            </div>
+
+                            <!-- 추가금액 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">payments</span>
+                                    <span class="font-bold">추가금액</span>
+                                </div>
+                                <div id="price-view" class="text-xl font-black text-primary">₩0</div>
+                                <div id="price-edit" class="hidden">
+                                    <input type="number" id="price-input"
+                                        class="w-32 px-3 py-2 border-2 border-primary rounded-lg text-right font-bold focus:outline-none"
+                                        placeholder="추가금액">
+                                </div>
+                            </div>
+
+                            <!-- 알러지 태그 -->
+                            <div class="flex items-center justify-between py-4 border-b border-border-light">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">warning</span>
+                                    <span class="font-bold">알러지 태그</span>
+                                </div>
+                                <div id="allergy-view">
+                                    <span id="allergy-badge"
+                                        class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500">없음</span>
+                                </div>
+                                <div id="allergy-edit" class="hidden">
+                                    <select id="allergy-input"
+                                        class="px-4 py-2 border-2 border-primary rounded-lg text-sm focus:outline-none">
+                                        <option value="">없음</option>
+                                        <option value="MILK">유제품 (MILK)</option>
+                                        <option value="EGG">계란 (EGG)</option>
+                                        <option value="WHEAT">밀 (WHEAT)</option>
+                                        <option value="PEANUT">땅콩 (PEANUT)</option>
+                                        <option value="SOY">대두 (SOY)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 수정 버튼 영역 -->
+                            <div id="edit-actions" class="hidden pt-6 flex gap-3 justify-end">
+                                <button onclick="cancelEdit()"
+                                    class="px-6 py-3 border-2 border-border-light text-text-muted font-bold rounded-lg hover:bg-bg-sub transition-colors">취소</button>
+                                <button onclick="saveChanges()"
+                                    class="px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-red-800 transition-colors flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">save</span>
+                                    저장하기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        let ingredientData = null;
+        let isEditMode = false;
+
+        function getIngredientIdFromUrl() {
+            const hash = window.location.hash;
+            if (hash && hash.length > 1) {
+                return hash.substring(1);
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        async function loadIngredientDetail() {
+            const ingredientId = getIngredientIdFromUrl();
+            console.log('📦 요청된 재료 ID:', ingredientId);
+
+            if (!ingredientId) {
+                showError('URL에 재료 ID가 없습니다.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients/${ingredientId}`);
+                if (!response.ok) throw new Error('API 요청 실패');
+
+                const result = await response.json();
+                if (!result.success) throw new Error('재료 조회 실패');
+
+                ingredientData = result.data;
+                renderIngredientDetail();
+            } catch (error) {
+                console.error('❌ 재료 로딩 실패:', error);
+                showError(error.message);
+            }
+        }
+
+        function renderIngredientDetail() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('ingredient-content').classList.remove('hidden');
+
+
+            document.getElementById('ingredient-name').textContent = ingredientData.name;
+            document.getElementById('ingredient-id').textContent = ingredientData.ingredientId;
+            document.getElementById('name-view').textContent = ingredientData.name;
+            document.getElementById('name-input').value = ingredientData.name;
+
+            document.getElementById('calories-view').textContent = `${ingredientData.calories} kcal`;
+            document.getElementById('calories-input').value = ingredientData.calories;
+
+            document.getElementById('price-view').textContent = `₩${ingredientData.extraPrice.toLocaleString()}`;
+            document.getElementById('price-input').value = ingredientData.extraPrice;
+
+            updateAllergyBadge(ingredientData.allergyTag);
+            document.getElementById('allergy-input').value = ingredientData.allergyTag || '';
+        }
+
+        function updateAllergyBadge(allergyTag) {
+            const badge = document.getElementById('allergy-badge');
+            if (allergyTag) {
+                badge.textContent = allergyTag;
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600';
+            } else {
+                badge.textContent = '없음';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500';
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+            document.getElementById('error-message').textContent = message;
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('edit-toggle-btn');
+
+            if (isEditMode) {
+                btn.innerHTML = `<span class="material-symbols-outlined text-sm">close</span><span>취소</span>`;
+                btn.classList.add('bg-primary', 'text-white');
+                btn.classList.remove('bg-white/10');
+
+                ['name', 'calories', 'price', 'allergy'].forEach(field => {
+                    document.getElementById(`${field}-view`).classList.add('hidden');
+                    document.getElementById(`${field}-edit`).classList.remove('hidden');
+                });
+
+                document.getElementById('edit-actions').classList.remove('hidden');
+            } else {
+                cancelEdit();
+            }
+        }
+
+        function cancelEdit() {
+            isEditMode = false;
+            const btn = document.getElementById('edit-toggle-btn');
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">edit</span><span>수정</span>`;
+            btn.classList.remove('bg-primary', 'text-white');
+            btn.classList.add('bg-white/10');
+
+            ['name', 'calories', 'price', 'allergy'].forEach(field => {
+                document.getElementById(`${field}-view`).classList.remove('hidden');
+                document.getElementById(`${field}-edit`).classList.add('hidden');
+            });
+
+            document.getElementById('edit-actions').classList.add('hidden');
+
+            // 원래 값으로 복원
+            document.getElementById('name-input').value = ingredientData.name;
+            document.getElementById('calories-input').value = ingredientData.calories;
+            document.getElementById('price-input').value = ingredientData.extraPrice;
+            document.getElementById('allergy-input').value = ingredientData.allergyTag || '';
+        }
+
+        async function saveChanges() {
+            const newName = document.getElementById('name-input').value.trim();
+            const newCalories = parseInt(document.getElementById('calories-input').value);
+            const newPrice = parseInt(document.getElementById('price-input').value);
+            const newAllergy = document.getElementById('allergy-input').value || null;
+
+            const updateData = {};
+            if (newName !== ingredientData.name) updateData.name = newName;
+            if (newCalories !== ingredientData.calories) updateData.calories = newCalories;
+            if (newPrice !== ingredientData.extraPrice) updateData.extraPrice = newPrice;
+            if (newAllergy !== ingredientData.allergyTag) updateData.allergyTag = newAllergy;
+
+            if (Object.keys(updateData).length === 0) {
+                alert('변경된 내용이 없습니다.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients/${ingredientData.ingredientId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+                if (!result.success) throw new Error('수정 실패');
+
+                ingredientData = result.data;
+                renderIngredientDetail();
+                cancelEdit();
+                alert('✅ 재료가 수정되었습니다!');
+            } catch (error) {
+                console.error('❌ 재료 수정 실패:', error);
+                alert('재료 수정 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 재료 삭제 확인
+        function confirmDelete() {
+            const confirmed = confirm(`⚠️ 정말로 "${ingredientData.name}" 재료를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`);
+            if (confirmed) {
+                deleteIngredient();
+            }
+        }
+
+        // 재료 삭제 API 호출
+        async function deleteIngredient() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients/${ingredientData.ingredientId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (!result.success) throw new Error('삭제 실패');
+
+                alert('✅ 재료가 삭제되었습니다.');
+                window.location.href = 'inventory.html';
+            } catch (error) {
+                console.error('❌ 재료 삭제 실패:', error);
+                alert('재료 삭제 중 오류가 발생했습니다.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadIngredientDetail);
+    </script>
+</body>
+
+</html>
