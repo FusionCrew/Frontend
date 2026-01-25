@@ -74,7 +74,7 @@ function Live2DStage({
   const modelRef = useRef<any>(null);
   const appRef = useRef<any>(null);
   const isPlayingMotionRef = useRef(false); // 모션 재생 중 플래그
-  
+
   // 얼굴 추적 훅 (포즈 기반 망설임 정보 포함)
   const { facePosition, isDetecting, error: faceTrackingError, hesitationScore, isHesitating, poseLandmarks, videoElement } = useFaceTracking(enableFaceTracking, enablePose, poseDeviceId);
 
@@ -84,7 +84,7 @@ function Live2DStage({
       onHesitationChange(hesitationScore || 0, !!isHesitating, poseLandmarks || [], videoElement || null);
     }
   }, [hesitationScore, isHesitating, poseLandmarks, videoElement, onHesitationChange]);
-  
+
   // 모션 목록 (haru_g_m01 ~ m26)
   const motionList = Array.from({ length: 26 }, (_, i) => `m${String(i + 1).padStart(2, '0')}`);
 
@@ -143,7 +143,7 @@ function Live2DStage({
       destroyed = true;
       try {
         appRef.current?.destroy(true);
-      } catch {}
+      } catch { }
       if (boxRef.current) boxRef.current.innerHTML = "";
     };
   }, [modelPath]);
@@ -151,7 +151,7 @@ function Live2DStage({
   // 얼굴 추적 적용 (모션 재생 중에는 비활성화)
   useEffect(() => {
     if (!enableFaceTracking || !isDetecting || isPlayingMotionRef.current) return;
-    
+
     const model = modelRef.current;
     if (!model) return;
 
@@ -182,22 +182,22 @@ function Live2DStage({
       try {
         // 모션 재생 시작 플래그 설정
         isPlayingMotionRef.current = true;
-        
+
         // model3.json의 Motions 배열 인덱스:
         // 0: idle, 1: m01, 2: m02, ..., 26: m26
         const motionGroup = ""; // 빈 문자열 그룹
         let motionIndex = 0;
-        
+
         if (motionToPlay === "idle") {
           motionIndex = 0;
         } else {
           // m01 -> 1, m02 -> 2, ..., m26 -> 26
           motionIndex = parseInt(motionToPlay.replace("m", ""));
         }
-        
+
         // motion() API 사용 (pixi-live2d-display)
         const motionPromise = model.motion(motionGroup, motionIndex, 3);
-        
+
         // 모션이 끝나면 플래그 해제 (Promise 반환하는 경우)
         if (motionPromise && typeof motionPromise.then === 'function') {
           motionPromise.then(() => {
@@ -282,8 +282,8 @@ type LightState = "idle" | "checking" | "ok" | "fail";
 function StatusLight({ state }: { state: LightState }) {
   const color =
     state === "checking" ? "bg-amber-400" :
-    state === "ok"       ? "bg-emerald-500" :
-    state === "fail"     ? "bg-rose-500" : "bg-white/30";
+      state === "ok" ? "bg-emerald-500" :
+        state === "fail" ? "bg-rose-500" : "bg-white/30";
   const pulse = state === "checking" ? "animate-pulse" : "";
   return <span className={`inline-block w-2.5 h-2.5 rounded-full ${color} ${pulse}`} />;
 }
@@ -299,12 +299,12 @@ export default function VoiceKiosk() {
 
   const [sttModel, setSttModel] = useState("whisper-1");
   const [llmModel, setLlmModel] = useState("gpt-4o"); // gpt-4o: 안정적이고 강력함 (권장)
-  
+
   // Pose 추적 모드 (face tracking 제거, pose로 대체)
   const [usePoseTracking, setUsePoseTracking] = useState(false);
   const [poseDeviceId, setPoseDeviceId] = useState<string | undefined>(undefined);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-  
+
   // Live2D 모션 제어
   const [motionTrigger, setMotionTrigger] = useState(0);
   const [specificMotion, setSpecificMotion] = useState<string | null>(null);
@@ -318,18 +318,18 @@ export default function VoiceKiosk() {
     if (devices.length > 0 && !selectedDeviceId) {
       // 1. deviceId가 "default"인 마이크 찾기
       let defaultDevice = devices.find(d => d.deviceId === "default");
-      
+
       // 2. 없으면 label에 "기본값" 또는 "default" 포함된 마이크 찾기
       if (!defaultDevice) {
-        defaultDevice = devices.find(d => 
-          d.label.toLowerCase().includes("default") || 
+        defaultDevice = devices.find(d =>
+          d.label.toLowerCase().includes("default") ||
           d.label.includes("기본값")
         );
       }
-      
+
       // 3. 그래도 없으면 첫 번째 마이크 사용
       const selectedDevice = defaultDevice || devices[0];
-      
+
       setSelectedDeviceId(selectedDevice.deviceId);
       console.log('[마이크] 기본 마이크 자동 선택:', selectedDevice.label, selectedDevice.deviceId);
     }
@@ -370,26 +370,26 @@ export default function VoiceKiosk() {
 
   // 패널 테스트 (헬스 + 마이크 레벨)
   const [serverState, setServerState] = useState<LightState>("idle");
-  const [llmState, setLlmState]       = useState<LightState>("idle");
-  const [sttState, setSttState]       = useState<LightState>("idle");
+  const [llmState, setLlmState] = useState<LightState>("idle");
+  const [sttState, setSttState] = useState<LightState>("idle");
 
   const [testRunning, setTestRunning] = useState(false);
-  const [micLevel, setMicLevel]       = useState(0); // 0~1
-  const testStreamRef   = useRef<MediaStream | null>(null);
-  const testContextRef  = useRef<AudioContext | null>(null);
+  const [micLevel, setMicLevel] = useState(0); // 0~1
+  const testStreamRef = useRef<MediaStream | null>(null);
+  const testContextRef = useRef<AudioContext | null>(null);
   const testAnalyserRef = useRef<AnalyserNode | null>(null);
-  const testRafRef      = useRef<number | null>(null);
+  const testRafRef = useRef<number | null>(null);
 
   const [testTranscript, setTestTranscript] = useState("");
-  const [testReply, setTestReply]           = useState("");
-  const [poseForDebug, setPoseForDebug]     = useState<any[]>([]);
+  const [testReply, setTestReply] = useState("");
+  const [poseForDebug, setPoseForDebug] = useState<any[]>([]);
   const poseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [poseVideoElement, setPoseVideoElement] = useState<HTMLVideoElement | null>(null);
   const [recommendedHistory, setRecommendedHistory] = useState<string[]>([]);
   // 마지막 추천 메뉴 (사용자가 "응", "그거 주세요" 등으로 수락할 수 있게)
   const [lastRecommendedItem, setLastRecommendedItem] = useState<string | null>(null);
   // OpenAI messages 형식으로 대화 히스토리 관리
-  const [conversationHistory, setConversationHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]); 
+  const [conversationHistory, setConversationHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [pipMode, setPipMode] = useState(false);
   const pipVideoRef = useRef<HTMLVideoElement | null>(null);
   const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -398,7 +398,7 @@ export default function VoiceKiosk() {
   const noseHistoryRef = useRef<number[]>([]);
   const nodStateRef = useRef<"idle" | "down" | "up" | "cooldown">("idle");
   const lastNodAtRef = useRef<number>(0);
-  
+
   // Web Speech API voices
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(null);
@@ -475,7 +475,7 @@ export default function VoiceKiosk() {
         ctx.arc(x, y, 3, 0, Math.PI * 2);
         ctx.fill();
       }
-      
+
       // If no landmarks, show hint
       if (usePoseTracking && (!poseForDebug || poseForDebug.length === 0)) {
         ctx.fillStyle = "rgba(255,255,255,0.6)";
@@ -503,7 +503,7 @@ export default function VoiceKiosk() {
         if (!selectedVoiceName && vs.length > 0) {
           setSelectedVoiceName(vs[0].name);
         }
-      } catch (e) {}
+      } catch (e) { }
     };
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -529,7 +529,7 @@ export default function VoiceKiosk() {
       }
     };
     loadVideoDevices();
-    
+
     navigator.mediaDevices.addEventListener?.('devicechange', loadVideoDevices);
     return () => {
       navigator.mediaDevices.removeEventListener?.('devicechange', loadVideoDevices);
@@ -564,14 +564,14 @@ export default function VoiceKiosk() {
       try {
         console.log('[PIP] Opening new window...');
         const stageElement = document.querySelector('.live2d-stage-container') as HTMLElement;
-        
+
         if (!stageElement) {
           alert('무대 요소를 찾을 수 없습니다.');
           return;
         }
 
         const live2dCanvas = stageElement.querySelector('canvas') as HTMLCanvasElement;
-        
+
         if (!live2dCanvas) {
           alert('Live2D 캔버스를 찾을 수 없습니다.');
           return;
@@ -583,7 +583,7 @@ export default function VoiceKiosk() {
           'KioskPIP',
           'width=1080,height=1920,left=100,top=100,resizable=yes,scrollbars=no,status=no,menubar=no,toolbar=no'
         );
-        
+
         if (!newWindow) {
           alert('팝업 차단으로 창을 열 수 없습니다. 팝업 차단을 해제해주세요.');
           return;
@@ -629,7 +629,7 @@ export default function VoiceKiosk() {
         canvas.height = 1920;
         pipCanvasRef.current = canvas;
         const ctx = canvas.getContext('2d');
-        
+
         if (!ctx) {
           alert('Canvas를 생성할 수 없습니다.');
           newWindow.close();
@@ -655,14 +655,14 @@ export default function VoiceKiosk() {
           }
 
           ctx.clearRect(0, 0, 1080, 1920);
-          
+
           // 전체 배경
           ctx.fillStyle = '#000000';
           ctx.fillRect(0, 0, 1080, 1920);
-          
+
           // 무대 영역 (상단 78% - 더 넓게)
           const stageHeight = 1920 * 0.78;
-          
+
           // 배경 그라데이션
           const gradient = ctx.createLinearGradient(0, 0, 1080, stageHeight);
           gradient.addColorStop(0, 'rgba(244, 114, 182, 0.2)');
@@ -670,18 +670,18 @@ export default function VoiceKiosk() {
           gradient.addColorStop(1, 'rgba(103, 232, 249, 0.2)');
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, 1080, stageHeight);
-          
+
           // Live2D 그리기 (무대 영역 내에만 그리기, 클리핑)
           ctx.save();
           ctx.beginPath();
           ctx.rect(0, 0, 1080, stageHeight);
           ctx.clip();
-          
+
           const canvasAspect = live2dCanvas.width / live2dCanvas.height;
           const stageAspect = 1080 / stageHeight;
-          
+
           let drawWidth, drawHeight, drawX, drawY;
-          
+
           if (canvasAspect > stageAspect) {
             // 캔버스가 더 넓음 -> 높이를 맞추고 좌우를 크롭
             drawHeight = stageHeight;
@@ -696,10 +696,10 @@ export default function VoiceKiosk() {
             // 중앙 위치
             drawY = (stageHeight - drawHeight) / 2;
           }
-          
+
           ctx.drawImage(live2dCanvas, drawX, drawY, drawWidth, drawHeight);
           ctx.restore();
-          
+
           // 자막 (실시간 상태 참조) - 긴 텍스트 자동 2줄 처리
           const currentSubtitle = subtitleRef.current;
           if (currentSubtitle) {
@@ -709,24 +709,24 @@ export default function VoiceKiosk() {
             ctx.fillStyle = 'white';
             ctx.font = '28px sans-serif';
             ctx.textAlign = 'center';
-            
+
             // 자동 줄바꿈: 최대 폭 900px 초과 시 2줄로 분할
             const maxWidth = 900;
             const words = currentSubtitle.split(' ');
             let line1 = '';
             let line2 = '';
-            
+
             for (const word of words) {
               const testLine = line1 ? `${line1} ${word}` : word;
               const metrics = ctx.measureText(testLine);
-              
+
               if (metrics.width > maxWidth && line1) {
                 line2 = line2 ? `${line2} ${word}` : word;
               } else {
                 line1 = testLine;
               }
             }
-            
+
             // 2줄 렌더링
             if (line2) {
               ctx.fillText(line1, 540, subtitleY + 45);
@@ -735,23 +735,23 @@ export default function VoiceKiosk() {
               ctx.fillText(line1, 540, subtitleY + 65);
             }
           }
-          
+
           // 메뉴판 (여백 축소)
           const menuY = stageHeight;
           const menuHeight = 1920 - stageHeight;
-          
+
           ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
           ctx.fillRect(0, menuY, 1080, menuHeight);
-          
+
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
           ctx.lineWidth = 2;
           ctx.strokeRect(12, menuY + 10, 1056, menuHeight - 20);
-          
+
           ctx.fillStyle = 'white';
           ctx.font = 'bold 28px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('🍔 메뉴판', 540, menuY + 40);
-          
+
           const itemsPerRow = 4;
           const rows = 4;
           const itemWidth = 235;
@@ -760,45 +760,45 @@ export default function VoiceKiosk() {
           const totalMenuWidth = itemWidth * itemsPerRow + itemSpacing * (itemsPerRow - 1);
           const startX = (1080 - totalMenuWidth) / 2;
           const startY = menuY + 55;
-          
+
           // 실시간 재고 참조
           const currentStock = stockRef.current;
-          
+
           BURGER_MENU.forEach((item, idx) => {
             const row = Math.floor(idx / itemsPerRow);
             const col = idx % itemsPerRow;
             if (row >= rows) return;
-            
+
             const x = startX + col * (itemWidth + itemSpacing);
             const y = startY + row * (itemHeight + itemSpacing);
-            
+
             // 메뉴판 영역을 벗어나는지 체크
             if (y + itemHeight > menuY + menuHeight - 10) return;
-            
+
             const bgGradient = ctx.createLinearGradient(x, y, x, y + itemHeight);
             bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
             bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
             ctx.fillStyle = bgGradient;
             ctx.fillRect(x, y, itemWidth, itemHeight);
-            
+
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, itemWidth, itemHeight);
-            
+
             // 이모지 (왼쪽)
             ctx.font = '42px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = 'white';
             ctx.fillText(item.emoji, x + 18, y + itemHeight / 2);
-            
+
             // 메뉴명 (오른쪽)
             ctx.font = 'bold 18px sans-serif';
             ctx.fillStyle = 'white';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.fillText(item.label, x + 80, y + 30);
-            
+
             // 재고 (실시간)
             ctx.font = '15px sans-serif';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -884,7 +884,7 @@ export default function VoiceKiosk() {
   }, [poseForDebug]);
   */
 
- 
+
 
   useEffect(() => {
     say(lang === "ko" ? "안녕하세요! 버거킹에 오신 것을 환영합니다. 주문을 말씀해주세요." : "Hi! Welcome to Burger King. Please say your order.");
@@ -893,11 +893,11 @@ export default function VoiceKiosk() {
   // 자동 모션 재생 (15초마다 랜덤 모션)
   useEffect(() => {
     if (!autoMotion) return;
-    
+
     const interval = setInterval(() => {
       setMotionTrigger((prev) => prev + 1);
     }, 15000); // 15초마다
-    
+
     return () => clearInterval(interval);
   }, [autoMotion]);
 
@@ -913,42 +913,50 @@ export default function VoiceKiosk() {
   };
 
   function say(text: string): Promise<void> {
-    return new Promise((resolve) => {
-    setSubtitle(text);
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang === "ko" ? "ko-KR" : "en-US";
-      // 선택된 음성 있으면 설정
-      try {
-        if (selectedVoiceName) {
-          const v = voices.find(vc => vc.name === selectedVoiceName || vc.voiceURI === selectedVoiceName);
-          if (v) u.voice = v;
-        }
-      } catch {}
-      // 🔇 TTS 시작 "전"에 미리 음성인식 중지 (피드백 루프 방지)
+    return new Promise(async (resolve) => {
+      setSubtitle(text);
+      setSpeaking(true);
+
+      // Stop mic to prevent echo
       prevListeningRef.current = listeningEnabled;
-      if (listeningEnabled) {
-        setListeningEnabled(false);
-        console.log('[TTS] 음성인식 중지 (피드백 루프 방지)');
-      }
-      
-      u.onstart = () => {
-        setSpeaking(true);
-      };
-      u.onend = () => {
+      if (listeningEnabled) setListeningEnabled(false);
+
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: text,
+            voice: "alloy",
+            speed: 1.0
+          })
+        });
+
+        // Spring returns AiCommonResponse<TtsDto.Result>
+        const json = await res.json();
+        // data.audioBase64
+        const audioB64 = json.data?.audioBase64;
+
+        if (audioB64) {
+          const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+          audio.onended = () => {
+            setSpeaking(false);
+            if (prevListeningRef.current) setListeningEnabled(true);
+            resolve();
+          };
+          await audio.play();
+        } else {
+          console.error("TTS No Audio");
+          setSpeaking(false);
+          if (prevListeningRef.current) setListeningEnabled(true);
+          resolve();
+        }
+      } catch (e) {
+        console.error("TTS Error", e);
         setSpeaking(false);
-        try {
-          // TTS 종료 후 자동 청취 상태 복원 (딜레이 증가: 800ms)
-          const prev = prevListeningRef.current ?? false;
-          prevListeningRef.current = null;
-          setTimeout(() => {
-            setListeningEnabled(prev);
-            console.log('[TTS] 음성인식 재개');
-          }, 800); // 400ms → 800ms로 증가
-        } catch {}
+        if (prevListeningRef.current) setListeningEnabled(true);
         resolve();
-      };
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+      }
     });
   }
 
@@ -961,9 +969,9 @@ export default function VoiceKiosk() {
       const acceptPhrases = ["응", "예", "네", "좋아", "그거", "그걸", "그래", "ok", "okay", "yes", "sure", "주세요", "할게요", "먹을래", "주문", "줘", "워"];
       const normalizedText = text.toLowerCase().trim();
       const isAccepting = acceptPhrases.some(phrase => normalizedText.includes(phrase));
-      
+
       console.log('[LLM] 추천 메뉴 수락 체크:', { text, isAccepting, lastRecommendedItem });
-      
+
       if (isAccepting && lastRecommendedItem) {
         console.log('[LLM] ✅ 추천 메뉴 수락 감지:', lastRecommendedItem);
         const recommendedMenu = BURGER_MENU.find(m => m.id === lastRecommendedItem);
@@ -981,42 +989,38 @@ export default function VoiceKiosk() {
 
       // 대화 히스토리 포함: 최근 N 턴만 사용 (messages 형식)
       const MAX_HISTORY = 10; // 최대 10턴 (user + assistant 쌍)
-      
+
       // 현재 사용자 메시지 추가
       const userMessage = { role: "user" as const, content: text };
       const updatedHistory = [...conversationHistory, userMessage];
-      
+
       // 최근 MAX_HISTORY*2 개의 메시지만 유지 (user+assistant 쌍)
       const messages = updatedHistory.slice(-MAX_HISTORY * 2);
-      
+
       console.log('[LLM] 요청 전송 중... messages:', JSON.stringify(messages, null, 2), 'stock:', stock);
       console.log('[LLM] messages 타입 체크:', Array.isArray(messages), 'length:', messages.length);
 
-      const llmRes = await fetch("/api/llm", {
+      const llmRes = await fetch("/api/llm/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages, // messages 배열로 전송
-          model: llmModel,
-          stock,
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          // Context can be added if needed, complying with LlmChatDto
+          // context: { ... }
         }),
       });
       const llmJson = await llmRes.json();
-      
+
       console.log('[LLM] 응답 받음:', llmJson);
-      
-      // 응답으로 무대에 자막 표시 및 TTS
-      const replyText = llmJson.text || (lang === "ko" ? "응답이 없습니다." : "No response.");
-      
-      // 주문 정보를 포함한 상세 응답 구성 (LLM이 맥락을 이해하도록)
+
+      // LLM response adaptation (Spring returns { success:true, data: { reply: "..." } })
+      const replyText = llmJson.data?.reply || (lang === "ko" ? "응답이 없습니다." : "No response.");
+
       let detailedResponse = replyText;
-      if (llmJson.order && Array.isArray(llmJson.order) && llmJson.order.length > 0) {
-        // 새로운 주문이 있으면 추가
-        const orderSummary = llmJson.order.map((item: any) => `${item.id} ${item.qty}개`).join(", ");
-        detailedResponse = `${replyText} [주문내역: ${orderSummary}]`;
-      }
+      // Mock logic: if we had order data from backend, parse it here.
+      // For now, Spring/FastAPI mock doesn't return structured order yet.
       // 주문이 없는 응답(질문 답변)에는 이전 주문을 추가하지 않음 (히스토리 복잡도 감소)
-      
+
       // 대화 히스토리에 user와 assistant 메시지 모두 추가
       setConversationHistory((prev) => {
         const next = [
@@ -1026,7 +1030,7 @@ export default function VoiceKiosk() {
         ].slice(-MAX_HISTORY * 2); // 최근 N턴만 유지
         return next;
       });
-      
+
       setSubtitle(replyText);
       await say(replyText);
 
@@ -1045,7 +1049,7 @@ export default function VoiceKiosk() {
     try {
       // 대화 히스토리 포함 (messages 형식)
       const MAX_HISTORY = 10;
-      
+
       // 시스템이 추천을 요청하는 형태로 messages 구성
       const systemMessage = { role: "user" as const, content: prompt };
       const messages = [...conversationHistory, systemMessage].slice(-MAX_HISTORY * 2);
@@ -1128,25 +1132,50 @@ export default function VoiceKiosk() {
     }
 
     try {
-      const r = await fetch("/api/ping-openai", { method: "GET" });
+      const r = await fetch("/api/meta/health", { method: "GET" }); // Spring -> FastAPI meta/health
       if (!r.ok) throw 0;
       const j = await r.json();
-      setLlmState(j?.ok ? "ok" : "fail");
+      // Expect {"status": "UP"}
+      setLlmState(j?.status === "UP" ? "ok" : "fail");
     } catch {
       setLlmState("fail");
     }
 
     try {
-      const silent = new Float32Array(Math.floor(16000 * 0.25));
+      const silent = new Float32Array(Math.floor(16000 * 1.0)); // 1.0 sec
       const wav = encodeWavFromFloat32(silent, 16000);
-      const fd = new FormData();
-      fd.append("audio", wav, "silence.wav");
-      fd.append("model", sttModel);
-      fd.append("inputLang", lang);
 
-      const r = await fetch("/api/stt", { method: "POST", body: fd });
-      setSttState(r.ok ? "ok" : "fail");
-    } catch {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(wav);
+      await new Promise(resolve => reader.onloadend = resolve);
+      const base64Audio = (reader.result as string).split(',')[1];
+
+      const r = await fetch("/api/stt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          audioBase64: base64Audio,
+          language: lang,
+          model: sttModel
+        })
+      });
+
+      if (!r.ok) {
+        console.error("[Health] STT HTTP Error", r.status, r.statusText);
+        setSttState("fail");
+        return;
+      }
+
+      const json = await r.json();
+      if (json.success) {
+        setSttState("ok");
+      } else {
+        console.error("[Health] STT API Error", json.error);
+        setSttState("fail");
+      }
+    } catch (e) {
+      console.error("[Health] STT Exception", e);
       setSttState("fail");
     }
   }
@@ -1238,7 +1267,7 @@ export default function VoiceKiosk() {
       try {
         testStreamRef.current?.getTracks().forEach((t) => t.stop());
         await testContextRef.current?.close();
-      } catch {}
+      } catch { }
       testStreamRef.current = null;
       testContextRef.current = null;
       testAnalyserRef.current = null;
@@ -1280,20 +1309,20 @@ export default function VoiceKiosk() {
       <div className="flex flex-col gap-3 w-full max-w-[480px] h-[90vh]">
         {/* 무대 */}
         <div className="live2d-stage-container relative w-full flex-1 border border-white/20 rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-400/20 via-purple-400/10 to-cyan-300/20" />
-        <Live2DStage 
-          speaking={speaking} 
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-400/20 via-purple-400/10 to-cyan-300/20" />
+          <Live2DStage
+            speaking={speaking}
             enableFaceTracking={usePoseTracking}
             enablePose={usePoseTracking}
             poseDeviceId={poseDeviceId}
-          motionTrigger={motionTrigger}
-          specificMotion={specificMotion}
+            motionTrigger={motionTrigger}
+            specificMotion={specificMotion}
             onHesitationChange={(score, isHesitating, poseLandmarks, videoEl) => {
               // 디버그용 poseLandmarks를 상위에 저장
               try {
                 setPoseForDebug(poseLandmarks || []);
                 setPoseVideoElement(videoEl || null);
-              } catch {}
+              } catch { }
 
               // 🔇 음성 인식 중이거나 TTS 재생 중이면 망설임 카운트 중지
               if (!listeningEnabled || speaking) {
@@ -1343,18 +1372,17 @@ export default function VoiceKiosk() {
           />
           <div className="absolute bottom-20 left-4 right-4 text-center z-20">
             <div className="bg-black/70 rounded-2xl px-4 py-2 text-sm backdrop-blur">
-            {subtitle || "대사가 여기에 표시됩니다."}
+              {subtitle || "대사가 여기에 표시됩니다."}
+            </div>
           </div>
-        </div>
-          
-        <button
+
+          <button
             onClick={() => setListeningEnabled(!listeningEnabled)}
-            className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full font-semibold text-sm z-20 transition-all ${
-              listeningEnabled ? "bg-emerald-500 animate-pulse" : "bg-gray-500"
-            }`}
+            className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full font-semibold text-sm z-20 transition-all ${listeningEnabled ? "bg-emerald-500 animate-pulse" : "bg-gray-500"
+              }`}
           >
             {listeningEnabled ? "🎤 음성 인식 중..." : "🎙 음성 인식 시작"}
-        </button>
+          </button>
         </div>
 
         {/* 메뉴판 - 가로 스크롤 */}
@@ -1468,7 +1496,7 @@ export default function VoiceKiosk() {
                   </option>
                 ))}
               </select>
-              
+
             </div>
             <div className="text-xs text-white/60 mt-1">브라우저 제공 음성 목록입니다. 원하는 음성을 선택하세요.</div>
           </div>
@@ -1487,7 +1515,7 @@ export default function VoiceKiosk() {
                 <span>자동 재생</span>
               </label>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2 mb-2">
               <button
                 onClick={playRandomMotion}
@@ -1558,11 +1586,10 @@ export default function VoiceKiosk() {
               <button
                 key={d.deviceId}
                 onClick={() => setSelectedDeviceId(d.deviceId)}
-                className={`text-left px-3 py-2 rounded border ${
-                  selectedDeviceId === d.deviceId
-                    ? "border-emerald-400 bg-emerald-400/10"
-                    : "border-white/10 bg-white/5 hover:bg-white/10"
-                }`}
+                className={`text-left px-3 py-2 rounded border ${selectedDeviceId === d.deviceId
+                  ? "border-emerald-400 bg-emerald-400/10"
+                  : "border-white/10 bg-white/5 hover:bg-white/10"
+                  }`}
               >
                 <div className="font-medium">{d.label || "마이크"}</div>
                 <div className="text-[11px] text-white/50 break-all">{d.deviceId}</div>
@@ -1633,9 +1660,8 @@ export default function VoiceKiosk() {
               <button
                 onClick={startPanelTest}
                 disabled={testRunning}
-                className={`text-xs px-3 py-1 rounded border ${
-                  testRunning ? "border-white/10 bg-white/10 text-white/50" : "border-white/20 bg-white/10 hover:bg-white/20"
-                }`}
+                className={`text-xs px-3 py-1 rounded border ${testRunning ? "border-white/10 bg-white/10 text-white/50" : "border-white/20 bg-white/10 hover:bg-white/20"
+                  }`}
               >
                 {testRunning ? "테스트 중..." : "테스트 시작"}
               </button>

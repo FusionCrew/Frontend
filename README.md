@@ -20,7 +20,7 @@ React + TypeScript + Vite 기반 프론트엔드 애플리케이션입니다. �
 |------|-----|------|
 | **언어** | TypeScript | 5.8.3 |
 | **런타임** | Node.js | 22.x |
-| **프레임워크** | React | 19.1.1 |
+| **프레임워크** | React | 19.1.2 |
 | **빌드 도구** | Vite | 7.1.2 |
 | **스타일링** | TailwindCSS | 4.1.13 |
 | **AI 라이브러리** | MediaPipe (Pose, Face) | 0.5.x |

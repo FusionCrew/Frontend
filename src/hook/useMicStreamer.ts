@@ -116,18 +116,18 @@ export function useMicStreamer(opts: Opts) {
     translationTemperature = 0, translationTopP = 1, translationMaxTokens = 256, translationParallelWorkers,
   } = opts;
 
-  const ctxRef  = useRef<AudioContext | null>(null);
-  const srcRef  = useRef<MediaStreamAudioSourceNode | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+  const srcRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const procRef = useRef<ScriptProcessorNode | null>(null);
-  const mediaRef= useRef<MediaStream | null>(null);
+  const mediaRef = useRef<MediaStream | null>(null);
   const reqCtrlRef = useRef<AbortController | null>(null);
 
   // 세그먼트 상태
   const segFramesRef = useRef<Float32Array[]>([]);
-  const segDurMsRef  = useRef<number>(0);
+  const segDurMsRef = useRef<number>(0);
   const silenceMsRef = useRef<number>(0);
-  const speakingRef  = useRef<boolean>(false);
-  const voicedMsRef  = useRef<number>(0);       // ✅ 누적 "발화" 시간(무성 구간 제외)
+  const speakingRef = useRef<boolean>(false);
+  const voicedMsRef = useRef<number>(0);       // ✅ 누적 "발화" 시간(무성 구간 제외)
 
   useEffect(() => {
     (async () => {
@@ -137,7 +137,7 @@ export function useMicStreamer(opts: Opts) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sttModel, llmModel, warmupLanguage: inputLang }),
         });
-      } catch {}
+      } catch { }
     })();
   }, [sttModel, llmModel, inputLang]);
 
@@ -162,10 +162,10 @@ export function useMicStreamer(opts: Opts) {
 
         // 초기화
         segFramesRef.current = [];
-        segDurMsRef.current  = 0;
+        segDurMsRef.current = 0;
         silenceMsRef.current = 0;
-        speakingRef.current  = false;
-        voicedMsRef.current  = 0;
+        speakingRef.current = false;
+        voicedMsRef.current = 0;
 
         proc.onaudioprocess = (ev) => {
           const inCh = ev.inputBuffer.getChannelData(0);
@@ -187,7 +187,7 @@ export function useMicStreamer(opts: Opts) {
               segFramesRef.current.push(down);
               segDurMsRef.current += frameMs;
               silenceMsRef.current = 0;
-              voicedMsRef.current  += frameMs;             // ✅ 시작 프레임을 발화로 카운트
+              voicedMsRef.current += frameMs;             // ✅ 시작 프레임을 발화로 카운트
             }
           } else {
             segFramesRef.current.push(down);
@@ -201,7 +201,7 @@ export function useMicStreamer(opts: Opts) {
               }
             } else {
               silenceMsRef.current = 0;
-              voicedMsRef.current  += frameMs;             // ✅ 발화 프레임 누적
+              voicedMsRef.current += frameMs;             // ✅ 발화 프레임 누적
               if (segDurMsRef.current >= maxSegmentMs) {
                 finalizeSegment().catch(e => onError?.(String(e)));
                 resetSegmentState();
@@ -226,15 +226,15 @@ export function useMicStreamer(opts: Opts) {
 
   function resetSegmentState() {
     segFramesRef.current = [];
-    segDurMsRef.current  = 0;
+    segDurMsRef.current = 0;
     silenceMsRef.current = 0;
-    speakingRef.current  = false;
-    voicedMsRef.current  = 0;
+    speakingRef.current = false;
+    voicedMsRef.current = 0;
   }
 
   async function finalizeSegment() {
     const frames = segFramesRef.current;
-    const durMs  = segDurMsRef.current;
+    const durMs = segDurMsRef.current;
     const voicedMs = voicedMsRef.current;
 
     if (!frames.length) return;
@@ -271,20 +271,31 @@ export function useMicStreamer(opts: Opts) {
     reqCtrlRef.current = ac;
 
     try {
-      /** 1) STT */
-      const sttFd = new FormData();
-      sttFd.append("audio", blob, "segment.wav");
-      sttFd.append("inputLang", inputLang);
-      sttFd.append("sttModel", sttModel);
-      sttFd.append("stats", JSON.stringify({ durMs, voicedMs, voicedFraction, rms, peak })); // ✅ 전달
+      /** 1) STT (Updated for Spring Boot: JSON with Base64) */
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      await new Promise(resolve => reader.onloadend = resolve);
+      const base64Audio = (reader.result as string).split(',')[1];
 
       const sttRes = await fetchWithRetry(
-        "/api/transcribe",
-        { method: "POST", body: sttFd, signal: ac.signal },
+        "/api/stt",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            audioBase64: base64Audio,
+            language: inputLang,
+            model: sttModel
+          }),
+          signal: ac.signal
+        },
         2, 250
       );
-      const sttJson = await sttRes.json() as { text?: string };
-      const transcript = (sttJson?.text || "").trim();
+
+      // Spring returns AiCommonResponse<SttDto.Result>
+      // { success: true, data: { text: "..." } }
+      const sttJson = await sttRes.json();
+      const transcript = (sttJson?.data?.text || "").trim();
       if (!transcript) return;
 
       /** 2) 번역 — 병렬 */
@@ -315,7 +326,7 @@ export function useMicStreamer(opts: Opts) {
           while (queue.length) {
             const lang = queue.shift();
             if (!lang) break;
-            try { await translateOne(lang); } catch {}
+            try { await translateOne(lang); } catch { }
           }
         })());
       }
@@ -338,7 +349,7 @@ export function useMicStreamer(opts: Opts) {
       procRef.current?.disconnect();
       srcRef.current?.disconnect();
       ctxRef.current?.close();
-    } catch {}
+    } catch { }
     reqCtrlRef.current = null;
     procRef.current = null;
     srcRef.current = null;
