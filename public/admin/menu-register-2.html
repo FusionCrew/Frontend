@@ -4,235 +4,205 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>메뉴 등록 - 재료 매핑</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>메뉴 등록 - 식재료 구성</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
-    <script>
+    <script id="tailwind-config">
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    colors: {
+                        "primary": "#B91C1C",
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
                     fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
-                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                    boxShadow: { "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)" }
                 },
             },
         }
     </script>
-    <style>
-        body {
-            font-family: 'Pretendard', sans-serif;
-            background-color: theme('colors.bg-main');
-            color: theme('colors.text-dark');
-        }
-
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-
-        .material-symbols-outlined.fill {
-            font-variation-settings: 'FILL' 1;
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #FFFFFF;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #000000;
-            border-radius: 10px;
-        }
-
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
         .sidebar-item-active {
-            @apply bg-[#0F172A] text-white shadow-md;
+            @apply text-text-dark relative font-bold;
         }
-
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
         .sidebar-item-inactive {
-            @apply text-text-muted hover:bg-zinc-100 hover:text-text-dark transition-all;
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
         }
-
-        ::-webkit-scrollbar {
-            width: 6px
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #000;
-            border-radius: 10px
-        }
+        .card { @apply bg-white rounded-2xl shadow-premium border border-white p-10; }
+        .step-circle { @apply size-8 rounded-full flex items-center justify-center text-xs font-bold transition-all; }
+        .step-active .step-circle { @apply bg-primary text-white shadow-lg shadow-primary/20; }
+        .step-done .step-circle { @apply bg-gray-700 text-white; }
+        input { @apply w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:border-primary/30 focus:ring-4 focus:ring-primary/5 outline-none transition-all; }
     </style>
 </head>
 
-<body class="text-text-dark">
+<body class="antialiased">
     <div class="flex h-screen overflow-hidden">
-        <aside
-            class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
-            <div class="p-6 flex flex-col h-full">
-                <div class="flex items-center gap-3 mb-10">
-                    <div
-                        class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
-                        <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
-                    </div>
-                    <div class="flex flex-col">
-                        <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">
-                            BURGER SHOP</h1>
-                        <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10">
+                <div class="flex items-center gap-2 text-gray-300 text-xs font-semibold uppercase tracking-wider">
+                    <span>메뉴 관리</span>
+                    <span class="material-symbols-outlined text-xs">chevron_right</span>
+                    <div class="flex items-center gap-2 text-primary uppercase">
+                        <span class="material-symbols-outlined fill text-lg">lunch_dining</span>
+                        <span>신규 메뉴 등록</span>
                     </div>
                 </div>
-                <nav class="flex flex-col gap-1 grow">
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                        href="index.html"><span class="material-symbols-outlined">dashboard</span>
-                        <p class="text-sm font-medium">대시보드</p>
-                    </a>
-                    <div class="mt-4 mb-2 px-4">
-                        <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">일반 관리</p>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
                     </div>
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-active" href="menu.html"><span
-                            class="material-symbols-outlined fill text-primary">lunch_dining</span>
-                        <p class="text-sm font-bold">메뉴 관리</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                        href="inventory.html"><span class="material-symbols-outlined">inventory_2</span>
-                        <p class="text-sm font-medium">재고 관리</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                        href="orders.html"><span class="material-symbols-outlined">receipt_long</span>
-                        <p class="text-sm font-medium">주문 내역</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                        href="payment.html"><span class="material-symbols-outlined">payments</span>
-                        <p class="text-sm font-medium">결제 관리</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                        href="analytics.html"><span class="material-symbols-outlined">analytics</span>
-                        <p class="text-sm font-medium">매출 분석</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                        href="staff.html"><span class="material-symbols-outlined">notifications_active</span>
-                        <p class="text-sm font-medium">직원 호출</p>
-                    </a>
-                    <div class="mt-auto pt-8 flex flex-col gap-1">
-                        <div class="h-px bg-zinc-100 mb-4 mx-2"></div>
-                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                            href="account.html"><span class="material-symbols-outlined text-sm">manage_accounts</span>
-                            <p class="text-sm font-medium">계정 설정</p>
-                        </a>
-                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl sidebar-item-inactive"
-                            href="ai-logs.html"><span class="material-symbols-outlined text-sm">smart_toy</span>
-                            <p class="text-sm font-medium">AI 로그 관리</p>
-                        </a>
-                    </div>
-                </nav>
-                <button
-                    class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
-                    <span class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-sm text-primary">analytics</span>
-                        통합 리포트
-                    </span>
-                </button>
-            </div>
-        </aside>
-        <main class="flex-1 flex flex-col overflow-hidden bg-white">
-            <header class="flex items-center justify-between bg-white border-b border-border-light px-8 py-4">
-                <div class="flex items-center gap-2 text-sm"><span class="text-text-muted">메뉴 관리</span><span
-                        class="material-symbols-outlined text-xs text-text-muted">chevron_right</span><span
-                        class="text-primary font-bold">재료 매핑 설정</span></div>
-                <div class="flex items-center gap-3"><span class="text-sm font-bold">최고관리자님</span>
-                    <div
-                        class="size-9 rounded-full ring-2 ring-primary ring-offset-2 bg-primary/10 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-primary">person</span>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
+                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-gray-400">person</span>
+                        </div>
                     </div>
                 </div>
             </header>
-            <div class="flex-1 overflow-y-auto p-8">
-                <div class="max-w-5xl mx-auto space-y-8">
-                    <div class="flex justify-between items-end border-b-2 border-black pb-6">
-                        <div>
-                            <h1 class="text-3xl font-black uppercase italic">재료 매핑 설정</h1>
-                            <p class="text-text-muted mt-2">선택한 버거 메뉴에 사용되는 패티, 번, 채소 등의 함량을 설정하세요.</p>
-                        </div>
-                    </div>
-                    <div class="bg-bg-sub p-6 border border-border-light rounded-lg">
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="flex items-center gap-3"><span
-                                    class="bg-primary text-white text-[10px] font-black px-2 py-1 rounded uppercase">STEP
-                                    02</span>
-                                <h2 class="font-black">구성 요소 매핑</h2>
-                            </div><span class="text-xs font-black text-primary bg-primary/10 px-3 py-1">66%
-                                Completed</span>
-                        </div>
-                        <div class="h-2 w-full bg-border-light rounded-full overflow-hidden">
-                            <div class="h-full bg-primary rounded-full" style="width:66%"></div>
-                        </div>
-                        <div class="flex justify-between mt-4">
-                            <p class="text-[11px] font-black text-text-muted uppercase">01 Basic Info</p>
-                            <p class="text-[11px] font-black text-primary uppercase border-b-2 border-primary pb-1">02
-                                Ingredients</p>
-                            <p class="text-[11px] font-black text-text-muted uppercase">03 Final Review</p>
-                        </div>
-                    </div>
-                    <div
-                        class="bg-white border-2 border-black rounded-xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <div class="px-6 py-4 bg-black text-white flex items-center gap-2"><span
-                                class="material-symbols-outlined text-primary">layers</span>
-                            <h2 class="text-lg font-black uppercase">Ingredient List</h2>
-                        </div>
-                        <div class="px-6 py-4 bg-bg-sub border-b flex gap-4">
-                            <div class="flex-1 relative"><span
-                                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">search</span><input
-                                    id="ingredient-search"
-                                    class="w-full h-12 pl-10 pr-4 bg-white border border-border-light rounded-lg text-sm focus:border-primary outline-none"
-                                    placeholder="재료명을 검색하세요 (예: 소고기 패티, 참깨 번...)" /></div>
-                            <button
-                                class="bg-secondary text-white font-black px-6 rounded-xl flex items-center gap-2 uppercase text-sm shadow-md hover:scale-[1.02] transition-all"><span
-                                    class="material-symbols-outlined text-primary font-bold">add</span>Add Item</button>
-                        </div>
-                        <!-- 로딩 상태 -->
-                        <div id="loading-state" class="p-6 text-center">
-                            <span
-                                class="material-symbols-outlined text-4xl text-text-muted animate-spin">progress_activity</span>
-                            <p class="text-sm text-text-muted mt-2">재료를 불러오는 중...</p>
-                        </div>
-                        <!-- 재료 테이블 -->
-                        <div id="ingredient-table-container" class="p-6 hidden">
-                            <table class="w-full text-left">
-                                <thead>
-                                    <tr class="text-[11px] font-black uppercase border-b-2 border-black">
-                                        <th class="py-4 w-12"></th>
-                                        <th class="py-4">재료명 및 식별코드</th>
-                                        <th class="py-4 w-24 text-center">칼로리</th>
-                                        <th class="py-4 w-24 text-right">추가금액</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ingredient-list" class="divide-y">
-                                    <!-- 동적 렌더링 -->
-                                </tbody>
-                            </table>
-                            <div class="mt-6 flex gap-4 p-4 bg-primary text-white rounded-lg"><span
-                                    class="material-symbols-outlined">warning</span>
-                                <div>
-                                    <p class="text-sm font-black uppercase">Recipe Warning</p>
-                                    <p class="text-xs mt-1 opacity-90">설정된 소요량은 주문 시 재고 시스템에서 즉시 차감됩니다. 정확한 레시피 값을 입력해야
-                                        실재고와의 오차를 줄일 수 있습니다.</p>
-                                </div>
+
+            <div class="flex-1 overflow-y-auto px-10 pb-10">
+                <div class="grid grid-cols-12 gap-10">
+                    <!-- Progress Sidebar -->
+                    <div class="col-span-3 space-y-8 pt-4">
+                        <div class="flex items-center gap-4 step-done">
+                            <div class="step-circle">01</div>
+                            <div>
+                                <h3 class="text-sm font-bold text-gray-800">기본 정보 입력</h3>
+                                <p class="text-[10px] font-bold text-gray-400">완료</p>
                             </div>
                         </div>
+                        <div class="ml-4 h-12 w-px bg-gray-100"></div>
+                        <div class="flex items-center gap-4 step-active">
+                            <div class="step-circle">02</div>
+                            <div>
+                                <h3 class="text-sm font-bold text-gray-800">식재료 구성</h3>
+                                <p class="text-[10px] font-bold text-gray-400">진행중</p>
+                            </div>
+                        </div>
+                        <div class="ml-4 h-12 w-px bg-gray-100"></div>
+                        <div class="flex items-center gap-4">
+                            <div class="step-circle bg-gray-200 text-white">03</div>
+                            <h3 class="text-sm font-bold text-gray-300">옵션 설정</h3>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center py-8">
-                        <a href="/admin/menu-register-1.html"
-                            class="px-6 py-3 bg-white border-2 border-border-light text-text-muted font-black flex items-center gap-2 uppercase text-sm hover:bg-bg-sub rounded-xl"><span
-                                class="material-symbols-outlined text-sm">arrow_back</span>Previous</a>
-                        <div class="flex gap-4"><button
-                                class="px-6 py-3 text-text-muted font-black uppercase text-sm">Save Draft</button>
-                            <button id="next-step-btn"
-                                class="px-8 py-3 bg-secondary text-white font-black flex items-center gap-2 uppercase text-sm shadow-lg hover:scale-[1.02] transition-all rounded-xl cursor-pointer">Next
-                                Step<span
-                                    class="material-symbols-outlined text-primary font-bold">arrow_forward</span></button>
+
+                    <!-- Content Area -->
+                    <div class="col-span-9">
+                        <div class="card space-y-8">
+                            <h2 class="text-xl font-bold tracking-tight text-gray-800 uppercase">02 Ingredient
+                                Configuration</h2>
+                            <p class="text-sm text-gray-400">등록할 메뉴에 들어가는 재료들을 선택해 주세요.</p>
+
+                            <div class="flex gap-4">
+                                <div class="flex-1 relative">
+                                    <span
+                                        class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                                    <input type="text" id="ingredient-search" oninput="filterIngredients()"
+                                        class="pl-12" placeholder="재료명을 검색하세요">
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl overflow-hidden min-h-[400px]">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr
+                                            class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                                            <th class="py-5 w-16">선택</th>
+                                            <th class="py-5">재료명 및 식별코드</th>
+                                            <th class="py-5 text-right">칼로리</th>
+                                            <th class="py-5 text-right pr-4">추가금액</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ingredient-list" class="divide-y divide-gray-50">
+                                        <!-- Fetched data will be injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-10">
+                                <a href="menu-register-1.html"
+                                    class="px-10 py-4 bg-gray-100 text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">이전으로</a>
+                                <button id="next-step-btn" onclick="saveAndProceed()"
+                                    class="px-10 py-4 bg-primary text-white rounded-xl text-sm font-bold shadow-xl shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2">
+                                    다음 단계
+                                    <span class="material-symbols-outlined text-sm font-black">arrow_forward</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -241,113 +211,66 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8080';
+        const API_BASE_URL = 'http://localhost:8080';
         let allIngredients = [];
-        let selectedIngredients = new Set();
+        let selectedIds = JSON.parse(localStorage.getItem('menuRegisterIngredients') || '[]');
 
-        // 재료 목록 불러오기
         async function loadIngredients() {
-            const loadingEl = document.getElementById('loading-state');
-            const tableContainer = document.getElementById('ingredient-table-container');
-
             try {
-                const response = await fetch(`${API_BASE}/api/v1/admin/ingredients`);
-                const result = await response.json();
-
+                const res = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
+                const result = await res.json();
                 if (result.success) {
-                    allIngredients = result.data?.items || [];
+                    allIngredients = result.data.items;
                     renderIngredients(allIngredients);
-                    loadingEl.classList.add('hidden');
-                    tableContainer.classList.remove('hidden');
-
-                    // 이전에 저장된 선택 재료 복원
-                    const menuData = JSON.parse(localStorage.getItem('menuRegisterData') || '{}');
-                    if (menuData.selectedIngredients) {
-                        menuData.selectedIngredients.forEach(id => selectedIngredients.add(id));
-                        updateCheckboxes();
-                    }
-
-                    console.log(`✅ ${allIngredients.length}개의 재료를 불러왔습니다.`);
                 }
-            } catch (error) {
-                console.error('❌ 재료 로딩 실패:', error);
-                loadingEl.innerHTML = `
-                    <span class="material-symbols-outlined text-4xl text-primary">error</span>
-                    <p class="text-sm text-text-muted mt-2">재료를 불러오는데 실패했습니다.</p>
-                    <button onclick="loadIngredients()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold">다시 시도</button>
-                `;
-            }
+            } catch (e) { console.error('Load Error:', e); }
         }
 
-        // 재료 렌더링
-        function renderIngredients(ingredients) {
-            const tbody = document.getElementById('ingredient-list');
-            tbody.innerHTML = ingredients.map(item => `
-                <tr class="hover:bg-bg-sub cursor-pointer" onclick="toggleIngredient('${item.ingredientId}')">
-                    <td class="py-4">
-                        <input type="checkbox" id="chk-${item.ingredientId}" 
-                            class="w-5 h-5 text-primary rounded border-border-light focus:ring-primary"
-                            ${selectedIngredients.has(item.ingredientId) ? 'checked' : ''}
-                            onclick="event.stopPropagation(); toggleIngredient('${item.ingredientId}')">
+        function renderIngredients(items) {
+            const listEl = document.getElementById('ingredient-list');
+            listEl.innerHTML = items.map(ing => `
+                <tr class="group hover:bg-gray-50 transition-colors">
+                    <td class="py-6">
+                        <input type="checkbox" onchange="toggleSelection('${ing.ingredientId}')" ${selectedIds.includes(ing.ingredientId) ? 'checked' : ''}
+                            class="size-5 rounded border-gray-200 text-primary focus:ring-primary/20 bg-white ml-2 cursor-pointer">
                     </td>
-                    <td class="py-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-bg-sub rounded flex items-center justify-center">
-                                <span class="material-symbols-outlined text-primary">restaurant</span>
-                            </div>
-                            <div>
-                                <p class="font-bold">${item.name}</p>
-                                <p class="text-[10px] text-text-muted uppercase">${item.ingredientId}</p>
-                            </div>
+                    <td class="py-6">
+                        <div class="space-y-0.5">
+                            <p class="text-sm font-bold text-gray-800">${ing.name}</p>
+                            <p class="text-[10px] font-medium text-gray-300 uppercase tracking-widest">${ing.ingredientId}</p>
                         </div>
                     </td>
-                    <td class="py-4 text-center font-bold">${item.calories || 0} kcal</td>
-                    <td class="py-4 text-right font-bold text-primary">₩${(item.extraPrice || 0).toLocaleString()}</td>
+                    <td class="py-6 text-right text-xs font-bold text-gray-400">${ing.calories || 0} Kcal</td>
+                    <td class="py-6 text-right text-xs font-bold text-primary italic pr-4">${(ing.extraPrice || 0).toLocaleString()}원</td>
                 </tr>
             `).join('');
         }
 
-        // 체크박스 상태 업데이트
-        function updateCheckboxes() {
-            allIngredients.forEach(item => {
-                const checkbox = document.getElementById(`chk-${item.ingredientId}`);
-                if (checkbox) {
-                    checkbox.checked = selectedIngredients.has(item.ingredientId);
-                }
-            });
-        }
-
-        // 재료 선택/해제
-        function toggleIngredient(ingredientId) {
-            if (selectedIngredients.has(ingredientId)) {
-                selectedIngredients.delete(ingredientId);
+        function toggleSelection(id) {
+            if (selectedIds.includes(id)) {
+                selectedIds = selectedIds.filter(i => i !== id);
             } else {
-                selectedIngredients.add(ingredientId);
+                selectedIds.push(id);
             }
-            updateCheckboxes();
-            console.log('Selected ingredients:', Array.from(selectedIngredients));
         }
 
-        // 검색 필터
-        document.getElementById('ingredient-search').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = allIngredients.filter(item =>
-                item.name.toLowerCase().includes(query) ||
-                item.ingredientId.toLowerCase().includes(query)
+        function filterIngredients() {
+            const query = document.getElementById('ingredient-search').value.toLowerCase();
+            const filtered = allIngredients.filter(ing =>
+                ing.name.toLowerCase().includes(query) ||
+                ing.ingredientId.toLowerCase().includes(query)
             );
             renderIngredients(filtered);
-        });
-
-        // 저장 후 다음 단계
-        function saveAndProceed() {
-            const menuData = JSON.parse(localStorage.getItem('menuRegisterData') || '{}');
-            menuData.selectedIngredients = Array.from(selectedIngredients);
-            localStorage.setItem('menuRegisterData', JSON.stringify(menuData));
-            console.log('Saved ingredients:', menuData.selectedIngredients);
-            window.location.href = '/admin/menu-register-3.html';
         }
 
-        document.getElementById('next-step-btn').addEventListener('click', saveAndProceed);
+        function saveAndProceed() {
+            if (selectedIds.length === 0) {
+                if (!confirm('선택된 재료가 없습니다. 그대로 진행할까요?')) return;
+            }
+            localStorage.setItem('menuRegisterIngredients', JSON.stringify(selectedIds));
+            window.location.href = 'menu-register-3.html';
+        }
+
         document.addEventListener('DOMContentLoaded', loadIngredients);
     </script>
 </body>
