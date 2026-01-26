@@ -3,9 +3,14 @@ import backIcon from "../assets/back_icon.png";
 import kioskCharacter from "../assets/kiosk_character.png";
 
 // 직원 호출 버튼
-export function StaffCallButton() {
+interface StaffCallButtonProps {
+  onClick?: () => void;
+}
+
+export function StaffCallButton({ onClick }: StaffCallButtonProps) {
   return (
     <button
+      onClick={onClick}
       className="absolute flex items-center gap-1"
       style={{ 
         top: "45px", 
@@ -13,7 +18,10 @@ export function StaffCallButton() {
         color: "#4A3728",
         fontSize: "40px",
         fontWeight: "400",
-        fontFamily: "'Noto Sans KR', sans-serif"
+        fontFamily: "'Noto Sans KR', sans-serif",
+        background: "none",
+        border: "none",
+        cursor: "pointer"
       }}
     >
       <span>직원 호출</span>
@@ -81,7 +89,7 @@ export function BottomPanel({ children, zIndex = 2, height = "469px" }: BottomPa
         borderTopLeftRadius: "100px",
         borderTopRightRadius: "100px",
         zIndex,
-        overflow: "auto"
+        overflow: "hidden"
       }}
     >
       {children}

@@ -14,7 +14,6 @@ function App() {
   const goToOrder = () => setCurrentPage("order");
   const goToMenu = () => setCurrentPage("menu");
   const goToRecommended = () => setCurrentPage("recommended");
-  const goToBurgerSingle = () => setCurrentPage("burgerSingle");
 
   const handleCategory = (category: string) => {
     if (category === "burgerSingle" || category === "burgerSet" || category === "side" || category === "drink") {
@@ -29,23 +28,24 @@ function App() {
         onBack={goToMenu} 
         onCategory={handleCategory} 
         currentCategory={currentPage}
+        onGoToMain={goToMain}
       />
     );
   }
 
   if (currentPage === "recommended") {
-    return <KioskRecommended onBack={goToMenu} />;
+    return <KioskRecommended onBack={goToMenu} onGoToMain={goToMain} />;
   }
 
   if (currentPage === "menu") {
-    return <KioskMenu onBack={goToOrder} onRecommended={goToRecommended} onBurgerSingle={goToBurgerSingle} />;
+    return <KioskMenu onBack={goToOrder} onRecommended={goToRecommended} onCategory={handleCategory} />;
   }
 
   if (currentPage === "order") {
     return <KioskOrder onBack={goToMain} onSelectType={goToMenu} />;
   }
 
-  return <KioskMain onOrder={goToOrder} />;
+  return <KioskMain onOrder={goToOrder} onAccessibility={goToOrder} />;
 }
 
 export default App;

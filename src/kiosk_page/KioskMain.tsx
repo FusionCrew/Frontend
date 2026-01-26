@@ -3,9 +3,10 @@ import { StaffCallButton, KioskCharacter } from "../components/KioskComponents";
 
 interface KioskMainProps {
   onOrder: () => void;
+  onAccessibility: () => void;
 }
 
-export default function KioskMain({ onOrder }: KioskMainProps) {
+export default function KioskMain({ onOrder, onAccessibility }: KioskMainProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-200">
       {/* 키오스크 프레임 - 1080x1920 */}
@@ -60,7 +61,8 @@ export default function KioskMain({ onOrder }: KioskMainProps) {
         </button>
 
         {/* 시각장애인 음성 안내 - 버튼으로부터 33px 아래 */}
-        <div
+        <button
+          onClick={onAccessibility}
           className="absolute left-1/2 -translate-x-1/2"
           style={{ 
             bottom: "120px",
@@ -68,11 +70,14 @@ export default function KioskMain({ onOrder }: KioskMainProps) {
             fontSize: "40px",
             fontFamily: "'Noto Sans KR', sans-serif",
             borderBottom: "1px solid #FFFFFF",
-            paddingBottom: "4px"
+            paddingBottom: "4px",
+            background: "none",
+            border: "none",
+            cursor: "pointer"
           }}
         >
           시각장애인 음성 안내
-        </div>
+        </button>
       </div>
     </div>
   );

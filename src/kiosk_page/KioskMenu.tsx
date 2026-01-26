@@ -7,10 +7,10 @@ import menuDrink from "../assets/menu_drink.png";
 interface KioskMenuProps {
   onBack: () => void;
   onRecommended: () => void;
-  onBurgerSingle: () => void;
+  onCategory: (category: string) => void;
 }
 
-export default function KioskMenu({ onBack, onRecommended, onBurgerSingle }: KioskMenuProps) {
+export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMenuProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-200">
@@ -89,9 +89,9 @@ export default function KioskMenu({ onBack, onRecommended, onBurgerSingle }: Kio
 
             {/* 카테고리 버튼들 */}
             <div className="flex" style={{ gap: "35px" }}>
-              {/* 버거 단품 - 클릭 가능 */}
+              {/* 버거 단품 */}
               <button 
-                onClick={onBurgerSingle}
+                onClick={() => onCategory("burgerSingle")}
                 className="flex flex-col items-center"
                 style={{ background: "none", border: "none", cursor: "pointer" }}
               >
@@ -120,7 +120,11 @@ export default function KioskMenu({ onBack, onRecommended, onBurgerSingle }: Kio
               </button>
 
               {/* 버거 세트 */}
-              <div className="flex flex-col items-center">
+              <button 
+                onClick={() => onCategory("burgerSet")}
+                className="flex flex-col items-center"
+                style={{ background: "none", border: "none", cursor: "pointer" }}
+              >
                 <div
                   className="flex items-center justify-center"
                   style={{
@@ -143,10 +147,14 @@ export default function KioskMenu({ onBack, onRecommended, onBurgerSingle }: Kio
                 >
                   버거 세트
                 </span>
-              </div>
+              </button>
 
               {/* 사이드 */}
-              <div className="flex flex-col items-center">
+              <button 
+                onClick={() => onCategory("side")}
+                className="flex flex-col items-center"
+                style={{ background: "none", border: "none", cursor: "pointer" }}
+              >
                 <div
                   className="flex items-center justify-center"
                   style={{
@@ -169,10 +177,14 @@ export default function KioskMenu({ onBack, onRecommended, onBurgerSingle }: Kio
                 >
                   사이드
                 </span>
-              </div>
+              </button>
 
               {/* 음료 */}
-              <div className="flex flex-col items-center">
+              <button 
+                onClick={() => onCategory("drink")}
+                className="flex flex-col items-center"
+                style={{ background: "none", border: "none", cursor: "pointer" }}
+              >
                 <div
                   className="flex items-center justify-center"
                   style={{
@@ -195,7 +207,7 @@ export default function KioskMenu({ onBack, onRecommended, onBurgerSingle }: Kio
                 >
                   음료
                 </span>
-              </div>
+              </button>
             </div>
           </div>
         </BottomPanel>

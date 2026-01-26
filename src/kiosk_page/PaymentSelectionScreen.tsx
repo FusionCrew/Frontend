@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { StaffCallButton, KioskCharacter } from "../components/KioskComponents";
+import StaffCallModal from "../components/StaffCallModal";
 import backArrowCircle from "../assets/back_arrow_circle.png";
 import paymentCard from "../assets/payment_card.png";
 import paymentPoint from "../assets/payment_point.png";
@@ -7,9 +9,13 @@ import paymentSimple from "../assets/payment_simple.png";
 interface PaymentSelectionScreenProps {
   onBack: () => void;
   onSelectCard: () => void;
+  onSelectPoint: () => void;
+  onSelectSimple: () => void;
 }
 
-export default function PaymentSelectionScreen({ onBack, onSelectCard }: PaymentSelectionScreenProps) {
+export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectPoint, onSelectSimple }: PaymentSelectionScreenProps) {
+  const [showStaffCallModal, setShowStaffCallModal] = useState(false);
+
   return (
     <div
       style={{
@@ -40,7 +46,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard }: Payment
       </button>
 
       {/* 직원 호출 버튼 */}
-      <StaffCallButton />
+      <StaffCallButton onClick={() => setShowStaffCallModal(true)} />
 
       {/* 제목 */}
       <h1 style={{
@@ -101,6 +107,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard }: Payment
 
         {/* 포인트 사용 */}
         <button
+          onClick={onSelectPoint}
           style={{
             width: "284px",
             height: "296px",
@@ -126,6 +133,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard }: Payment
 
         {/* 간편 결제 */}
         <button
+          onClick={onSelectSimple}
           style={{
             width: "284px",
             height: "296px",
@@ -149,6 +157,12 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard }: Payment
           }}>간편 결제</span>
         </button>
       </div>
+
+      {/* 직원 호출 모달 */}
+      <StaffCallModal
+        isOpen={showStaffCallModal}
+        onClose={() => setShowStaffCallModal(false)}
+      />
     </div>
   );
 }
