@@ -133,6 +133,7 @@ export default function KioskCategoryPage({
       const amount = cart.calculateCartTotal() - payment.usedPoints;
       await onProcessOrder(amount);
       // App.tsx에서 ticketNumber가 업데이트되면 PaymentCompleteScreen에서 이를 감지할 것
+      payment.setShowPaymentProcessing(false);
       payment.setShowPaymentComplete(true);
     }
   };
@@ -271,9 +272,18 @@ export default function KioskCategoryPage({
         usedPoints={payment.usedPoints}
         totalAmount={cart.calculateCartTotal()}
         onClosePaymentSelection={() => payment.setShowPaymentSelection(false)}
-        onSelectCard={() => payment.setShowPaymentProcessing(true)}
-        onSelectPoint={() => payment.setShowPointUsage(true)}
-        onSelectSimple={() => payment.setShowSimplePayment(true)}
+        onSelectCard={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowPaymentProcessing(true);
+        }}
+        onSelectPoint={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowPointUsage(true);
+        }}
+        onSelectSimple={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowSimplePayment(true);
+        }}
         onClosePaymentProcessing={() => payment.setShowPaymentProcessing(false)}
         onPaymentComplete={handleManualOrder}
         onClosePointUsage={() => payment.setShowPointUsage(false)}
