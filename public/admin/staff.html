@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>직원 호출 - 버거샵 대시보드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B91C1C",
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    boxShadow: { "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)" }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        .sidebar-item-active {
+            @apply text-text-dark relative font-bold;
+        }
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
+        .sidebar-item-inactive {
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
+        }
+        .card { @apply bg-white rounded-xl shadow-premium border border-white p-8; }
+        .call-card-urgent { @apply bg-primary text-white border-none; }
+        .call-card-completed { @apply bg-white border-none; }
+        .btn-process { @apply w-full py-5 rounded-xl bg-white text-primary text-base font-black transition-all hover:scale-[1.02] shadow-lg; }
+        .btn-process-dark { @apply w-full py-5 rounded-xl bg-[#404040] text-white text-base font-black transition-all hover:scale-[1.02] shadow-lg; }
+        .btn-completed { @apply w-full py-5 rounded-xl bg-[#C0C0C0] text-white text-base font-bold text-center; }
+    </style>
+</head>
+
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10">
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-outlined text-primary text-3xl">notifications_active</span>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">직원 호출</h1>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
+                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-gray-400">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-10 pb-10">
+                <!-- Call Grid -->
+                <div class="grid grid-cols-2 gap-10 mb-10">
+                    <!-- Urgent Call Card -->
+                    <div class="card call-card-urgent relative group">
+                        <div class="flex items-center justify-between mb-12">
+                            <p class="text-sm font-bold text-white/80 uppercase tracking-widest">긴급 호출</p>
+                            <span class="px-4 py-1.5 rounded-md border border-white/30 text-xs font-bold">2분전</span>
+                        </div>
+                        <div class="flex items-center justify-between mb-12">
+                            <h2 class="text-5xl font-black tracking-tighter">Table 08</h2>
+                            <div class="flex flex-col items-end gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined fill text-xl">water_drop</span>
+                                    <span class="text-lg font-black">물 리필 요청</span>
+                                </div>
+                                <p class="text-sm text-white/60 font-medium">“물 2잔 더 가져다 주세요”</p>
+                            </div>
+                        </div>
+                        <button class="btn-process">처리하기</button>
+                    </div>
+
+                    <!-- Normal Call Card -->
+                    <div class="card relative group">
+                        <div class="flex items-center justify-between mb-12">
+                            <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">긴급 호출</p>
+                            <span
+                                class="px-4 py-1.5 rounded-md border border-gray-100 text-xs font-bold text-gray-400">2분전</span>
+                        </div>
+                        <div class="flex items-center justify-between mb-12">
+                            <h2 class="text-5xl font-black tracking-tighter text-gray-800">Table 08</h2>
+                            <div class="flex flex-col items-end gap-2 text-gray-800">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined fill text-xl">water_drop</span>
+                                    <span class="text-lg font-black">물 리필 요청</span>
+                                </div>
+                                <p class="text-sm text-gray-400 font-medium">“물 2잔 더 가져다 주세요”</p>
+                            </div>
+                        </div>
+                        <button class="btn-process-dark">처리하기</button>
+                    </div>
+
+                    <!-- Completed Call Card -->
+                    <div class="card call-card-completed">
+                        <div class="flex items-center justify-between mb-12">
+                            <p class="text-sm font-bold text-gray-300 uppercase tracking-widest">처리 완료</p>
+                            <span
+                                class="px-4 py-1.5 rounded-md border border-gray-50 text-xs font-bold text-gray-300">2분전</span>
+                        </div>
+                        <div class="flex items-center justify-between mb-12 opacity-30">
+                            <h2 class="text-5xl font-black tracking-tighter text-gray-800">Table 21</h2>
+                            <div class="flex flex-col items-end gap-2 text-gray-800">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined fill text-xl">water_drop</span>
+                                    <span class="text-lg font-black">물 리필 요청</span>
+                                </div>
+                                <p class="text-sm font-medium">“물 2잔 더 가져다 주세요”</p>
+                            </div>
+                        </div>
+                        <div class="btn-completed">
+                            담당자 : 김철수
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

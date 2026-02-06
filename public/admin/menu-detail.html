@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>메뉴 상세 - 버거샵 대시보드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B91C1C", // Vibrant Red
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        "sans": ["Pretendard", "Inter", "sans-serif"]
+                    },
+                    boxShadow: {
+                        "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)"
+                    }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: theme('colors.bg-main');
+            color: theme('colors.text-dark');
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        .sidebar-item-active {
+            @apply text-text-dark relative font-bold;
+        }
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
+        .sidebar-item-inactive {
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
+        }
+        .card {
+            @apply bg-white rounded-2xl shadow-premium border border-white p-10;
+        }
+        input, select, textarea {
+            @apply w-full h-10 px-4 rounded-lg border border-gray-100 bg-gray-50 text-sm focus:border-primary/30 focus:ring-2 focus:ring-primary/5 outline-none transition-all;
+        }
+        textarea { @apply h-24 py-3 resize-none; }
+    </style>
+</head>
+
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10">
+                <div class="flex items-center gap-4">
+                    <a href="menu.html"
+                        class="flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <span class="material-symbols-outlined text-[22px]">chevron_left</span>
+                        <span class="text-sm font-semibold">메뉴 목록</span>
+                    </a>
+                    <div class="h-6 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined fill text-primary">lunch_dining</span>
+                        </div>
+                        <h1 class="text-xl font-bold tracking-tight text-gray-800">메뉴 상세</h1>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
+                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-gray-400">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-10 pb-10">
+                <div id="loading-state" class="text-center py-24">
+                    <span class="material-symbols-outlined text-4xl text-gray-400 animate-spin">progress_activity</span>
+                </div>
+
+                <div id="menu-content" class="hidden">
+                    <div class="card grid grid-cols-12 gap-16">
+                        <!-- Info Section -->
+                        <div class="col-span-6 space-y-12">
+                            <div class="grid grid-cols-2 gap-y-6 items-center">
+                                <span class="text-sm font-medium text-gray-400">이름</span>
+                                <div id="name-container">
+                                    <span id="view-name" class="text-sm font-bold text-gray-800">메뉴 이름</span>
+                                    <input id="edit-name" class="hidden" type="text">
+                                </div>
+
+                                <span class="text-sm font-medium text-gray-400">가격</span>
+                                <div id="price-container">
+                                    <span id="view-price" class="text-sm font-bold text-primary italic">0원</span>
+                                    <input id="edit-price" class="hidden" type="number">
+                                </div>
+
+                                <span class="text-sm font-medium text-gray-400">이미지 URL</span>
+                                <div id="image-container">
+                                    <span id="view-image-url"
+                                        class="text-sm font-semibold text-gray-800 truncate block max-w-xs">image.png</span>
+                                    <input id="edit-image-url" class="hidden" type="text">
+                                </div>
+
+                                <span class="text-sm font-medium text-gray-400">숨김 상태</span>
+                                <div id="hidden-container">
+                                    <span id="view-hidden" class="text-sm font-semibold text-gray-800">공개</span>
+                                    <select id="edit-hidden" class="hidden">
+                                        <option value="false">공개 (판매중)</option>
+                                        <option value="true">숨김 (판매중지)</option>
+                                    </select>
+                                </div>
+
+                                <span class="text-sm font-medium text-gray-400">카테고리</span>
+                                <div id="category-container">
+                                    <span id="view-category" class="text-sm font-semibold text-gray-800">카테고리</span>
+                                    <select id="edit-category" class="hidden">
+                                        <option value="cat_burger">버거 (BURGER)</option>
+                                        <option value="cat_side">사이드 (SIDE)</option>
+                                        <option value="cat_drink">음료 (DRINK)</option>
+                                        <option value="cat_set">세트 (SET)</option>
+                                    </select>
+                                </div>
+
+                                <span class="text-sm font-medium text-gray-400">메뉴 상세 설명</span>
+                                <div id="description-container" class="col-span-1">
+                                    <span id="view-description"
+                                        class="text-sm font-medium text-gray-400 leading-relaxed block overflow-hidden line-clamp-2">설명이
+                                        없습니다.</span>
+                                    <textarea id="edit-description" class="hidden"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4 pt-4">
+                                <button id="edit-toggle-btn" onclick="toggleEditMode()"
+                                    class="px-8 py-3 bg-gray-100 text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors">수정</button>
+                                <button id="save-btn" onclick="saveChanges()"
+                                    class="hidden px-8 py-3 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all">저장</button>
+                                <button id="delete-btn" onclick="confirmDelete()"
+                                    class="px-8 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors">삭제</button>
+                            </div>
+                        </div>
+
+                        <!-- Ingredients Section -->
+                        <div class="col-span-6 space-y-8">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-sm font-bold text-gray-800">연결된 재료</h3>
+                                <button onclick="openAddIngredientModal()"
+                                    class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                                    + 재료 추가
+                                </button>
+                            </div>
+
+                            <div id="ingredients-list" class="space-y-4">
+                                <!-- Ingredient cards will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Ingredient Modal (Minimal restoration) -->
+    <div id="ingredient-modal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="w-full max-w-md bg-white rounded-3xl p-8 space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold">재료 추가</h3>
+                <button onclick="closeAddIngredientModal()" class="text-gray-400"><span
+                        class="material-symbols-outlined">close</span></button>
+            </div>
+            <input type="text" id="modal-search" placeholder="재료 검색..." class="mb-4">
+            <div id="modal-list" class="max-h-60 overflow-y-auto space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+        let menuData = null;
+        let isEditMode = false;
+
+        function getMenuIdFromUrl() {
+            return window.location.hash ? window.location.hash.substring(1) : new URLSearchParams(window.location.search).get('id');
+        }
+
+        async function loadMenuDetail() {
+            const menuId = getMenuIdFromUrl();
+            if (!menuId) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuId}`);
+                const result = await response.json();
+                if (result.success) {
+                    menuData = result.data;
+                    renderMenuDetail();
+                }
+            } catch (err) { console.error('Load Error:', err); }
+        }
+
+        function renderMenuDetail() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('menu-content').classList.remove('hidden');
+
+            // View Mode
+            document.getElementById('view-name').textContent = menuData.name;
+            document.getElementById('view-price').textContent = `${menuData.price.toLocaleString()}원`;
+            document.getElementById('view-image-url').textContent = menuData.imageUrl || '없음';
+            document.getElementById('view-hidden').textContent = menuData.hidden ? '숨김' : '공개';
+            document.getElementById('view-category').textContent = menuData.categoryId || '-';
+            document.getElementById('view-description').textContent = menuData.description || '등록된 설명이 없습니다.';
+
+            // Edit Mode Init
+            document.getElementById('edit-name').value = menuData.name;
+            document.getElementById('edit-price').value = menuData.price;
+            document.getElementById('edit-image-url').value = menuData.imageUrl || '';
+            document.getElementById('edit-hidden').value = menuData.hidden.toString();
+            document.getElementById('edit-category').value = menuData.categoryId || 'cat_burger';
+            document.getElementById('edit-description').value = menuData.description || '';
+
+            renderIngredients(menuData.ingredients || []);
+        }
+
+        function renderIngredients(ingredients) {
+            const listEl = document.getElementById('ingredients-list');
+            if (ingredients.length === 0) {
+                listEl.innerHTML = '<p class="text-sm text-gray-300 italic text-center py-10">연결된 재료가 없습니다.</p>';
+                return;
+            }
+
+            listEl.innerHTML = ingredients.map(ing => `
+                <div class="p-6 bg-white border border-gray-100 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
+                    <div class="space-y-1">
+                        <h4 class="text-sm font-bold text-gray-800">${ing.name}</h4>
+                        <p class="text-[10px] font-medium text-gray-300 uppercase tracking-widest">${ing.ingredientId}</p>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="w-16 text-center">
+                            <p class="text-[9px] font-bold text-gray-300 uppercase mb-1">칼로리</p>
+                            <p class="text-base font-bold text-gray-800">${ing.calories || 0}</p>
+                        </div>
+                        <div class="w-20 text-center">
+                            <p class="text-[9px] font-bold text-gray-300 uppercase mb-1">추가 금액</p>
+                            <p class="text-base font-bold text-primary italic">+${(ing.extraPrice || 0).toLocaleString()}</p>
+                        </div>
+                        <button onclick="removeIngredient('${ing.ingredientId}')" class="p-2 text-gray-300 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const viewEls = document.querySelectorAll('[id^="view-"]');
+            const editEls = document.querySelectorAll('[id^="edit-"]');
+            const editBtn = document.getElementById('edit-toggle-btn');
+            const saveBtn = document.getElementById('save-btn');
+
+            if (isEditMode) {
+                viewEls.forEach(el => el.classList.add('hidden'));
+                editEls.forEach(el => { if (el.id !== 'edit-toggle-btn') el.classList.remove('hidden'); });
+                editBtn.textContent = '취소';
+                saveBtn.classList.remove('hidden');
+            } else {
+                viewEls.forEach(el => el.classList.remove('hidden'));
+                editEls.forEach(el => { if (el.id !== 'edit-toggle-btn') el.classList.add('hidden'); });
+                editBtn.textContent = '수정';
+                saveBtn.classList.add('hidden');
+            }
+        }
+
+        async function saveChanges() {
+            const body = {
+                name: document.getElementById('edit-name').value,
+                price: parseInt(document.getElementById('edit-price').value),
+                imageUrl: document.getElementById('edit-image-url').value || null,
+                hidden: document.getElementById('edit-hidden').value === 'true',
+                categoryId: document.getElementById('edit-category').value,
+                description: document.getElementById('edit-description').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('저장되었습니다.');
+                    menuData = result.data;
+                    toggleEditMode();
+                    renderMenuDetail();
+                }
+            } catch (err) { alert('저장 실패: ' + err.message); }
+        }
+
+        async function removeIngredient(ingredientId) {
+            if (!confirm('재료를 삭제하시겠습니까?')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}/ingredients/${ingredientId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.success) {
+                    menuData.ingredients = menuData.ingredients.filter(i => i.ingredientId !== ingredientId);
+                    renderIngredients(menuData.ingredients);
+                }
+            } catch (err) { alert('삭제 실패'); }
+        }
+
+        async function confirmDelete() {
+            if (!confirm('정말 삭제하시겠습니까? (메뉴 완전 삭제)')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('삭제되었습니다.');
+                    window.location.href = 'menu.html';
+                }
+            } catch (err) { alert('삭제 실패'); }
+        }
+
+        // Simulating the "Add Ingredient" modal logic from previous turns
+        async function openAddIngredientModal() {
+            document.getElementById('ingredient-modal').classList.remove('hidden');
+            const res = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
+            const data = await res.json();
+            const list = document.getElementById('modal-list');
+            list.innerHTML = data.data.items.map(ing => `
+                <div class="p-3 bg-gray-50 rounded-xl flex justify-between items-center">
+                    <span class="text-sm font-bold">${ing.name}</span>
+                    <button onclick="addIngredient('${ing.ingredientId}')" class="text-xs bg-primary text-white px-3 py-1 rounded-lg">추가</button>
+                </div>
+            `).join('');
+        }
+
+        function closeAddIngredientModal() {
+            document.getElementById('ingredient-modal').classList.add('hidden');
+        }
+
+        async function addIngredient(ingId) {
+            const currentIds = menuData.ingredients.map(i => i.ingredientId);
+            if (currentIds.includes(ingId)) { alert('이미 등록된 재료입니다.'); return; }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items/${menuData.menuItemId}/ingredients`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ingredientIds: [...currentIds, ingId] })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    await loadMenuDetail();
+                    closeAddIngredientModal();
+                }
+            } catch (e) { alert('추가 실패'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadMenuDetail);
+    </script>
+</body>
+
+</html>

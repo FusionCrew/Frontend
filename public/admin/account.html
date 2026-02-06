@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>계정 설정 - 버거샵 어드민</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: theme('colors.bg-main');
+            color: theme('colors.text-dark');
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #FFFFFF;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #000000;
+            border-radius: 10px;
+        }
+
+        .sidebar-item-active {
+            @apply text-text-dark relative font-bold;
+        }
+
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
+
+        .sidebar-item-inactive {
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
+        }
+    </style>
+</head>
+
+<body class="text-text-dark">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+        <main class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <span class="material-symbols-outlined fill text-primary text-2xl">manage_accounts</span>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">계정 관리</h1>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <a href="register.html"
+                        class="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-primary transition-all hover:scale-[1.02]">
+                        <span class="material-symbols-outlined text-sm font-bold">person_add</span>
+                        관리자 추가
+                    </a>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8 space-y-8">
+                <!-- My Profile Card -->
+                <div class="bg-primary rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
+                    <div
+                        class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div class="flex items-center gap-6">
+                            <div
+                                class="size-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+                                <span class="material-symbols-outlined text-white text-4xl">person</span>
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-black italic uppercase tracking-tighter">Master Administrator
+                                </h3>
+                                <p class="text-white/70 font-medium">홍길동 (gildong.hong@burgershop.com)</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span
+                                        class="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20">Master
+                                        Level</span>
+                                    <span
+                                        class="px-3 py-1 bg-emerald-500 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">Active
+                                        Session</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            class="px-6 py-3 bg-white text-primary rounded-xl font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 transition-all">
+                            Edit Profile
+                        </button>
+                    </div>
+                    <span
+                        class="material-symbols-outlined absolute -bottom-10 -right-10 text-[260px] text-white/10 rotate-12 select-none">security</span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Admin List Table -->
+                    <div class="lg:col-span-2 bg-white rounded-[24px] shadow-xl border border-white overflow-hidden">
+                        <div class="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                            <h3
+                                class="font-black italic uppercase tracking-tighter text-gray-900 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">groups</span>
+                                Authorized Personnel
+                            </h3>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total 2
+                                Users</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-white">
+                                    <tr>
+                                        <th
+                                            class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                            User Information</th>
+                                        <th
+                                            class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                            Permission</th>
+                                        <th
+                                            class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                            Activity</th>
+                                        <th
+                                            class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <td class="px-8 py-5">
+                                            <div class="flex items-center gap-4">
+                                                <div
+                                                    class="size-10 rounded-xl bg-red-50 flex items-center justify-center text-primary font-bold">
+                                                    HG</div>
+                                                <div>
+                                                    <p class="font-bold text-gray-900">홍길동</p>
+                                                    <p class="text-[11px] text-gray-400 font-medium">Master Admin</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <span
+                                                class="px-2.5 py-1 bg-primary text-white text-[10px] font-black rounded-lg uppercase tracking-tighter shadow-lg shadow-primary/20">Master</span>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <div class="flex flex-col gap-1">
+                                                <p class="text-xs font-bold text-gray-900">14:22:45</p>
+                                                <p
+                                                    class="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                                    <span class="size-1.5 bg-emerald-500 rounded-full"></span> Online
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-5 text-center">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button
+                                                    class="p-2 text-gray-400 hover:text-primary transition-colors"><span
+                                                        class="material-symbols-outlined text-lg">edit</span></button>
+                                                <button
+                                                    class="p-2 text-gray-400 hover:text-primary transition-colors"><span
+                                                        class="material-symbols-outlined text-lg">key</span></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50 transition-colors">
+                                        <td class="px-8 py-5">
+                                            <div class="flex items-center gap-4">
+                                                <div
+                                                    class="size-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 font-bold">
+                                                    KS</div>
+                                                <div>
+                                                    <p class="font-bold text-gray-900">김철수</p>
+                                                    <p class="text-[11px] text-gray-400 font-medium">Standard Admin</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <span
+                                                class="px-2.5 py-1 bg-gray-100 text-gray-500 border border-gray-200 text-[10px] font-black rounded-lg uppercase tracking-tighter">Staff</span>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <div class="flex flex-col gap-1">
+                                                <p class="text-xs font-bold text-gray-900">Yesterday</p>
+                                                <p class="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                                                    <span class="size-1.5 bg-gray-300 rounded-full"></span> Offline
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-5 text-center">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button
+                                                    class="p-2 text-gray-400 hover:text-primary transition-colors"><span
+                                                        class="material-symbols-outlined text-lg">edit</span></button>
+                                                <button
+                                                    class="p-2 text-gray-400 hover:text-red-600 transition-colors"><span
+                                                        class="material-symbols-outlined text-lg">delete</span></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Side Stats/Info -->
+                    <div class="space-y-8">
+                        <!-- Security Logs -->
+                        <div class="bg-white rounded-[24px] shadow-xl border border-white p-6">
+                            <h4
+                                class="font-black italic uppercase tracking-tighter text-gray-900 mb-6 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">security</span>
+                                Security Activity
+                            </h4>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-gray-50 rounded-2xl flex items-start gap-4 border border-gray-100">
+                                    <div
+                                        class="size-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">login</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-black uppercase text-gray-900">Admin Login</p>
+                                        <p class="text-[10px] text-gray-400 font-bold mt-0.5">IP: 192.168.1.45</p>
+                                        <p class="text-[10px] text-primary font-bold mt-2">14 mins ago</p>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-gray-50 rounded-2xl flex items-start gap-4 border border-gray-100">
+                                    <div
+                                        class="size-8 rounded-lg bg-red-50 flex items-center justify-center text-primary shrink-0">
+                                        <span class="material-symbols-outlined text-[18px]">key</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-black uppercase text-gray-900">Password Change</p>
+                                        <p class="text-[10px] text-gray-400 font-bold mt-0.5">Policy enforcement</p>
+                                        <p class="text-[10px] text-primary font-bold mt-2">3 hours ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Settings -->
+                        <div class="bg-gray-900 rounded-[24px] shadow-xl p-6 text-white relative overflow-hidden">
+                            <h4
+                                class="font-black italic uppercase tracking-tighter text-white mb-6 relative z-10 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">analytics</span>
+                                Usage Overview
+                            </h4>
+                            <div class="relative z-10 space-y-4">
+                                <div>
+                                    <div
+                                        class="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                                        <span>System Access</span>
+                                        <span>94%</span>
+                                    </div>
+                                    <div class="h-1.5 bg-gray-800 rounded-full">
+                                        <div
+                                            class="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(185,28,28,0.5)] w-[94%]">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div
+                                        class="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                                        <span>Log Retention</span>
+                                        <span>22%</span>
+                                    </div>
+                                    <div class="h-1.5 bg-gray-800 rounded-full">
+                                        <div class="h-full bg-white/20 rounded-full w-[22%]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <span
+                                class="material-symbols-outlined absolute -bottom-4 -left-4 text-[100px] text-white/5 rotate-12 select-none">settings</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,88 @@
+<!-- Shared Sidebar Navigation - Include this in all admin pages -->
+<aside
+    class="flex flex-col w-64 bg-white border-r border-border-light transition-all duration-300 overflow-y-auto shrink-0">
+    <div class="p-6 flex flex-col h-full">
+        <div class="flex items-center gap-3 mb-10">
+            <div
+                class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-10 border border-secondary bg-white flex items-center justify-center overflow-hidden">
+                <span class="material-symbols-outlined text-secondary text-2xl font-bold">lunch_dining</span>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="text-text-dark text-base font-black leading-none tracking-tighter italic uppercase">BURGER
+                    SHOP
+                </h1>
+                <p class="text-primary text-[10px] font-bold mt-1 uppercase">관리 시스템</p>
+            </div>
+        </div>
+        <nav class="flex flex-col gap-1 grow" id="sidebar-nav">
+            <!-- Navigation items will be dynamically highlighted based on current page -->
+        </nav>
+        <button
+            class="mt-6 w-full flex items-center justify-center rounded-xl h-12 px-4 bg-secondary text-white text-xs font-black shadow-lg transition-all uppercase tracking-widest italic hover:scale-[1.02]">
+            <span class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                통합 리포트
+            </span>
+        </button>
+    </div>
+</aside>
+
+<script>
+    // Sidebar navigation configuration
+    const navItems = [
+        { id: 'dashboard', icon: 'dashboard', label: '대시보드', href: '/admin/index.html' },
+        { type: 'divider', label: '일반 관리' },
+        { id: 'menu', icon: 'lunch_dining', label: '메뉴 관리', href: '/admin/menu.html' },
+        { id: 'inventory', icon: 'inventory_2', label: '재고 관리', href: '/admin/inventory.html' },
+        { id: 'orders', icon: 'receipt_long', label: '주문 내역', href: '/admin/orders.html' },
+        { id: 'payment', icon: 'payments', label: '결제 관리', href: '/admin/payment.html' },
+        { id: 'analytics', icon: 'analytics', label: '매출 분석', href: '/admin/analytics.html' },
+        { id: 'staff', icon: 'notifications_active', label: '직원 호출', href: '/admin/staff.html' },
+        { type: 'footer-divider' },
+        { id: 'account', icon: 'manage_accounts', label: '계정 설정', href: '/admin/account.html' },
+        { id: 'ai-logs', icon: 'smart_toy', label: 'AI 로그 관리', href: '/admin/ai-logs.html' },
+    ];
+
+    function renderSidebar(activeId) {
+        const nav = document.getElementById('sidebar-nav');
+        let html = '';
+        let inFooter = false;
+
+        navItems.forEach(item => {
+            if (item.type === 'divider') {
+                html += `<div class="mt-4 mb-2 px-4"><p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">${item.label}</p></div>`;
+            } else if (item.type === 'footer-divider') {
+                inFooter = true;
+                html += `<div class="mt-auto pt-8 flex flex-col gap-1"><div class="h-px bg-zinc-100 mb-4 mx-2"></div>`;
+            } else {
+                const isActive = item.id === activeId;
+                const activeClass = isActive ? 'sidebar-item-active' : 'sidebar-item-inactive';
+                const iconClass = isActive ? 'fill text-primary' : '';
+                const textClass = isActive ? 'font-bold' : 'font-medium';
+
+                html += `<a class="flex items-center gap-3 px-4 py-3 rounded-xl ${activeClass}" href="${item.href}">
+                <span class="material-symbols-outlined ${iconClass}">${item.icon}</span>
+                <p class="text-sm ${textClass}">${item.label}</p>
+            </a>`;
+            }
+        });
+
+        if (inFooter) html += '</div>';
+        nav.innerHTML = html;
+    }
+
+    // Auto-detect current page and highlight
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const pageToId = {
+        'index.html': 'dashboard',
+        'menu.html': 'menu',
+        'inventory.html': 'inventory',
+        'orders.html': 'orders',
+        'payment.html': 'payment',
+        'analytics.html': 'analytics',
+        'staff.html': 'staff',
+        'account.html': 'account',
+        'ai-logs.html': 'ai-logs'
+    };
+    renderSidebar(pageToId[currentPage] || 'dashboard');
+</script>

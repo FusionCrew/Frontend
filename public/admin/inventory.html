@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>재고 관리 - 버거샵 대시보드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B91C1C",
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    boxShadow: { "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)" }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        .sidebar-item-active {
+            @apply text-text-dark relative font-bold;
+        }
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
+        .sidebar-item-inactive {
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
+        }
+        .card { @apply bg-white rounded-2xl shadow-premium border border-white overflow-hidden; }
+        .table-header { @apply text-[10px] font-bold text-gray-400 uppercase tracking-widest px-6 py-4; }
+        .table-cell { @apply px-6 py-5 text-sm font-semibold text-gray-700 border-t border-gray-50; }
+    </style>
+</head>
+
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- 사이드바 -->
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <span class="material-symbols-outlined fill text-primary">inventory_2</span>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">재고 관리</h1>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
+                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-gray-400">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-10 pb-10 space-y-8">
+                <!-- Summary Section -->
+                <div class="grid grid-cols-3 gap-8">
+                    <div class="card p-8 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">전체 재료</p>
+                            <h2 class="text-3xl font-black text-gray-800">9건</h2>
+                            <p class="text-[10px] font-bold text-primary mt-1">등록된 재료</p>
+                        </div>
+                        <div class="size-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-gray-300">inventory_2</span>
+                        </div>
+                    </div>
+                    <div class="card p-8 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">알러지 재료</p>
+                            <h2 class="text-3xl font-black text-gray-800">9건</h2>
+                            <p class="text-[10px] font-bold text-primary mt-1">알러지 태그 포함</p>
+                        </div>
+                        <div class="size-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-gray-300">warning</span>
+                        </div>
+                    </div>
+                    <div class="card p-8 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">추가 금액 재료</p>
+                            <h2 class="text-3xl font-black text-gray-800">3건</h2>
+                            <p class="text-[10px] font-bold text-primary mt-1">옵션 추가금</p>
+                        </div>
+                        <div class="size-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-gray-300">payments</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Table Section -->
+                <div class="card">
+                    <div class="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
+                        <h3 class="font-bold text-gray-800 uppercase tracking-tight">Ingredient List</h3>
+                        <button onclick="toggleModal(true)"
+                            class="px-5 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            새 재료 등록
+                        </button>
+                    </div>
+
+                    <div id="loading-state" class="hidden text-center py-20">
+                        <span
+                            class="material-symbols-outlined text-3xl text-gray-300 animate-spin">progress_activity</span>
+                        <p class="text-[10px] font-bold text-gray-400 mt-4 uppercase">Loading ingredients...</p>
+                    </div>
+
+                    <div id="error-state" class="hidden text-center py-20">
+                        <span class="material-symbols-outlined text-3xl text-primary">error</span>
+                        <p class="text-[10px] font-bold text-gray-400 mt-4 uppercase">Error loading data. Check backend
+                            (8080).</p>
+                        <button onclick="loadIngredients()"
+                            class="mt-4 text-[10px] font-bold text-primary underline">RETRY</button>
+                    </div>
+
+                    <table id="ingredient-table" class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50/50">
+                                <th class="table-header w-24">ID</th>
+                                <th class="table-header">재료명</th>
+                                <th class="table-header">칼로리</th>
+                                <th class="table-header">추가 금액</th>
+                                <th class="table-header">알러지</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingredient-tbody">
+                            <!-- Dynamic rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Background -->
+    <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-10 relative">
+            <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-gray-300 hover:text-gray-500">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h2 class="text-xl font-black text-gray-800 mb-8">새 재료 등록</h2>
+
+            <form id="add-ingredient-form" class="space-y-6">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">재료명 <span
+                            class="text-primary">*</span></label>
+                    <input type="text" name="name" required placeholder="예: 소고기 패티"
+                        class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">칼로리
+                            (kcal)</label>
+                        <input type="number" name="calories" value="0"
+                            class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">추가 금액
+                            (원)</label>
+                        <input type="number" name="extraPrice" value="0"
+                            class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">알러지
+                        태그</label>
+                    <select name="allergyTag"
+                        class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all appearance-none">
+                        <option value="">없음</option>
+                        <option value="EGG">난류 (EGG)</option>
+                        <option value="MILK">우유 (MILK)</option>
+                        <option value="PEANUT">땅콩 (PEANUT)</option>
+                        <option value="WHEAT">밀 (WHEAT)</option>
+                        <option value="SOYBEAN">대두 (SOYBEAN)</option>
+                        <option value="CRUSTACEANS">갑각류 (CRUSTACEANS)</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-4 pt-6">
+                    <button type="button" onclick="toggleModal(false)"
+                        class="flex-1 h-12 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold hover:bg-gray-200 transition-colors">취소</button>
+                    <button type="submit"
+                        class="flex-1 h-12 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all">등록</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+
+        function toggleModal(show) {
+            const modal = document.getElementById('modal');
+            modal.classList.toggle('hidden', !show);
+            if (!show) document.getElementById('add-ingredient-form').reset();
+        }
+
+        async function loadIngredients() {
+            const table = document.getElementById('ingredient-table');
+            const tbody = document.getElementById('ingredient-tbody');
+            const loading = document.getElementById('loading-state');
+            const error = document.getElementById('error-state');
+
+            table.classList.add('hidden');
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
+                if (!response.ok) throw new Error('Fetch failed');
+
+                const result = await response.json();
+                const items = result.data?.items || [];
+
+                // Update Stats
+                const totalCountElement = document.querySelector('h2.text-3xl'); // Simple selector for first stat
+                if (totalCountElement) totalCountElement.textContent = `${items.length}건`;
+
+                const allergyCount = items.filter(i => i.allergyTag).length;
+                const extraPriceCount = items.filter(i => i.extraPrice > 0).length;
+
+                const statHeaders = document.querySelectorAll('h2.text-3xl');
+                if (statHeaders.length >= 3) {
+                    statHeaders[1].textContent = `${allergyCount}건`;
+                    statHeaders[2].textContent = `${extraPriceCount}건`;
+                }
+
+                items.forEach(item => {
+                    const row = `
+                        <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer" onclick="location.href='inventory-detail.html?id=${item.ingredientId}'">
+                            <td class="table-cell text-gray-400">${item.ingredientId}</td>
+                            <td class="table-cell">${item.name}</td>
+                            <td class="table-cell">${item.calories} kcal</td>
+                            <td class="table-cell">${item.extraPrice.toLocaleString()}원</td>
+                            <td class="table-cell">
+                                <span class="px-3 py-1 ${item.allergyTag ? 'bg-red-50 text-primary' : 'bg-gray-50 text-gray-300'} rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                    ${item.allergyTag || 'None'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+
+                loading.classList.add('hidden');
+                table.classList.remove('hidden');
+            } catch (err) {
+                console.error('Error loading ingredients:', err);
+                loading.classList.add('hidden');
+                error.classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('add-ingredient-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                calories: parseInt(formData.get('calories')) || 0,
+                extraPrice: parseInt(formData.get('extraPrice')) || 0,
+                allergyTag: formData.get('allergyTag') || null
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '등록 중...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Create failed');
+
+                alert('성공적으로 등록되었습니다.');
+                toggleModal(false);
+                loadIngredients();
+            } catch (err) {
+                alert('등록 실패: ' + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '등록';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadIngredients);
+    </script>
+</body>
+
+</html>

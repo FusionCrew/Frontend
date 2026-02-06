@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>메뉴 관리 - 버거샵 대시보드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B91C1C", // Vibrant Red
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        "sans": ["Pretendard", "Inter", "sans-serif"]
+                    },
+                    boxShadow: {
+                        "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)"
+                    }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Pretendard', sans-serif;
+            @apply bg-bg-main text-text-dark antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        .sidebar-item-active {
+            @apply text-text-dark relative font-bold;
+        }
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
+        .sidebar-item-inactive {
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
+        }
+        .card {
+            @apply bg-white rounded-2xl shadow-premium border border-white overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <span class="material-symbols-outlined fill text-primary">lunch_dining</span>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">메뉴 관리</h1>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
+                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-gray-400">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-10 pb-10">
+                <div id="loading-state" class="hidden text-center py-24">
+                    <span class="material-symbols-outlined text-4xl text-gray-300 animate-spin">progress_activity</span>
+                    <p class="text-sm text-gray-400 mt-4 font-semibold">데이터를 불러오는 중입니다...</p>
+                </div>
+
+                <div id="error-state" class="hidden text-center py-24">
+                    <div
+                        class="size-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-3xl">error</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">데이터 로드 실패</h3>
+                    <p class="text-sm text-gray-400 mt-2">백엔드 서버(Port 8080) 연결을 확인해 주세요.</p>
+                    <button onclick="loadMenuItems()"
+                        class="mt-6 px-6 py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-lg shadow-primary/20 hover:scale-105 transition-all">재시도</button>
+                </div>
+
+                <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Add Menu Card -->
+                    <a href="menu-register-1.html"
+                        class="aspect-[4/5] min-h-[300px] bg-transparent border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:bg-white hover:border-primary/30 group">
+                        <div
+                            class="size-12 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                            <span
+                                class="material-symbols-outlined text-3xl text-gray-300 group-hover:text-primary transition-colors">add</span>
+                        </div>
+                        <p class="text-sm font-bold text-gray-400 group-hover:text-primary transition-colors">새 메뉴 등록
+                        </p>
+                    </a>
+                    <!-- Dynamic cards will be injected here -->
+                </div>
+
+                <!-- Footer / Pagination -->
+                <div id="footer-area" class="mt-12 flex items-center justify-center gap-2 py-4">
+                    <!-- Simplified pagination for now -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080';
+
+        function createMenuCard(item) {
+            return `
+                <a href="menu-detail.html#${item.menuItemId}" class="card aspect-[4/5] flex flex-col group ${item.hidden ? 'opacity-60 grayscale-[0.3]' : ''}">
+                    <div class="w-full aspect-[4/3] bg-gray-50 overflow-hidden relative">
+                        ${item.imageUrl ?
+                    `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700">` :
+                    `<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-gray-200">lunch_dining</span></div>`
+                }
+                        ${item.hidden ? `<div class="absolute inset-0 bg-black/5 backdrop-blur-[1px] flex items-center justify-center font-bold text-white text-[10px] uppercase tracking-widest">Hidden</div>` : ''}
+                    </div>
+                    <div class="flex-1 p-6 flex flex-col justify-between">
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">${item.name}</h3>
+                            <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">${item.menuItemId}</p>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <p class="text-base font-bold text-primary italic leading-none">${(item.price || 0).toLocaleString()}원</p>
+                            <span class="material-symbols-outlined text-gray-200 group-hover:text-primary transition-colors">arrow_forward</span>
+                        </div>
+                    </div>
+                </a>
+            `;
+        }
+
+        async function loadMenuItems() {
+            const loadingEl = document.getElementById('loading-state');
+            const errorEl = document.getElementById('error-state');
+            const gridEl = document.getElementById('menu-grid');
+            const addCardHtml = gridEl.firstElementChild.outerHTML;
+
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            gridEl.classList.add('opacity-50');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items`);
+                if (!response.ok) throw new Error('API Failed');
+
+                const result = await response.json();
+                const items = result.data?.items || [];
+
+                loadingEl.classList.add('hidden');
+                gridEl.classList.remove('opacity-50');
+                gridEl.innerHTML = addCardHtml;
+
+                items.forEach(item => {
+                    gridEl.insertAdjacentHTML('beforeend', createMenuCard(item));
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                loadingEl.classList.add('hidden');
+                errorEl.classList.remove('hidden');
+                gridEl.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadMenuItems);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>결제 관리 - 버거샵 대시보드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B91C1C",
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    boxShadow: { "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)" }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        .sidebar-item-active {
+            @apply text-text-dark relative font-bold;
+        }
+        .sidebar-item-active::after {
+            content: '';
+            @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary;
+        }
+        .sidebar-item-inactive {
+            @apply text-text-light hover:text-text-dark transition-colors font-medium;
+        }
+        .card { @apply bg-white rounded-2xl shadow-premium border border-white overflow-hidden p-8; }
+        .stat-card-accent { @apply bg-primary text-white; }
+        .table-header { @apply text-[10px] font-bold text-gray-400 uppercase tracking-widest px-8 py-4 px-6; }
+        .table-cell { @apply px-8 py-5 text-sm font-semibold text-gray-700 border-t border-gray-50 px-6; }
+    </style>
+</head>
+
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span
+                        class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-20 bg-transparent flex items-center justify-between px-10">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <span class="material-symbols-outlined fill text-primary">payments</span>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">결제 관리</h1>
+                </div>
+
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-6">
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">search</span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <span class="material-symbols-outlined text-[22px]">settings</span>
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
+                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <span class="material-symbols-outlined text-gray-400">person</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto px-10 pb-10 space-y-8">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-4 gap-8">
+                    <div class="card stat-card-accent border-none shadow-xl shadow-primary/20">
+                        <p class="text-[11px] font-bold text-white/60 uppercase tracking-widest mb-2">금일 결제 총액</p>
+                        <h2 class="text-3xl font-black italic">₩4,250,000</h2>
+                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-white/80">
+                            <span class="material-symbols-outlined text-sm">trending_up</span>
+                            전일 대비 +12.5%
+                        </div>
+                    </div>
+                    <div class="card">
+                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">당월 누적 매출</p>
+                        <h2 class="text-2xl xl:text-3xl font-black text-gray-800 italic truncate">₩124,800,000</h2>
+                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-primary">
+                            목표 대비 82% 달성
+                        </div>
+                    </div>
+                    <div class="card">
+                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">금일 환불 처리</p>
+                        <h2 class="text-2xl xl:text-3xl font-black text-primary italic truncate">₩45,000</h2>
+                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-gray-400">
+                            총 3건 발생
+                        </div>
+                    </div>
+                    <div class="card">
+                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">정산 예정 금액</p>
+                        <h2 class="text-2xl xl:text-3xl font-black text-gray-800 italic truncate">₩3,890,000</h2>
+                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-gray-400">
+                            정상 집계 중
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Table -->
+                <div class="card p-0">
+                    <div class="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
+                        <h3 class="font-bold text-gray-800 uppercase tracking-tight">Recent Transactions</h3>
+                        <div class="flex gap-4">
+                            <button
+                                class="px-4 py-2 bg-gray-50 text-gray-400 text-[10px] font-bold rounded-lg border border-gray-100 hover:bg-gray-100 transition-all">엑셀
+                                다운로드</button>
+                        </div>
+                    </div>
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50/50">
+                                <th class="table-header">결제 일시</th>
+                                <th class="table-header">승인 번호</th>
+                                <th class="table-header">결제 수단</th>
+                                <th class="table-header">결제 금액</th>
+                                <th class="table-header">고객 / 주문번호</th>
+                                <th class="table-header text-right">상태</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="table-cell">2024-05-24 14:22</td>
+                                <td class="table-cell text-gray-400">30018422</td>
+                                <td class="table-cell">신용카드 (현대)</td>
+                                <td class="table-cell italic font-black text-gray-800">24,500원</td>
+                                <td class="table-cell">
+                                    <div class="flex flex-col">
+                                        <span>김철수</span>
+                                        <span class="text-[10px] text-gray-300 font-bold">#ORD-2841</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell text-right">
+                                    <span class="px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold">결제
+                                        완료</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="table-cell">2024-05-24 14:22</td>
+                                <td class="table-cell text-gray-400">30018422</td>
+                                <td class="table-cell">신용카드 (현대)</td>
+                                <td class="table-cell italic font-black text-gray-800">24,500원</td>
+                                <td class="table-cell">
+                                    <div class="flex flex-col">
+                                        <span>김철수</span>
+                                        <span class="text-[10px] text-gray-300 font-bold">#ORD-2841</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell text-right">
+                                    <span class="px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold">결제
+                                        완료</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="table-cell">2024-05-24 14:22</td>
+                                <td class="table-cell text-gray-400">30018422</td>
+                                <td class="table-cell">신용카드 (현대)</td>
+                                <td class="table-cell italic font-black text-gray-800">24,500원</td>
+                                <td class="table-cell">
+                                    <div class="flex flex-col">
+                                        <span>김철수</span>
+                                        <span class="text-[10px] text-gray-300 font-bold">#ORD-2841</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell text-right">
+                                    <span class="px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold">결제
+                                        완료</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

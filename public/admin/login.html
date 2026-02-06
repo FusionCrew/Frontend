@@ -1,0 +1,193 @@
+<!-- 관리자 로그인 -->
+<!DOCTYPE html>
+<html class="light" lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>관리자 로그인 - PREMIUM BURGER</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { "primary": "#DC2626", "secondary": "#000000", "bg-main": "#FFFFFF", "bg-sub": "#F8FAFC", "border-light": "#E2E8F0", "text-dark": "#0F172A", "text-muted": "#64748B" },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: "Work Sans", "Noto Sans KR", sans-serif;
+        }
+
+        .form-input:focus {
+            border-color: #d41121 !important;
+            outline: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-6 font-sans text-gray-900">
+    <!-- Background Decor -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px]"></div>
+    </div>
+
+    <!-- Login Container -->
+    <div
+        class="w-full max-w-[1000px] flex bg-white rounded-[32px] shadow-2xl overflow-hidden border border-white min-h-[600px]">
+        <!-- Left Side: Brand Visual -->
+        <div class="hidden md:flex md:w-1/2 bg-primary p-12 flex-col justify-between relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-10">
+                    <div class="size-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-lg">
+                        <span class="material-symbols-outlined fill text-2xl font-bold">lunch_dining</span>
+                    </div>
+                    <h1 class="text-white text-xl font-black italic tracking-tighter uppercase">BURGER SHOP</h1>
+                </div>
+                <div class="space-y-4">
+                    <h2
+                        class="text-4xl lg:text-5xl font-black text-white leading-tight italic uppercase tracking-tighter">
+                        Admin<br />Management<br />Portal
+                    </h2>
+                    <p class="text-white/70 text-sm font-medium max-w-[280px] leading-relaxed">
+                        Effortlessly manage your store's operations, orders, and staff in one powerful dashboard.
+                    </p>
+                </div>
+            </div>
+
+            <div
+                class="relative z-10 flex items-center gap-4 text-white/50 text-xs font-bold uppercase tracking-widest">
+                <span>Vers. 2.0.4</span>
+                <span class="size-1 bg-white/20 rounded-full"></span>
+                <span>Enterprise Edition</span>
+            </div>
+
+            <!-- Decorative burger icon in background -->
+            <span
+                class="material-symbols-outlined absolute -bottom-10 -right-10 text-[300px] text-white/10 rotate-12 select-none">lunch_dining</span>
+        </div>
+
+        <!-- Right Side: Login Form -->
+        <div class="flex-1 p-8 md:p-16 flex flex-col justify-center">
+            <div class="mb-10 text-center md:text-left">
+                <h3 class="text-2xl font-black text-gray-900 mb-2">Welcome Back</h3>
+                <p class="text-gray-500 text-sm font-medium">Please enter your credentials to access the admin panel.
+                </p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <!-- ID -->
+                <div class="space-y-2">
+                    <label class="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Admin ID</label>
+                    <div class="relative group">
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">person</span>
+                        <input id="adminId" type="text" placeholder="Your ID" required
+                            class="w-full h-14 pl-12 pr-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all outline-none font-semibold text-gray-800 placeholder:text-gray-300">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center px-1">
+                        <label class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Password</label>
+                        <a href="forgot-password.html"
+                            class="text-[11px] font-black text-primary uppercase tracking-widest hover:underline">Forgot?</a>
+                    </div>
+                    <div class="relative group">
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">lock</span>
+                        <input id="password" type="password" placeholder="••••••••" required
+                            class="w-full h-14 pl-12 pr-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all outline-none font-semibold text-gray-800 placeholder:text-gray-300">
+                    </div>
+                </div>
+
+                <!-- Remember Me -->
+                <label class="flex items-center gap-3 cursor-pointer group w-fit">
+                    <div class="relative flex items-center">
+                        <input id="rememberMe" type="checkbox" class="peer hidden">
+                        <div
+                            class="size-5 rounded-md border-2 border-gray-200 peer-checked:bg-primary peer-checked:border-primary transition-all">
+                        </div>
+                        <span
+                            class="material-symbols-outlined text-white text-[14px] absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 scale-0 peer-checked:scale-100 transition-all">check</span>
+                    </div>
+                    <span class="text-sm font-bold text-gray-500 group-hover:text-gray-900 transition-colors">Remember
+                        this session</span>
+                </label>
+
+                <!-- Error Message -->
+                <div id="errorMessage"
+                    class="hidden flex items-center gap-2 p-4 bg-red-50 text-primary rounded-xl border border-red-100">
+                    <span class="material-symbols-outlined text-[20px]">error</span>
+                    <p class="text-[13px] font-bold">Invalid admin credentials.</p>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit"
+                    class="w-full h-14 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-gray-200 hover:bg-primary hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    Sign In to Dashboard
+                </button>
+            </form>
+
+            <!-- Register Link -->
+            <div class="mt-10 pt-6 border-t border-gray-100 text-center">
+                <p class="text-sm text-gray-500 font-medium">
+                    Don't have an admin account?
+                    <a href="register.html"
+                        class="text-primary font-black uppercase tracking-widest text-[11px] ml-2 hover:underline">Create
+                        Account</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const adminId = document.getElementById('adminId').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            try {
+                // TODO: 실제 API 연동 시 아래 주석 해제
+                // const response = await fetch('/api/admin/login', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ adminId, password })
+                // });
+                // 
+                // if (response.ok) {
+                //     window.location.href = 'index.html';
+                // } else {
+                //     errorMessage.classList.remove('hidden');
+                // }
+
+                // 임시 로그인 처리 (테스트용)
+                if (adminId && password) {
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    localStorage.setItem('adminId', adminId);
+                    window.location.href = 'index.html';
+                } else {
+                    errorMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>
