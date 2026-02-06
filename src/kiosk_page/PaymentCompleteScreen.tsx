@@ -18,7 +18,7 @@ export default function PaymentCompleteScreen({ onClose, ticketNumber }: Payment
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 w-full h-full bg-[#FFF9F5] cursor-pointer"
+      className="fixed inset-0 w-full h-full cursor-pointer"
       style={{ zIndex: 1000 }}
     >
       {/* 뒤로가기 버튼 */}

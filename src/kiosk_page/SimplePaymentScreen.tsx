@@ -17,7 +17,6 @@ export default function SimplePaymentScreen({ onBack, onComplete, totalAmount }:
       onClick={onComplete}
       className="fixed inset-0"
       style={{
-        backgroundColor: "#F5EDE4",
         zIndex: 1000,
         cursor: "pointer"
       }}
@@ -57,11 +56,6 @@ export default function SimplePaymentScreen({ onBack, onComplete, totalAmount }:
       }}>
         바코드를 스캔해주세요
       </h1>
-
-      {/* 캐릭터 */}
-      <div style={{ position: "relative", zIndex: 0 }}>
-        <KioskCharacter />
-      </div>
 
       {/* 하단 패널 */}
       <BottomPanel height="550px">

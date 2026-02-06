@@ -17,7 +17,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-[#FFF9F5]" style={{ zIndex: 1000 }}>
+    <div className="fixed inset-0 w-full h-full" style={{ zIndex: 1000 }}>
       {/* 뒤로가기 버튼 */}
       <button
         onClick={onBack}
@@ -38,9 +38,6 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
 
       {/* 직원 호출 버튼 */}
       <StaffCallButton onClick={() => setShowStaffCallModal(true)} />
-
-      {/* 키오스크 캐릭터 */}
-      <KioskCharacter />
 
       {/* 제목 */}
       <h1 style={{

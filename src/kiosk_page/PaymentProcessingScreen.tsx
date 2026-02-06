@@ -46,7 +46,7 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
   }, [onComplete, cancelled, isProcessing]);
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-[#FFF9F5]" style={{ zIndex: 1000 }}>
+    <div className="fixed inset-0 w-full h-full" style={{ zIndex: 1000 }}>
       {/* 뒤로가기 버튼 */}
       <button
         onClick={handleBack}

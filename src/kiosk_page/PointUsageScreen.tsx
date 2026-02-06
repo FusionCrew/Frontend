@@ -51,7 +51,6 @@ export default function PointUsageScreen({ onBack, onComplete, totalAmount }: Po
     <div
       className="fixed inset-0"
       style={{
-        backgroundColor: "#F5EDE4",
         zIndex: 1000
       }}
     >
@@ -90,11 +89,6 @@ export default function PointUsageScreen({ onBack, onComplete, totalAmount }: Po
       }}>
         {isVerified ? "포인트 사용" : "전화번호를 입력해주세요"}
       </h1>
-
-      {/* 캐릭터 - 항상 표시 */}
-      <div style={{ position: "relative", zIndex: 0 }}>
-        <KioskCharacter />
-      </div>
 
       {/* 하단 패널 */}
       <BottomPanel height={isVerified ? "550px" : "650px"}>
