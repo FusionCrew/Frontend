@@ -285,16 +285,13 @@ function App() {
       >
         {/* Pass speaking state to pages if they use KioskCharacter */}
         {/* We can use a context or just let KioskCharacter handle it if we make it smarter */}
-        {/* Dynamic Page Content */}
-        {renderer()}
-
-        {/* Persisted Character Layer (Always on top) */}
-        <div style={{ position: "absolute", inset: 0, zIndex: 3000, pointerEvents: "none" }}>
+        {/* Layer 0: Persisted Background (Character & Webcam) */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
           <KioskCharacter speaking={speaking} tracking={tracking} />
         </div>
 
-        {/* MediaPipe Debug Panel (On top of everything) */}
-        <div style={{ position: "absolute", top: 0, right: 0, zIndex: 4000 }}>
+        {/* MediaPipe Debug Panel (Stays at the very top for dev) */}
+        <div style={{ position: "absolute", top: 0, right: 0, zIndex: 5000 }}>
           <MediaPipeDebugPanel
             faceResults={tracking.faceResults}
             poseResults={tracking.poseResults}
@@ -303,15 +300,20 @@ function App() {
           />
         </div>
 
-        {/* Global Subtitle Overlay */}
-        {subtitle && (
-          <div
-            className="absolute left-1/2 -translate-x-1/2 bg-white/90 px-8 py-4 rounded-3xl shadow-xl z-[100] text-center"
-            style={{ bottom: "400px", width: "80%", fontSize: "40px", color: "#4A3728", fontFamily: "Noto Sans KR" }}
-          >
-            {subtitle}
-          </div>
-        )}
+        {/* Layer 10: Dynamic Page Content (Transparent Overlay) */}
+        <div style={{ position: "relative", zIndex: 10, width: "1080px", height: "1920px" }}>
+          {renderer()}
+
+          {/* Global Subtitle Overlay */}
+          {subtitle && (
+            <div
+              className="absolute left-1/2 -translate-x-1/2 bg-white/90 px-8 py-4 rounded-3xl shadow-xl z-[100] text-center"
+              style={{ bottom: "400px", width: "80%", fontSize: "40px", color: "#4A3728", fontFamily: "Noto Sans KR" }}
+            >
+              {subtitle}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
