@@ -54,4 +54,27 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
+}
+
+export interface KioskMenuListResponse {
+  success: boolean;
+  data: {
+    items: KioskMenuItemDto[];
+    page: {
+      size: number;
+      nextCursor: string;
+    }
+  };
+  timestamp: string;
+  requestId: string;
+}
+
+export interface KioskMenuItemDto {
+  menuItemId: string;
+  name: string;
+  price: number;
+  thumbnailUrl: string;
+  isAvailable: boolean;
+  categoryId: string;
 }

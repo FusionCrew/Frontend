@@ -17,29 +17,20 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "#F5EDE4",
-        zIndex: 20
-      }}
-    >
+    <div className="w-full h-full relative">
       {/* 뒤로가기 버튼 */}
       <button
         onClick={onBack}
         className="absolute flex items-center justify-center"
-        style={{ 
-          top: "45px", 
+        style={{
+          top: "45px",
           left: "44px",
           width: "80px",
           height: "80px",
           background: "none",
           border: "none",
-          cursor: "pointer"
+          cursor: "pointer",
+          zIndex: 110
         }}
       >
         <img src={backArrowCircle} alt="뒤로가기" style={{ width: "70px", height: "70px" }} />
@@ -58,15 +49,11 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
         fontSize: "56px",
         fontWeight: "600",
         color: "#4A3728",
-        whiteSpace: "nowrap"
+        whiteSpace: "nowrap",
+        zIndex: 100
       }}>
         어떤 결제 방법을 사용하시겠어요?
       </h1>
-
-      {/* 캐릭터 */}
-      <div style={{ position: "relative", zIndex: 0 }}>
-        <KioskCharacter />
-      </div>
 
       {/* 결제 방법 버튼들 */}
       <div
@@ -76,7 +63,8 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
           left: "50%",
           transform: "translateX(-50%)",
           display: "flex",
-          gap: "40px"
+          gap: "40px",
+          zIndex: 110
         }}
       >
         {/* 신용·체크카드 */}

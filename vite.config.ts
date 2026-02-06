@@ -5,10 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/api": {
-        target: "http://localhost:8080", // Spring Boot Backend
+      "/api/v1": {
+        target: "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/ai"), // /api/stt -> /ai/stt
+      },
+      "/ai": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
       },
       "/health": {
         target: "http://localhost:8080",

@@ -22,29 +22,20 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
   }, [onComplete]);
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "#F5EDE4",
-        zIndex: 30
-      }}
-    >
+    <div className="w-full h-full relative">
       {/* 뒤로가기 버튼 */}
       <button
         onClick={(e) => { e.stopPropagation(); onBack(); }}
         className="absolute flex items-center justify-center"
-        style={{ 
-          top: "45px", 
+        style={{
+          top: "45px",
           left: "44px",
           width: "80px",
           height: "80px",
           background: "none",
           border: "none",
-          cursor: "pointer"
+          cursor: "pointer",
+          zIndex: 110
         }}
       >
         <img src={backArrowCircle} alt="뒤로가기" style={{ width: "70px", height: "70px" }} />
@@ -59,7 +50,8 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
         top: "193px",
         left: "50%",
         transform: "translateX(-50%)",
-        textAlign: "center"
+        textAlign: "center",
+        zIndex: 100
       }}>
         <p style={{
           fontFamily: "'Noto Sans KR', sans-serif",
@@ -81,11 +73,6 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
         </p>
       </div>
 
-      {/* 캐릭터 */}
-      <div style={{ position: "relative", zIndex: 0 }}>
-        <KioskCharacter />
-      </div>
-
       {/* 결제 금액 패널 */}
       <div
         style={{
@@ -100,7 +87,8 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
           padding: "0 80px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center"
+          justifyContent: "center",
+          zIndex: 110
         }}
       >
         {/* 구매 금액 */}
@@ -175,7 +163,7 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          zIndex: 100,
+          zIndex: 150,
         }}
       >
         <div
@@ -196,7 +184,7 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
           }}>
             ⏳
           </div>
-          
+
           {/* 텍스트 */}
           <p
             style={{

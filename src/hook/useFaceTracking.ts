@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FaceMesh, Results as FaceResults } from "@mediapipe/face_mesh";
 import { Pose, Results as PoseResults } from "@mediapipe/pose";
+import { Hands, Results as HandsResults } from "@mediapipe/hands";
 
 interface FaceTrackingResult {
   facePosition: { x: number; y: number };
@@ -10,6 +11,9 @@ interface FaceTrackingResult {
   hesitationScore: number;
   isHesitating: boolean;
   videoElement?: HTMLVideoElement | null;
+  faceResults?: FaceResults | null;
+  poseResults?: PoseResults | null;
+  handsResults?: HandsResults | null;
 }
 
 /**
@@ -20,25 +24,35 @@ interface FaceTrackingResult {
  * @returns 얼굴 위치, 감지 상태, 에러 정보
  */
 export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?: string): FaceTrackingResult & { poseLandmarks: any[] } {
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const faceMeshRef = useRef<FaceMesh | null>(null);
   const poseRef = useRef<Pose | null>(null);
+  const handsRef = useRef<Hands | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const originalConsoleRef = useRef<{ warn: any; info: any } | null>(null);
-  
+
   const [facePosition, setFacePosition] = useState({ x: 0, y: 0 });
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hesitationScore, setHesitationScore] = useState(0);
   const [isHesitating, setIsHesitating] = useState(false);
   const [poseLandmarks, setPoseLandmarks] = useState<any[]>([]);
-  
+  const [faceResults, setFaceResults] = useState<FaceResults | null>(null);
+  const [poseResults, setPoseResults] = useState<PoseResults | null>(null);
+  const [handsResults, setHandsResults] = useState<HandsResults | null>(null);
+
   // Throttle을 위한 ref (매 프레임마다 setState 호출 방지)
-  const lastUpdateRef = useRef({ face: 0, pose: 0, hesitation: 0 });
-  const UPDATE_INTERVAL = 50; // 50ms = 20fps로 상태 업데이트 제한
-  
+  const lastUpdateRef = useRef({ face: 0, pose: 0, hands: 0, hesitation: 0, logError: 0 });
+  const UPDATE_INTERVAL = 33; // ~30fps
+
   // 스무딩을 위한 이전 위치 저장 (떨림 방지)
   const smoothedPositionRef = useRef({ x: 0, y: 0 });
+
+  // MediaPipe ready flags (must be at component level to survive Strict Mode)
+  const faceReadyRef = useRef(false);
+  const poseReadyRef = useRef(false);
+  const handsReadyRef = useRef(false);
   const SMOOTHING_FACTOR = 0.3; // 0~1, 낮을수록 부드럽고 느리게 반응 (0.3 = 70% 이전값 + 30% 새값)
 
   // cleanup 함수를 외부에 정의하여 useEffect에서 참조 가능하도록
@@ -47,13 +61,13 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
       // 상태 먼저 초기화
       setIsDetecting(false);
       setFacePosition({ x: 0, y: 0 });
-      
+
       // 애니메이션 프레임 취소
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      
+
       // 비디오 스트림 먼저 중지 (가장 중요)
       if (videoRef.current) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -76,19 +90,25 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
         } catch (e) {
           // FaceMesh 정리 실패 시 무시
         }
-        faceMeshRef.current = null;
+        // Don't set to null - Strict Mode will call cleanup while mounted
       }
-      
+
       // Pose 정리
       if (poseRef.current) {
         try {
           poseRef.current.close();
-        } catch (e) {
-          // 무시
-        }
-        poseRef.current = null;
+        } catch (e) { }
+        // Don't set to null
       }
-      
+
+      // Hands 정리
+      if (handsRef.current) {
+        try {
+          handsRef.current.close();
+        } catch (e) { }
+        // Don't set to null
+      }
+
       // 비디오 요소 DOM에서 제거
       if (videoRef.current) {
         try {
@@ -102,7 +122,7 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
         }
         videoRef.current = null;
       }
-      
+
       // console 복원
       if (originalConsoleRef.current) {
         console.warn = originalConsoleRef.current.warn;
@@ -132,50 +152,59 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
 
     const initFaceTracking = async () => {
       try {
-        // 비디오 엘리먼트 생성 (숨김; 캔버스에 직접 그려 사용)
+        // 비디오 엘리먼트 생성 (가시성을 유지하되 화면 밖으로 밀어냄)
         const video = document.createElement("video");
-        video.style.display = "none";
+        video.setAttribute('data-mediapipe', 'true'); // 디버그 패널이 쉽게 찾을 수 있도록 태그 추가
+        video.style.position = "absolute";
+        video.style.left = "-10000px";
+        video.style.top = "0";
+        video.style.opacity = "0";
+        video.style.pointerEvents = "none";
         video.muted = true;
         video.autoplay = true;
         (video as any).playsInline = true;
         video.width = 640;
         video.height = 480;
         videoRef.current = video;
+        setVideoElement(video);
         document.body.appendChild(video);
 
-        // MediaPipe FaceMesh 초기화
-        const faceMesh = new FaceMesh({
-          locateFile: (file: string) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-          },
-        });
+        // MediaPipe 파일 경로 통합 관리 (타입 호환성 수정)
+        const getMediaPipeFile = (file: string, prefix?: string): string => {
+          const baseUrl = "https://cdn.jsdelivr.net/npm";
+          const fileName = file.split('/').pop() || file;
 
-        // MediaPipe WASM 및 WebGL 로그 억제
-        if (typeof (window as any).Module === 'undefined') {
-          (window as any).Module = {};
-        }
-        (window as any).Module.print = () => {}; // stdout 억제
-        (window as any).Module.printErr = () => {}; // stderr 억제
-        
-        // WebGL 경고 메시지 필터링 (console 오버라이드)
-        if (!originalConsoleRef.current) {
-          originalConsoleRef.current = {
-            warn: console.warn,
-            info: console.info,
+          // 패키지별 버전 고정
+          const versions: Record<string, string> = {
+            'face_mesh': '0.4.1633559619',
+            'hands': '0.4.1675469240',
+            'pose': '0.5.1675469404'
           };
-          
-          console.warn = (...args: any[]) => {
-            const msg = args.join(' ');
-            if (msg.includes('gl_context') || msg.includes('WebGL')) return;
-            originalConsoleRef.current!.warn.apply(console, args);
-          };
-          console.info = (...args: any[]) => {
-            const msg = args.join(' ');
-            if (msg.includes('gl_context') || msg.includes('WebGL')) return;
-            originalConsoleRef.current!.info.apply(console, args);
-          };
-        }
 
+          // 파일명에 맞는 패키지 찾기
+          if (fileName.includes('face_mesh') || fileName.includes('face_landmark') || fileName.includes('face_detection') || fileName.includes('face_geometry')) {
+            return `${baseUrl}/@mediapipe/face_mesh@${versions.face_mesh}/${fileName}`;
+          }
+          if (fileName.includes('hand')) {
+            return `${baseUrl}/@mediapipe/hands@${versions.hands}/${fileName}`;
+          }
+          if (fileName.includes('pose')) {
+            return `${baseUrl}/@mediapipe/pose@${versions.pose}/${fileName}`;
+          }
+          if (fileName.includes('drawing_utils')) {
+            return `${baseUrl}/@mediapipe/drawing_utils/${fileName}`;
+          }
+
+          // 추측 fallback
+          const pkg = prefix?.includes('face') ? 'face_mesh' : (prefix?.includes('hand') ? 'hands' : 'pose');
+          return `${baseUrl}/@mediapipe/${pkg}@${versions[pkg] || 'latest'}/${fileName}`;
+        };
+
+        // MediaPipe WASM 및 WebGL 로그 억제 (기존 방식 제거 - 충돌 원인)
+        // MediaPipe 내부 모듈이 전역 상태를 오염시키지 않도록 설정하지 않음
+
+        // 1. FaceMesh 초기화
+        const faceMesh = new FaceMesh({ locateFile: getMediaPipeFile });
         faceMesh.setOptions({
           maxNumFaces: 1, // 한 명의 얼굴만 추적
           refineLandmarks: true, // 눈, 입술 등 세밀한 랜드마크 포함
@@ -183,49 +212,43 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
           minTrackingConfidence: 0.5,
         });
 
+        let faceFrameCount = 0;
         faceMesh.onResults((results: FaceResults) => {
           if (!mounted) return;
+          faceFrameCount++;
+          if (faceFrameCount % 60 === 0) {
+            console.log(`[useFaceTracking] 📹 FaceMesh received ${faceFrameCount} frames, detected: ${!!results.multiFaceLandmarks}`);
+          }
 
           const now = Date.now();
-          // Throttle: 50ms마다만 상태 업데이트
           if (now - lastUpdateRef.current.face < UPDATE_INTERVAL) return;
           lastUpdateRef.current.face = now;
 
           if (results.multiFaceLandmarks && results.multiFaceLandmarks[0]) {
+            const clonedLandmarks = results.multiFaceLandmarks.map(arr => arr.map(p => ({ ...p })));
+            setFaceResults({ multiFaceLandmarks: clonedLandmarks } as any);
             const landmarks = results.multiFaceLandmarks[0];
-            
-            // 코 끝 (landmark 1) 사용 - 얼굴의 중심점
             const noseTip = landmarks[1];
-            
-            // MediaPipe는 0~1 범위의 정규화된 좌표를 반환
-            // Live2D focusController에 맞게 -1~1 범위로 변환 후 스케일 조정
-            // X축 반전: 웹캠은 거울 모드이므로 좌우를 뒤집어야 자연스러움
-            // 스케일 팩터를 낮춰서 자연스러운 반응 (400 -> 1)
-            const rawX = (0.5 - noseTip.x) * 2 * 1; // 좌우 이동 범위 (반전)
-            const rawY = (noseTip.y - 0.5) * 2 * 1; // 상하 이동 범위
-            
-            // 스무딩 적용: 이전 위치와 현재 위치의 가중 평균 (떨림 방지)
+            const rawX = (0.5 - noseTip.x) * 2 * 1;
+            const rawY = (noseTip.y - 0.5) * 2 * 1;
+
             smoothedPositionRef.current.x = smoothedPositionRef.current.x * (1 - SMOOTHING_FACTOR) + rawX * SMOOTHING_FACTOR;
             smoothedPositionRef.current.y = smoothedPositionRef.current.y * (1 - SMOOTHING_FACTOR) + rawY * SMOOTHING_FACTOR;
-            
-            setFacePosition({ x: smoothedPositionRef.current.x, y: -smoothedPositionRef.current.y }); // Y축 반전 (화면 좌표 -> Live2D 좌표)
+
+            setFacePosition({ x: smoothedPositionRef.current.x, y: -smoothedPositionRef.current.y });
             setIsDetecting(true);
             setError(null);
           } else {
             setIsDetecting(false);
+            setFaceResults(null);
           }
         });
-
         faceMeshRef.current = faceMesh;
-        
-        // MediaPipe Pose 초기화 (포즈로 사용자 움직임/정지 판단) - pose가 활성화된 경우에만
+
+        // 2. Pose 초기화
         let pose: Pose | null = null;
         if (enablePose) {
-          pose = new Pose({
-            locateFile: (file: string) => {
-              return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-            },
-          });
+          pose = new Pose({ locateFile: getMediaPipeFile });
         }
 
         if (pose) {
@@ -248,96 +271,126 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
 
         if (pose) {
           pose.onResults((pResults: PoseResults) => {
-          if (!mounted) return;
-          
-          const now = Date.now();
-          
-          if (!pResults.poseLandmarks || pResults.poseLandmarks.length === 0) {
-            // Throttle 적용
-            if (now - lastUpdateRef.current.pose < UPDATE_INTERVAL) return;
-            lastUpdateRef.current.pose = now;
-            
-            // 포즈 감지 안됨 -> 망설임 판단 보수적으로 false
-            setHesitationScore((s) => Math.max(0, s * movementDecay));
-            setIsHesitating(false);
-            setPoseLandmarks([]);
-            return;
-          }
+            if (!mounted) return;
 
-          // 관심 랜드마크: 코(0), 왼쪽어깨(11), 오른쪽어깨(12)
-          const lm = pResults.poseLandmarks;
-          
-          const indexes = [0, 11, 12].filter(i => i < lm.length);
-          let cx = 0, cy = 0, count = 0;
-          for (const i of indexes) {
-            cx += lm[i].x;
-            cy += lm[i].y;
-            count++;
-          }
-          if (count === 0) return;
-          cx /= count; cy /= count;
+            const now = Date.now();
 
-          // 이전 값 비교
-          const prev = (pose as any).__prevCenter || { x: cx, y: cy, t: Date.now() };
-          const dx = cx - prev.x;
-          const dy = cy - prev.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          (pose as any).__prevCenter = { x: cx, y: cy, t: Date.now() };
+            if (!pResults.poseLandmarks || pResults.poseLandmarks.length === 0) {
+              // Throttle 적용
+              if (now - lastUpdateRef.current.pose < UPDATE_INTERVAL) return;
+              lastUpdateRef.current.pose = now;
 
-          // 업데이트된 이동 score: push into history and compute avg
-          movementHistory.push(dist);
-          if (movementHistory.length > maxHistory) movementHistory.shift();
-          const avgDist = movementHistory.reduce((a, b) => a + b, 0) / Math.max(1, movementHistory.length);
-
-          // also keep an exponential-decayed peak for compatibility
-          lastMovementRef.score = Math.max(avgDist, lastMovementRef.score * movementDecay);
-          lastMovementRef.t = Date.now();
-
-          // 망설임 스코어는 이동량의 역수 (작게 움직일수록 높음), clamp 0~1
-          const raw = Math.min(1, Math.max(0, (movementThreshold - avgDist) / movementThreshold));
-          
-          // Throttle 적용 - 상태 업데이트
-          if (now - lastUpdateRef.current.pose >= UPDATE_INTERVAL) {
-            lastUpdateRef.current.pose = now;
-            
-            // 상태로 포즈 랜드마크 저장 (정규화 좌표)
-            setPoseLandmarks(lm);
-            
-            // 부드럽게(이전 스코어 유지와 새 스코어의 완만한 결합)
-            setHesitationScore((prev) => Math.max(prev * 0.9, raw));
-
-            // 얼굴 위치(facePosition)도 pose의 코(0번)로 대체하여 설정 (Pose로 얼굴 추적)
-            try {
-              const nose = lm[0];
-              if (nose) {
-                const rawX = (0.5 - nose.x) * 2 * 1;
-                const rawY = (nose.y - 0.5) * 2 * 1;
-                
-                // 스무딩 적용: 이전 위치와 현재 위치의 가중 평균 (떨림 방지)
-                smoothedPositionRef.current.x = smoothedPositionRef.current.x * (1 - SMOOTHING_FACTOR) + rawX * SMOOTHING_FACTOR;
-                smoothedPositionRef.current.y = smoothedPositionRef.current.y * (1 - SMOOTHING_FACTOR) + rawY * SMOOTHING_FACTOR;
-                
-                setFacePosition({ x: smoothedPositionRef.current.x, y: -smoothedPositionRef.current.y });
-                setIsDetecting(true);
-                setError(null);
-              }
-            } catch {}
-
-            // 망설임 판정: 최근 이동이 매우 작고, 시간이 지났으면 true
-            if (lastMovementRef.score < movementThreshold && now - lastMovementRef.t >= hesitationMs) {
-              setIsHesitating(true);
-            } else {
+              // 포즈 감지 안됨 -> 망설임 판단 보수적으로 false
+              setHesitationScore((s) => Math.max(0, s * movementDecay));
               setIsHesitating(false);
+              setPoseLandmarks([]);
+              setPoseResults(null);
+              return;
             }
+
+            // Clone pose landmarks
+            const clonedPose = pResults.poseLandmarks.map(p => ({ ...p }));
+            setPoseResults({ poseLandmarks: clonedPose } as any);
+            setPoseLandmarks(clonedPose);
+
+            // 관심 랜드마크: 코(0), 왼쪽어깨(11), 오른쪽어깨(12)
+            const lm = pResults.poseLandmarks;
+
+            const indexes = [0, 11, 12].filter(i => i < lm.length);
+            let cx = 0, cy = 0, count = 0;
+            for (const i of indexes) {
+              cx += lm[i].x;
+              cy += lm[i].y;
+              count++;
+            }
+            if (count === 0) return;
+            cx /= count; cy /= count;
+
+            // 이전 값 비교
+            const prev = (pose as any).__prevCenter || { x: cx, y: cy, t: Date.now() };
+            const dx = cx - prev.x;
+            const dy = cy - prev.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            (pose as any).__prevCenter = { x: cx, y: cy, t: Date.now() };
+
+            // 업데이트된 이동 score: push into history and compute avg
+            movementHistory.push(dist);
+            if (movementHistory.length > maxHistory) movementHistory.shift();
+            const avgDist = movementHistory.reduce((a, b) => a + b, 0) / Math.max(1, movementHistory.length);
+
+            // also keep an exponential-decayed peak for compatibility
+            lastMovementRef.score = Math.max(avgDist, lastMovementRef.score * movementDecay);
+            lastMovementRef.t = Date.now();
+
+            // 망설임 스코어는 이동량의 역수 (작게 움직일수록 높음), clamp 0~1
+            const raw = Math.min(1, Math.max(0, (movementThreshold - avgDist) / movementThreshold));
+
+            // Throttle 적용 - 상태 업데이트
+            if (now - lastUpdateRef.current.pose >= UPDATE_INTERVAL) {
+              lastUpdateRef.current.pose = now;
+
+              // 상태로 포즈 랜드마크 저장 (정규화 좌표)
+              setPoseLandmarks(lm);
+
+              // 부드럽게(이전 스코어 유지와 새 스코어의 완만한 결합)
+              setHesitationScore((prev) => Math.max(prev * 0.9, raw));
+
+              // 얼굴 위치(facePosition)도 pose의 코(0번)로 대체하여 설정 (Pose로 얼굴 추적)
+              try {
+                const nose = lm[0];
+                if (nose) {
+                  const rawX = (0.5 - nose.x) * 2 * 1;
+                  const rawY = (nose.y - 0.5) * 2 * 1;
+
+                  // 스무딩 적용: 이전 위치와 현재 위치의 가중 평균 (떨림 방지)
+                  smoothedPositionRef.current.x = smoothedPositionRef.current.x * (1 - SMOOTHING_FACTOR) + rawX * SMOOTHING_FACTOR;
+                  smoothedPositionRef.current.y = smoothedPositionRef.current.y * (1 - SMOOTHING_FACTOR) + rawY * SMOOTHING_FACTOR;
+
+                  setFacePosition({ x: smoothedPositionRef.current.x, y: -smoothedPositionRef.current.y });
+                  setIsDetecting(true);
+                  setError(null);
+                }
+              } catch { }
+
+              // 망설임 판정: 최근 이동이 매우 작고, 시간이 지났으면 true
+              if (lastMovementRef.score < movementThreshold && now - lastMovementRef.t >= hesitationMs) {
+                setIsHesitating(true);
+              } else {
+                setIsHesitating(false);
+              }
+            }
+          });
+
+          poseRef.current = pose;
+        }
+
+        // 3. Hands 초기화
+        const hands = new Hands({ locateFile: getMediaPipeFile });
+        hands.setOptions({
+          maxNumHands: 2,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.6,
+          minTrackingConfidence: 0.6,
+        });
+        hands.onResults((results) => {
+          if (!mounted) return;
+          const now = Date.now();
+          if (now - lastUpdateRef.current.hands < UPDATE_INTERVAL) return;
+          lastUpdateRef.current.hands = now;
+
+          if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            console.debug("[useFaceTracking] Hands detected:", results.multiHandLandmarks.length);
+            const clonedHands = results.multiHandLandmarks.map(hand => hand.map(p => ({ ...p })));
+            setHandsResults({ multiHandLandmarks: clonedHands } as any);
+          } else {
+            setHandsResults(null);
           }
         });
+        handsRef.current = hands;
 
-        poseRef.current = pose;
-        }
-        
         // 웹캠 시작 - 직접 getUserMedia로 스트림을 얻은 후 비디오에 연결
         let stream: MediaStream;
-        
+
         if (deviceId) {
           console.log('[useFaceTracking] Requesting camera with deviceId:', deviceId);
           try {
@@ -374,45 +427,116 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
             audio: false,
           });
         }
-        
+
         // 스트림을 비디오 요소에 연결
         video.srcObject = stream;
         await video.play();
-        
+
         const activeTrack = stream.getVideoTracks()[0];
         console.log('[useFaceTracking] ✅ Video stream active:', activeTrack?.label);
         console.log('[useFaceTracking] ✅ Device ID:', activeTrack?.getSettings().deviceId);
-        
-        // requestAnimationFrame을 사용해 직접 프레임을 MediaPipe에 전송
-        const sendFrame = async () => {
-          if (!mounted || !video.readyState || video.readyState < 2) {
-            // 비디오가 준비되지 않았으면 다음 프레임에서 다시 시도
-            if (mounted) {
-              animationFrameRef.current = requestAnimationFrame(sendFrame);
-            }
-            return;
-          }
-          
+
+        // 순차적 초기화
+        const initModels = async () => {
+          if ((window as any).__mediapipe_initializing) return;
+          (window as any).__mediapipe_initializing = true;
+
           try {
-            // FaceMesh와 Pose에 현재 비디오 프레임 전송
-            if (faceMeshRef.current && mounted) {
-              await faceMeshRef.current.send({ image: video });
+            console.log("[useFaceTracking] 🛠 Initializing models...");
+
+            if (!(window as any).Module) (window as any).Module = { arguments: [] };
+
+            await faceMesh.initialize();
+            faceReadyRef.current = true;
+            console.log("[useFaceTracking] FaceMesh Ready");
+
+            await new Promise(r => setTimeout(r, 300));
+
+            if (pose) {
+              await pose.initialize();
+              poseReadyRef.current = true;
+              console.log("[useFaceTracking] Pose Ready");
             }
-            if (poseRef.current && mounted) {
-              await poseRef.current.send({ image: video });
-            }
-          } catch (e) {
-            console.error('[useFaceTracking] Error sending frame:', e);
-          }
-          
-          // 다음 프레임 요청
-          if (mounted) {
-            animationFrameRef.current = requestAnimationFrame(sendFrame);
+
+            await new Promise(r => setTimeout(r, 300));
+
+            await hands.initialize();
+            handsReadyRef.current = true;
+            console.log("[useFaceTracking] Hands Ready");
+
+            await new Promise(r => setTimeout(r, 500));
+            console.log("[useFaceTracking] 🚀 All MediaPipe models ready and stabilized!");
+          } catch (initErr) {
+            console.warn("[useFaceTracking] Initialization warning (ignoring if partial success):", initErr);
+            faceReadyRef.current = true;
+            handsReadyRef.current = true;
+          } finally {
+            (window as any).__mediapipe_initializing = false;
           }
         };
-        
-        // 프레임 전송 시작
-        animationFrameRef.current = requestAnimationFrame(sendFrame);
+
+        // 🚀 각각의 루프를 분리하여 서로 간섭받지 않게 함
+        let faceLoopCount = 0;
+        let faceSendCount = 0;
+        const runFaceLoop = async () => {
+          if (!mounted) return;
+          faceLoopCount++;
+          if (faceLoopCount % 120 === 0) {
+            console.log(`[useFaceTracking] 🔄 FaceLoop running (${faceLoopCount} iterations), ready: ${faceReadyRef.current}, video: ${video?.readyState}, sends: ${faceSendCount}`);
+            if (video) {
+              console.log(`[useFaceTracking] 📺 Video state: ${video.videoWidth}x${video.videoHeight}, time: ${video.currentTime.toFixed(2)}s`);
+            }
+            console.log(`[useFaceTracking] 🔍 Conditions: video=${!!video}, readyState=${video?.readyState}, faceMeshRef=${!!faceMeshRef.current}, faceReady=${faceReadyRef.current}`);
+          }
+          if (video && video.readyState >= 2 && faceMeshRef.current && faceReadyRef.current) {
+            try {
+              await faceMeshRef.current.send({ image: video });
+              faceSendCount++;
+              if (faceSendCount === 1) {
+                console.log('[useFaceTracking] ✅ First FaceMesh send() completed successfully!');
+              }
+            } catch (e) {
+              if (faceLoopCount % 120 === 0) {
+                console.error('[useFaceTracking] ❌ FaceMesh send() error:', e);
+              }
+            }
+          }
+          requestAnimationFrame(runFaceLoop);
+        };
+
+        let poseLoopCount = 0;
+        const runPoseLoop = async () => {
+          if (!mounted) return;
+          poseLoopCount++;
+          if (poseLoopCount % 120 === 0) {
+            console.log(`[useFaceTracking] 🔄 PoseLoop running (${poseLoopCount} iterations), ready: ${poseReadyRef.current}, video: ${video?.readyState}`);
+          }
+          if (video && video.readyState >= 2 && poseRef.current && poseReadyRef.current) {
+            try { await poseRef.current.send({ image: video }); } catch (e) { }
+          }
+          requestAnimationFrame(runPoseLoop);
+        };
+
+        let handsLoopCount = 0;
+        const runHandsLoop = async () => {
+          if (!mounted) return;
+          handsLoopCount++;
+          if (handsLoopCount % 120 === 0) {
+            console.log(`[useFaceTracking] 🔄 HandsLoop running (${handsLoopCount} iterations), ready: ${handsReadyRef.current}, video: ${video?.readyState}`);
+          }
+          if (video && video.readyState >= 2 && handsRef.current && handsReadyRef.current) {
+            try { await handsRef.current.send({ image: video }); } catch (e) { }
+          }
+          requestAnimationFrame(runHandsLoop);
+        };
+
+        // Initialize models first, THEN start loops
+        initModels().then(() => {
+          console.log("[useFaceTracking] 🚀 Starting tracking loops...");
+          runFaceLoop();
+          runPoseLoop();
+          runHandsLoop();
+        });
 
         if (!mounted) {
           cleanup();
@@ -433,6 +557,6 @@ export function useFaceTracking(enabled: boolean, enablePose = false, deviceId?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, enablePose, deviceId]);
 
-  return { facePosition, isDetecting, error, hesitationScore, isHesitating, poseLandmarks, videoElement: videoRef.current };
+  return { facePosition, isDetecting, error, hesitationScore, isHesitating, poseLandmarks, videoElement, faceResults, poseResults, handsResults };
 }
 
