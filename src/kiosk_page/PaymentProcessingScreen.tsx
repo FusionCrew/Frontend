@@ -12,20 +12,32 @@ interface PaymentProcessingScreenProps {
 
 export default function PaymentProcessingScreen({ totalAmount, discountAmount, onBack, onComplete }: PaymentProcessingScreenProps) {
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
 
-  // 3초 후 자동 완료
+  // 뒤로가기 핸들러
+  const handleBack = () => {
+    setCancelled(true);
+    onBack();
+  };
+
+  // 3초 후 자동 완료 (뒤로가기 누르면 취소)
   useEffect(() => {
+    if (cancelled) return;
+
     const timer = setTimeout(() => {
-      onComplete();
+      if (!cancelled) {
+        onComplete();
+      }
     }, 3000);
+
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, cancelled]);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="fixed inset-0 w-full h-full bg-[#FFF9F5]" style={{ zIndex: 1000 }}>
       {/* 뒤로가기 버튼 */}
       <button
-        onClick={(e) => { e.stopPropagation(); onBack(); }}
+        onClick={handleBack}
         className="absolute flex items-center justify-center"
         style={{
           top: "45px",
@@ -35,7 +47,7 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
           background: "none",
           border: "none",
           cursor: "pointer",
-          zIndex: 110
+          zIndex: 1010
         }}
       >
         <img src={backArrowCircle} alt="뒤로가기" style={{ width: "70px", height: "70px" }} />

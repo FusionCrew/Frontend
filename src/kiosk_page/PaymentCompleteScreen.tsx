@@ -18,7 +18,8 @@ export default function PaymentCompleteScreen({ onClose, ticketNumber }: Payment
   return (
     <div
       onClick={onClose}
-      className="w-full h-full relative cursor-pointer"
+      className="fixed inset-0 w-full h-full bg-[#FFF9F5] cursor-pointer"
+      style={{ zIndex: 1000 }}
     >
       {/* 뒤로가기 버튼 */}
       <button
@@ -32,7 +33,7 @@ export default function PaymentCompleteScreen({ onClose, ticketNumber }: Payment
           background: "none",
           border: "none",
           cursor: "pointer",
-          zIndex: 110
+          zIndex: 1010
         }}
       >
         <img src={backArrowCircle} alt="뒤로가기" style={{ width: "70px", height: "70px" }} />
