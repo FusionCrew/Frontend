@@ -28,15 +28,20 @@ import MediaPipeDebugPanel from "./components/MediaPipeDebugPanel";
 type PageType = "main" | "order" | "menu" | "recommended" | "burgerSingle" | "burgerSet" | "side" | "drink";
 
 // Tracking Overlay Component to isolate high-frequency re-renders
-function TrackingOverlays({ speaking }: { speaking: boolean }) {
+function TrackingManager({ speaking, children }: { speaking: boolean, children: React.ReactNode }) {
   const tracking = useFaceTracking(true, true);
 
   return (
     <>
-      <div style={{ position: "absolute", inset: 0, zIndex: 2000, pointerEvents: "none" }}>
+      {/* Layer 0: Character Background (At the very back) */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none" }}>
         <KioskCharacter speaking={speaking} tracking={tracking} />
       </div>
 
+      {/* Layer 10: Main Content (Overlays the character) */}
+      {children}
+
+      {/* Layer 5000: MediaPipe Debug (Development tool on top) */}
       <div style={{ position: "absolute", top: 0, right: 0, zIndex: 5000 }}>
         <MediaPipeDebugPanel
           faceResults={tracking.faceResults}
@@ -305,13 +310,13 @@ function App() {
       >
         {/* Pass speaking state to pages if they use KioskCharacter */}
         {/* We can use a context or just let KioskCharacter handle it if we make it smarter */}
-        {/* Layer 1: Dynamic Page Content */}
-        <div style={{ position: "relative", zIndex: 10, width: "1080px", height: "1920px" }}>
-          {renderer()}
-        </div>
-
-        {/* Layer 2: Character & Tracking Overlays (Isolated Re-renders) */}
-        <TrackingOverlays speaking={speaking} />
+        {/* Tracking Manager isolates re-renders and handles Layer 0 (Character) & Layer 5000 (Debug) */}
+        <TrackingManager speaking={speaking}>
+          {/* Layer 10: Dynamic Page Content (Overlays the character) */}
+          <div style={{ position: "relative", zIndex: 10, width: "1080px", height: "1920px" }}>
+            {renderer()}
+          </div>
+        </TrackingManager>
 
         {/* Global Subtitle Overlay */}
         {subtitle && (
