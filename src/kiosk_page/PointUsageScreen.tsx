@@ -49,22 +49,18 @@ export default function PointUsageScreen({ onBack, onComplete, totalAmount }: Po
 
   return (
     <div
+      className="fixed inset-0"
       style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
         backgroundColor: "#F5EDE4",
-        zIndex: 20
+        zIndex: 1000
       }}
     >
       {/* 뒤로가기 버튼 */}
       <button
         onClick={onBack}
         className="absolute flex items-center justify-center"
-        style={{ 
-          top: "45px", 
+        style={{
+          top: "45px",
           left: "44px",
           width: "80px",
           height: "80px",

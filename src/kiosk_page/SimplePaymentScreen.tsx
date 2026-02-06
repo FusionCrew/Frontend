@@ -15,14 +15,10 @@ export default function SimplePaymentScreen({ onBack, onComplete, totalAmount }:
   return (
     <div
       onClick={onComplete}
+      className="fixed inset-0"
       style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
         backgroundColor: "#F5EDE4",
-        zIndex: 20,
+        zIndex: 1000,
         cursor: "pointer"
       }}
     >
@@ -30,8 +26,8 @@ export default function SimplePaymentScreen({ onBack, onComplete, totalAmount }:
       <button
         onClick={(e) => { e.stopPropagation(); onBack(); }}
         className="absolute flex items-center justify-center"
-        style={{ 
-          top: "45px", 
+        style={{
+          top: "45px",
           left: "44px",
           width: "80px",
           height: "80px",

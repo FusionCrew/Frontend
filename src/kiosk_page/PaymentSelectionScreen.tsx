@@ -17,7 +17,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="fixed inset-0 w-full h-full bg-[#FFF9F5]" style={{ zIndex: 1000 }}>
       {/* 뒤로가기 버튼 */}
       <button
         onClick={onBack}
@@ -30,7 +30,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
           background: "none",
           border: "none",
           cursor: "pointer",
-          zIndex: 110
+          zIndex: 1010
         }}
       >
         <img src={backArrowCircle} alt="뒤로가기" style={{ width: "70px", height: "70px" }} />
@@ -38,6 +38,9 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
 
       {/* 직원 호출 버튼 */}
       <StaffCallButton onClick={() => setShowStaffCallModal(true)} />
+
+      {/* 키오스크 캐릭터 */}
+      <KioskCharacter />
 
       {/* 제목 */}
       <h1 style={{
@@ -50,7 +53,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
         fontWeight: "600",
         color: "#4A3728",
         whiteSpace: "nowrap",
-        zIndex: 100
+        zIndex: 1000
       }}>
         어떤 결제 방법을 사용하시겠어요?
       </h1>
@@ -64,12 +67,13 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
           transform: "translateX(-50%)",
           display: "flex",
           gap: "40px",
-          zIndex: 110
+          zIndex: 1010
         }}
       >
         {/* 신용·체크카드 */}
         <button
           onClick={onSelectCard}
+          className="hover:scale-105 transition-transform"
           style={{
             width: "284px",
             height: "296px",
@@ -96,6 +100,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
         {/* 포인트 사용 */}
         <button
           onClick={onSelectPoint}
+          className="hover:scale-105 transition-transform"
           style={{
             width: "284px",
             height: "296px",
@@ -122,6 +127,7 @@ export default function PaymentSelectionScreen({ onBack, onSelectCard, onSelectP
         {/* 간편 결제 */}
         <button
           onClick={onSelectSimple}
+          className="hover:scale-105 transition-transform"
           style={{
             width: "284px",
             height: "296px",
