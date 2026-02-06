@@ -285,13 +285,16 @@ function App() {
       >
         {/* Pass speaking state to pages if they use KioskCharacter */}
         {/* We can use a context or just let KioskCharacter handle it if we make it smarter */}
-        {/* Persisted Character Background */}
-        <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
+        {/* Dynamic Page Content */}
+        {renderer()}
+
+        {/* Persisted Character Layer (Always on top) */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 3000, pointerEvents: "none" }}>
           <KioskCharacter speaking={speaking} tracking={tracking} />
         </div>
 
-        {/* MediaPipe Debug Panel (Temporary) */}
-        <div style={{ position: "absolute", top: 0, right: 0, zIndex: 2000 }}>
+        {/* MediaPipe Debug Panel (On top of everything) */}
+        <div style={{ position: "absolute", top: 0, right: 0, zIndex: 4000 }}>
           <MediaPipeDebugPanel
             faceResults={tracking.faceResults}
             poseResults={tracking.poseResults}
@@ -299,9 +302,6 @@ function App() {
             videoElement={tracking.videoElement}
           />
         </div>
-
-        {/* Dynamic Page Content */}
-        {renderer()}
 
         {/* Global Subtitle Overlay */}
         {subtitle && (
