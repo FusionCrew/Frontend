@@ -31,17 +31,15 @@ export default function MediaPipeDebugPanel({ faceResults, poseResults, handsRes
         ctx.fillStyle = "#1a1a1a";
         ctx.fillRect(0, 0, w, h);
 
-        // 2. MIRROR & DRAW (VIDEO + LANDMARKS)
+        // 2. DRAW VIDEO + LANDMARKS (Natural orientation, no mirroring)
         ctx.save();
-        ctx.translate(w, 0); // Move to right side
-        ctx.scale(-1, 1);    // Flip horizontally
 
         // Draw Video
         if (videoElement && videoElement.readyState >= 2) {
             ctx.drawImage(videoElement, 0, 0, w, h);
         }
 
-        // Draw Landmarks (Inside mirrored context)
+        // Draw Landmarks
         if (results) {
             try {
                 const drawOptions = {
