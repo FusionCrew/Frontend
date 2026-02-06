@@ -247,19 +247,23 @@ export default function KioskCategoryPage({
 
   return (
     <div className="w-full h-full relative">
-      {!isPaymentActive && (
-        <>
-          <BackButton onClick={onBack} />
-          <StaffCallButton onClick={() => payment.setShowStaffCallModal(true)} />
-          <CategoryBar currentCategory={currentCategory} onCategory={handleCategoryChange} />
+      <div style={{
+        opacity: isPaymentActive ? 0 : 1,
+        pointerEvents: isPaymentActive ? "none" : "auto",
+        transition: "opacity 0.3s ease-in-out",
+        width: "100%",
+        height: "100%"
+      }}>
+        <BackButton onClick={onBack} />
+        <StaffCallButton onClick={() => payment.setShowStaffCallModal(true)} />
+        <CategoryBar currentCategory={currentCategory} onCategory={handleCategoryChange} />
 
-          <BottomPanel height={panelHeight}>
-            {renderBottomContent()}
-          </BottomPanel>
+        <BottomPanel height={panelHeight}>
+          {renderBottomContent()}
+        </BottomPanel>
 
-          {speechMessage && <SpeechBubble message={speechMessage} />}
-        </>
-      )}
+        {speechMessage && <SpeechBubble message={speechMessage} />}
+      </div>
 
       {/* 결제 화면들 */}
       <PaymentFlow
