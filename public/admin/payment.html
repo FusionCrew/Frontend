@@ -139,111 +139,122 @@
                 <div class="grid grid-cols-4 gap-8">
                     <div class="card stat-card-accent border-none shadow-xl shadow-primary/20">
                         <p class="text-[11px] font-bold text-white/60 uppercase tracking-widest mb-2">금일 결제 총액</p>
-                        <h2 class="text-3xl font-black italic">₩4,250,000</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-white/80">
-                            <span class="material-symbols-outlined text-sm">trending_up</span>
-                            전일 대비 +12.5%
+                        <h2 class="text-3xl font-black italic">₩0</h2>
+                        <div id="stat-revenue-change"
+                            class="flex items-center gap-2 mt-4 text-[11px] font-bold text-white/80">
+                            -
                         </div>
                     </div>
                     <div class="card">
                         <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">당월 누적 매출</p>
-                        <h2 class="text-2xl xl:text-3xl font-black text-gray-800 italic truncate">₩124,800,000</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-primary">
-                            목표 대비 82% 달성
+                        <h2 class="text-2xl xl:text-3xl font-black text-gray-800 italic truncate">₩0</h2>
+                        <div id="stat-monthly-label"
+                            class="flex items-center gap-2 mt-4 text-[11px] font-bold text-primary">
+                            평균 데이터 집계 중
                         </div>
                     </div>
                     <div class="card">
                         <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">금일 환불 처리</p>
-                        <h2 class="text-2xl xl:text-3xl font-black text-primary italic truncate">₩45,000</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-gray-400">
-                            총 3건 발생
+                        <h2 class="text-2xl xl:text-3xl font-black text-primary italic truncate">₩0</h2>
+                        <div id="stat-refund-label"
+                            class="flex items-center gap-2 mt-4 text-[11px] font-bold text-gray-400">
+                            집계 중
                         </div>
                     </div>
                     <div class="card">
                         <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">정산 예정 금액</p>
-                        <h2 class="text-2xl xl:text-3xl font-black text-gray-800 italic truncate">₩3,890,000</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-gray-400">
-                            정상 집계 중
+                        <h2 class="text-2xl xl:text-3xl font-black text-gray-800 italic truncate">₩0</h2>
+                        <div id="stat-pending-label"
+                            class="flex items-center gap-2 mt-4 text-[11px] font-bold text-gray-400">
+                            연동 대기 중
                         </div>
                     </div>
                 </div>
 
-                <!-- Transaction Table -->
-                <div class="card p-0">
-                    <div class="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
-                        <h3 class="font-bold text-gray-800 uppercase tracking-tight">Recent Transactions</h3>
-                        <div class="flex gap-4">
-                            <button
-                                class="px-4 py-2 bg-gray-50 text-gray-400 text-[10px] font-bold rounded-lg border border-gray-100 hover:bg-gray-100 transition-all">엑셀
-                                다운로드</button>
-                        </div>
-                    </div>
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-gray-50/50">
-                                <th class="table-header">결제 일시</th>
-                                <th class="table-header">승인 번호</th>
-                                <th class="table-header">결제 수단</th>
-                                <th class="table-header">결제 금액</th>
-                                <th class="table-header">고객 / 주문번호</th>
-                                <th class="table-header text-right">상태</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            <tr class="hover:bg-gray-50/50 transition-colors">
-                                <td class="table-cell">2024-05-24 14:22</td>
-                                <td class="table-cell text-gray-400">30018422</td>
-                                <td class="table-cell">신용카드 (현대)</td>
-                                <td class="table-cell italic font-black text-gray-800">24,500원</td>
-                                <td class="table-cell">
-                                    <div class="flex flex-col">
-                                        <span>김철수</span>
-                                        <span class="text-[10px] text-gray-300 font-bold">#ORD-2841</span>
-                                    </div>
-                                </td>
-                                <td class="table-cell text-right">
-                                    <span class="px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold">결제
-                                        완료</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50/50 transition-colors">
-                                <td class="table-cell">2024-05-24 14:22</td>
-                                <td class="table-cell text-gray-400">30018422</td>
-                                <td class="table-cell">신용카드 (현대)</td>
-                                <td class="table-cell italic font-black text-gray-800">24,500원</td>
-                                <td class="table-cell">
-                                    <div class="flex flex-col">
-                                        <span>김철수</span>
-                                        <span class="text-[10px] text-gray-300 font-bold">#ORD-2841</span>
-                                    </div>
-                                </td>
-                                <td class="table-cell text-right">
-                                    <span class="px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold">결제
-                                        완료</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50/50 transition-colors">
-                                <td class="table-cell">2024-05-24 14:22</td>
-                                <td class="table-cell text-gray-400">30018422</td>
-                                <td class="table-cell">신용카드 (현대)</td>
-                                <td class="table-cell italic font-black text-gray-800">24,500원</td>
-                                <td class="table-cell">
-                                    <div class="flex flex-col">
-                                        <span>김철수</span>
-                                        <span class="text-[10px] text-gray-300 font-bold">#ORD-2841</span>
-                                    </div>
-                                </td>
-                                <td class="table-cell text-right">
-                                    <span class="px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold">결제
-                                        완료</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
+                <script src="js/api.js"></script>
+                <script>
+                    async function loadPayments() {
+                        try {
+                            const response = await AdminAPI.getPayments();
+                            const data = response.data;
+                            const items = data.items || [];
+
+                            renderStats(data.summary || {});
+                            renderPayments(items);
+                        } catch (err) {
+                            console.error('Failed to load payments:', err);
+                            // Keep mock if failed or show error
+                        }
+                    }
+
+                    function renderStats(summary) {
+                        const statCards = document.querySelectorAll('.card h2');
+                        if (statCards.length >= 4) {
+                            statCards[0].textContent = `₩${(summary.todayTotal || 0).toLocaleString()}`;
+                            statCards[1].textContent = `₩${(summary.monthlyTotal || 0).toLocaleString()}`;
+                            statCards[2].textContent = `₩${(summary.refundTotal || 0).toLocaleString()}`;
+                            statCards[3].textContent = `₩${(summary.pendingTotal || 0).toLocaleString()}`;
+                        }
+
+                        // Update labels
+                        const revChange = document.getElementById('stat-revenue-change');
+                        if (revChange) {
+                            revChange.innerHTML = `
+                                <span class="material-symbols-outlined text-sm">trending_up</span>
+                                실시간 집계 중
+                            `;
+                        }
+
+                        const monthlyLabel = document.getElementById('stat-monthly-label');
+                        if (monthlyLabel) {
+                            monthlyLabel.textContent = '월간 누적 데이터';
+                        }
+
+                        const refundLabel = document.getElementById('stat-refund-label');
+                        if (refundLabel) {
+                            refundLabel.textContent = `금일 환불 건수 포함`;
+                        }
+
+                        const pendingLabel = document.getElementById('stat-pending-label');
+                        if (pendingLabel) {
+                            pendingLabel.textContent = '정산 예정 합계';
+                        }
+                    }
+
+                    function renderPayments(items) {
+                        const tbody = document.querySelector('tbody');
+                        if (!items || items.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="6" class="table-cell text-center py-20 text-gray-400">결제 내역이 없습니다.</td></tr>';
+                            return;
+                        }
+
+                        tbody.innerHTML = items.map(payment => {
+                            const date = new Date(payment.timestamp).toLocaleString('ko-KR');
+                            const statusClass = payment.status === 'APPROVED' ? 'bg-red-50 text-primary' : 'bg-gray-50 text-gray-400';
+                            const statusLabel = payment.status === 'APPROVED' ? '결제 완료' : payment.status;
+
+                            return `
+                    <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer" onclick="location.href='payment-detail.html?id=${payment.paymentId}'">
+                        <td class="table-cell">${date}</td>
+                        <td class="table-cell text-gray-400">${payment.pgTid || '-'}</td>
+                        <td class="table-cell">${payment.method} (${payment.pgProvider || 'MOCK'})</td>
+                        <td class="table-cell italic font-black text-gray-800">${(payment.amount || 0).toLocaleString()}원</td>
+                        <td class="table-cell">
+                            <div class="flex flex-col">
+                                <span>고객</span>
+                                <span class="text-[10px] text-gray-300 font-bold">#${payment.orderId}</span>
+                            </div>
+                        </td>
+                        <td class="table-cell text-right">
+                            <span class="px-3 py-1 ${statusClass} rounded-full text-[10px] font-bold">${statusLabel}</span>
+                        </td>
+                    </tr>
+                `;
+                        }).join('');
+                    }
+
+                    document.addEventListener('DOMContentLoaded', loadPayments);
+                </script>
 </body>
 
 </html>

@@ -134,72 +134,89 @@
             </header>
 
             <div class="flex-1 overflow-y-auto px-10 pb-10">
-                <!-- Call Grid -->
-                <div class="grid grid-cols-2 gap-10 mb-10">
-                    <!-- Urgent Call Card -->
-                    <div class="card call-card-urgent relative group">
-                        <div class="flex items-center justify-between mb-12">
-                            <p class="text-sm font-bold text-white/80 uppercase tracking-widest">긴급 호출</p>
-                            <span class="px-4 py-1.5 rounded-md border border-white/30 text-xs font-bold">2분전</span>
-                        </div>
-                        <div class="flex items-center justify-between mb-12">
-                            <h2 class="text-5xl font-black tracking-tighter">Table 08</h2>
-                            <div class="flex flex-col items-end gap-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined fill text-xl">water_drop</span>
-                                    <span class="text-lg font-black">물 리필 요청</span>
-                                </div>
-                                <p class="text-sm text-white/60 font-medium">“물 2잔 더 가져다 주세요”</p>
-                            </div>
-                        </div>
-                        <button class="btn-process">처리하기</button>
-                    </div>
+                <script src="js/api.js"></script>
+                <script>
+                    async function loadStaffCalls() {
+                        try {
+                            const response = await AdminAPI.getStaffCalls();
+                            const items = response.data || [];
+                            renderStaffCalls(items);
+                        } catch (err) {
+                            console.error('Failed to load staff calls:', err);
+                        }
+                    }
 
-                    <!-- Normal Call Card -->
-                    <div class="card relative group">
-                        <div class="flex items-center justify-between mb-12">
-                            <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">긴급 호출</p>
-                            <span
-                                class="px-4 py-1.5 rounded-md border border-gray-100 text-xs font-bold text-gray-400">2분전</span>
-                        </div>
-                        <div class="flex items-center justify-between mb-12">
-                            <h2 class="text-5xl font-black tracking-tighter text-gray-800">Table 08</h2>
-                            <div class="flex flex-col items-end gap-2 text-gray-800">
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined fill text-xl">water_drop</span>
-                                    <span class="text-lg font-black">물 리필 요청</span>
-                                </div>
-                                <p class="text-sm text-gray-400 font-medium">“물 2잔 더 가져다 주세요”</p>
-                            </div>
-                        </div>
-                        <button class="btn-process-dark">처리하기</button>
-                    </div>
+                    async function resolveCall(callId) {
+                        if (!confirm('알림을 처리 완료하시겠습니까?')) return;
+                        try {
+                            await AdminAPI.resolveStaffCall(callId);
+                            loadStaffCalls();
+                        } catch (err) {
+                            alert('처리 중 오류가 발생했습니다.');
+                        }
+                    }
 
-                    <!-- Completed Call Card -->
-                    <div class="card call-card-completed">
-                        <div class="flex items-center justify-between mb-12">
-                            <p class="text-sm font-bold text-gray-300 uppercase tracking-widest">처리 완료</p>
-                            <span
-                                class="px-4 py-1.5 rounded-md border border-gray-50 text-xs font-bold text-gray-300">2분전</span>
-                        </div>
-                        <div class="flex items-center justify-between mb-12 opacity-30">
-                            <h2 class="text-5xl font-black tracking-tighter text-gray-800">Table 21</h2>
-                            <div class="flex flex-col items-end gap-2 text-gray-800">
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined fill text-xl">water_drop</span>
-                                    <span class="text-lg font-black">물 리필 요청</span>
+                    function renderStaffCalls(items) {
+                        const grid = document.querySelector('.grid');
+                        if (!items || items.length === 0) {
+                            grid.innerHTML = '<div class="col-span-2 text-center py-20 text-gray-400 font-bold">현재 요청된 호출이 없습니다.</div>';
+                            return;
+                        }
+
+                        grid.innerHTML = items.map(call => {
+                            const isResolved = call.status === 'RESOLVED';
+                            const isUrgent = call.reason === 'EMERGENCY' || call.reason === 'ERROR';
+                            const timeStr = new Date(call.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+
+                            if (isResolved) {
+                                return `
+                        <div class="card call-card-completed">
+                            <div class="flex items-center justify-between mb-12">
+                                <p class="text-sm font-bold text-gray-300 uppercase tracking-widest">처리 완료</p>
+                                <span class="px-4 py-1.5 rounded-md border border-gray-50 text-xs font-bold text-gray-300">${timeStr}</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-12 opacity-30">
+                                <h2 class="text-5xl font-black tracking-tighter text-gray-800">${call.sessionId.substring(0, 8)}</h2>
+                                <div class="flex flex-col items-end gap-2 text-gray-800">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined fill text-xl">notifications</span>
+                                        <span class="text-lg font-black">${call.reason}</span>
+                                    </div>
+                                    <p class="text-sm font-medium">“${call.message || ''}”</p>
                                 </div>
-                                <p class="text-sm font-medium">“물 2잔 더 가져다 주세요”</p>
+                            </div>
+                            <div class="btn-completed">처리 완료됨</div>
+                        </div>
+                    `;
+                            }
+
+                            return `
+                    <div class="card ${isUrgent ? 'call-card-urgent' : ''} relative group">
+                        <div class="flex items-center justify-between mb-12">
+                            <p class="text-sm font-bold ${isUrgent ? 'text-white/80' : 'text-gray-400'} uppercase tracking-widest">${isUrgent ? '긴급 호출' : '일반 호출'}</p>
+                            <span class="px-4 py-1.5 rounded-md border ${isUrgent ? 'border-white/30 text-white/80' : 'border-gray-100 text-gray-400'} text-xs font-bold">${timeStr}</span>
+                        </div>
+                        <div class="flex items-center justify-between mb-12">
+                            <h2 class="text-5xl font-black tracking-tighter ${isUrgent ? 'text-white' : 'text-gray-800'}">${call.sessionId.substring(0, 8)}</h2>
+                            <div class="flex flex-col items-end gap-2 ${isUrgent ? 'text-white' : 'text-gray-800'}">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined fill text-xl">notifications</span>
+                                    <span class="text-lg font-black">${call.reason}</span>
+                                </div>
+                                <p class="text-sm ${isUrgent ? 'text-white/60' : 'text-gray-400'} font-medium">“${call.message || ''}”</p>
                             </div>
                         </div>
-                        <div class="btn-completed">
-                            담당자 : 김철수
-                        </div>
+                        <button onclick="resolveCall('${call.id}')" class="${isUrgent ? 'btn-process' : 'btn-process-dark'}">처리하기</button>
                     </div>
-                </div>
-            </div>
-        </main>
-    </div>
+                `;
+                        }).join('');
+                    }
+
+                    document.addEventListener('DOMContentLoaded', () => {
+                        loadStaffCalls();
+                        setInterval(loadStaffCalls, 10000); // Polling every 10s
+                    });
+                </script>
 </body>
 
 </html>

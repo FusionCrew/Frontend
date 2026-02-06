@@ -47,7 +47,11 @@
         .table-cell { @apply px-8 py-6 text-sm font-semibold text-gray-700 border-t border-gray-50; }
         .status-badge { @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase; }
         .status-confirmed { @apply bg-red-50 text-primary; }
-        .status-preparing { @apply bg-gray-100 text-gray-400; }
+        .status-preparing { @apply bg-blue-50 text-blue-600; }
+        .status-ready { @apply bg-green-50 text-green-600; }
+        .status-completed { @apply bg-gray-100 text-gray-500; }
+        .status-cancelled { @apply bg-gray-100 text-gray-400; }
+        .status-pending { @apply bg-orange-50 text-orange-600; }
     </style>
 </head>
 
@@ -141,18 +145,18 @@
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
                         <span class="text-[10px] font-bold text-gray-300 uppercase">From</span>
-                        <input type="date" value="2024-03-01"
+                        <input type="date" id="date-from"
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
                     <span class="text-gray-300">~</span>
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
                         <span class="text-[10px] font-bold text-gray-300 uppercase">To</span>
-                        <input type="date" value="2024-03-09"
+                        <input type="date" id="date-to"
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
-                    <button
+                    <button onclick="loadOrders()"
                         class="px-6 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조회</button>
                 </div>
 
@@ -167,70 +171,86 @@
                                 <th class="table-header">주문 상태</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- Mock Data Rows -->
-                            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                onclick="location.href='order-detail.html'">
-                                <td class="table-cell">#ord_001</td>
-                                <td class="table-cell text-gray-400">2026. 1. 21. 오후 7:07:36</td>
-                                <td class="table-cell">7000원</td>
-                                <td class="table-cell">
-                                    <span class="status-badge status-confirmed">주문확정</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                onclick="location.href='order-detail.html'">
-                                <td class="table-cell">#ord_002</td>
-                                <td class="table-cell text-gray-400">2026. 1. 21. 오후 7:08:12</td>
-                                <td class="table-cell">14500원</td>
-                                <td class="table-cell">
-                                    <span class="status-badge status-preparing">조리중</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                onclick="location.href='order-detail.html'">
-                                <td class="table-cell">#ord_003</td>
-                                <td class="table-cell text-gray-400">2026. 1. 21. 오후 7:10:05</td>
-                                <td class="table-cell">7000원</td>
-                                <td class="table-cell">
-                                    <span class="status-badge status-preparing">조리중</span>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                onclick="location.href='order-detail.html'">
-                                <td class="table-cell">#ord_004</td>
-                                <td class="table-cell text-gray-400">2026. 1. 21. 오후 7:15:30</td>
-                                <td class="table-cell">21000원</td>
-                                <td class="table-cell">
-                                    <span class="status-badge status-confirmed">주문확정</span>
-                                </td>
+                        <tbody id="order-table-body">
+                            <!-- Data Rows will be injected here -->
+                            <tr>
+                                <td colspan="4" class="table-cell text-center py-20 text-gray-400">주문 내역을 불러오는 중입니다...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pagination -->
+                <!-- Pagination (Simple Placeholder) -->
                 <div class="flex items-center justify-center gap-2 pt-4">
-                    <button class="p-2 text-gray-300 hover:text-gray-500"><span
-                            class="material-symbols-outlined text-sm">chevron_left</span></button>
-                    <button
-                        class="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold leading-none ring-1 ring-primary/20">1</button>
-                    <button
-                        class="size-8 rounded-full text-gray-400 text-xs font-bold hover:bg-gray-100 italic transition-colors">2</button>
-                    <button
-                        class="size-8 rounded-full text-gray-400 text-xs font-bold hover:bg-gray-100 italic transition-colors">3</button>
-                    <button
-                        class="size-8 rounded-full text-gray-400 text-xs font-bold hover:bg-gray-100 italic transition-colors">4</button>
-                    <button
-                        class="size-8 rounded-full text-gray-400 text-xs font-bold hover:bg-gray-100 italic transition-colors">5</button>
-                    <button
-                        class="size-8 rounded-full text-gray-400 text-xs font-bold hover:bg-gray-100 italic transition-colors">6</button>
-                    <button class="p-2 text-gray-300 hover:text-gray-500"><span
-                            class="material-symbols-outlined text-sm">chevron_right</span></button>
+                    <button class="p-2 text-gray-300"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+                    <button class="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold">1</button>
+                    <button class="p-2 text-gray-300"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
                 </div>
             </div>
         </main>
     </div>
-</body>
 
+    <script src="js/api.js"></script>
+    <script>
+        const STATUS_MAP = {
+            'CREATED': { label: '주문대기', class: 'status-pending' },
+            'PENDING': { label: '결제대기', class: 'status-pending' },
+            'CONFIRMED': { label: '주문확정', class: 'status-confirmed' },
+            'MAKING': { label: '조리중', class: 'status-preparing' },
+            'READY': { label: '준비완료', class: 'status-ready' },
+            'COMPLETED': { label: '완료', class: 'status-completed' },
+            'CANCELLED': { label: '취소', class: 'status-cancelled' }
+        };
+
+        async function loadOrders() {
+            try {
+                const response = await AdminAPI.getOrders();
+                const orders = response.data.items || response.data; // Handle different formats
+                renderOrders(orders);
+            } catch (err) {
+                console.error('Failed to load orders:', err);
+                document.getElementById('order-table-body').innerHTML = `
+                    <tr>
+                        <td colspan="4" class="table-cell text-center py-20 text-red-500">주문 내역을 불러오는데 실패했습니다.</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderOrders(orders) {
+            const tbody = document.getElementById('order-table-body');
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="table-cell text-center py-20 text-gray-400">주문 내역이 없습니다.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = orders.map(order => {
+                const statusInfo = STATUS_MAP[order.status] || { label: order.status, class: 'status-completed' };
+                const date = new Date(order.createdAt).toLocaleString('ko-KR');
+                
+                return `
+                    <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                        onclick="location.href='order-detail.html?id=${order.orderId}'">
+                        <td class="table-cell">#${order.orderId}</td>
+                        <td class="table-cell text-gray-400">${date}</td>
+                        <td class="table-cell">${(order.totalPrice || 0).toLocaleString()}원</td>
+                        <td class="table-cell">
+                            <span class="status-badge ${statusInfo.class}">${statusInfo.label}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-to').value = today;
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            document.getElementById('date-from').value = weekAgo;
+
+            loadOrders();
+        });
+    </script>
+</body>
 </html>

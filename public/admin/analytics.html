@@ -151,154 +151,72 @@
                         class="px-6 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조회</button>
                 </div>
 
-                <!-- Metrics Summary -->
-                <div class="grid grid-cols-4 gap-8">
-                    <div class="card stat-card-accent shadow-xl shadow-primary/20">
-                        <p class="text-[11px] font-bold text-white/60 uppercase tracking-widest mb-2">오늘의 매출</p>
-                        <h2 class="text-3xl font-black italic">₩4,250,000</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-white/80">
-                            <span class="material-symbols-outlined text-sm">trending_up</span> 전일 대비 +12.5%
-                        </div>
-                    </div>
-                    <div class="card">
-                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">평균 객단가</p>
-                        <h2 class="text-3xl font-black text-gray-800 italic">₩14,000</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-primary">
-                            <span class="material-symbols-outlined text-sm">arrow_upward</span> 지난달 대비 12.5% 증가
-                        </div>
-                    </div>
-                    <div class="card">
-                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">총 방문자 수</p>
-                        <h2 class="text-3xl font-black text-gray-800 italic">842명</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-primary">
-                            <span class="material-symbols-outlined text-sm">arrow_downward</span> 지난주 대비 12.5% 감소
-                        </div>
-                    </div>
-                    <div class="card">
-                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">재방문율</p>
-                        <h2 class="text-3xl font-black text-gray-800 italic">34.5%</h2>
-                        <div class="flex items-center gap-2 mt-4 text-[11px] font-bold text-primary">
-                            안정적 유지중
-                        </div>
-                    </div>
-                </div>
+                <script src="js/api.js"></script>
+                <script>
+                    const API_BASE_URL = 'http://localhost:8080';
 
-                <div class="grid grid-cols-2 gap-10">
-                    <!-- Popular Menu TOP 5 -->
-                    <div class="card">
-                        <h3 class="font-bold text-gray-800 uppercase tracking-tight mb-8">인기 메뉴 TOP 5</h3>
-                        <div class="relative h-[240px] flex items-end justify-center gap-12 mb-10">
-                            <!-- 2nd -->
-                            <div class="flex flex-col items-center gap-3">
-                                <div class="rank-badge bg-gray-100 text-gray-400 ring-4 ring-gray-50 italic">2</div>
-                                <div
-                                    class="w-24 h-24 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-3xl text-gray-200">lunch_dining</span>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-xs font-bold text-gray-700">스파이시 상하이</p>
-                                    <p class="text-[10px] font-bold text-gray-400">386개</p>
-                                </div>
-                            </div>
-                            <!-- 1st -->
-                            <div class="flex flex-col items-center gap-3 -translate-y-6">
-                                <div class="rank-badge bg-primary text-white ring-4 ring-primary/10 italic">1</div>
-                                <div
-                                    class="w-32 h-32 bg-primary/5 rounded-3xl border border-primary/10 flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-5xl text-primary">lunch_dining</span>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-sm font-black text-gray-800">더블 베이컨 치즈</p>
-                                    <p class="text-xs font-bold text-primary">428개</p>
-                                </div>
-                            </div>
-                            <!-- 3rd -->
-                            <div class="flex flex-col items-center gap-3">
-                                <div class="rank-badge bg-orange-100 text-orange-400 ring-4 ring-orange-50 italic">3
-                                </div>
-                                <div
-                                    class="w-20 h-20 bg-orange-50/30 rounded-2xl border border-orange-100 flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-2xl text-orange-200">lunch_dining</span>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-xs font-bold text-gray-700">트러플 머쉬룸</p>
-                                    <p class="text-[10px] font-bold text-gray-400">212개</p>
-                                </div>
-                            </div>
+                    async function loadAnalytics() {
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/api/v1/admin/analytics`);
+                            if (!response.ok) throw new Error('API Failed');
+
+                            const result = await response.json();
+                            if (result.success && result.data) {
+                                updateUI(result.data);
+                            }
+                        } catch (err) {
+                            console.error('Failed to load analytics:', err);
+                        }
+                    }
+
+                    function updateUI(data) {
+                        const h2s = document.querySelectorAll('.card h2');
+                        if (h2s.length >= 4) {
+                            h2s[0].textContent = `₩${(data.todayRevenue || 0).toLocaleString()}`;
+                            h2s[1].textContent = `₩${(data.avgOrderValue || 0).toLocaleString()}`;
+                            h2s[2].textContent = `${(data.totalVisitors || 0)}명`;
+                            h2s[3].textContent = `${(data.returnRate || 0)}%`;
+                        }
+
+                        // Update Top 5 List (simplification: only textual list for now)
+                        const topMenus = data.topMenus || [];
+                        const rankingContainer = document.querySelector('.space-y-4.border-t');
+                        if (rankingContainer && topMenus.length >= 5) {
+                            rankingContainer.innerHTML = topMenus.map((menu, i) => `
+                    <div class="flex items-center justify-between px-4">
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs font-black text-gray-300 italic">${i + 1}</span>
+                            <span class="text-xs font-bold text-gray-600">${menu.name}</span>
                         </div>
-                        <div class="space-y-4 border-t border-gray-50 pt-8">
-                            <div class="flex items-center justify-between px-4">
-                                <div class="flex items-center gap-4">
-                                    <span class="text-xs font-black text-gray-300 italic">4</span>
-                                    <span class="text-xs font-bold text-gray-600">갈릭 소스 프라이즈</span>
-                                </div>
-                                <span class="text-xs font-bold text-gray-400 italic">156개</span>
-                            </div>
-                            <div class="flex items-center justify-between px-4">
-                                <div class="flex items-center gap-4">
-                                    <span class="text-xs font-black text-gray-300 italic">5</span>
-                                    <span class="text-xs font-bold text-gray-600">밀크 쉐이크</span>
-                                </div>
-                                <span class="text-xs font-bold text-gray-400 italic">98개</span>
-                            </div>
-                        </div>
+                        <span class="text-xs font-bold text-gray-400 italic">${menu.count}개</span>
                     </div>
+                `).join('');
+                        }
 
-                    <!-- AI Analysis Insights -->
-                    <div class="card">
-                        <h3 class="font-bold text-gray-800 uppercase tracking-tight mb-8">AI 분석 인사이트</h3>
-                        <div class="space-y-10 relative">
-                            <div class="absolute left-4 top-2 bottom-2 w-px bg-gray-100 border-dashed border-l"></div>
-
-                            <div class="relative flex gap-6">
-                                <div
-                                    class="size-8 rounded-full bg-text-dark text-white flex items-center justify-center text-[10px] font-black italic shrink-0 z-10">
-                                    01</div>
-                                <div>
-                                    <h4 class="text-sm font-black text-gray-800 mb-1 italic">피크 타임 인력 보강 제안</h4>
-                                    <p class="text-xs text-gray-400 leading-relaxed font-medium">이번 주 금요일과 토요일 19시~21시
-                                        사이 주문량이 평소보다 25% 높을 것으로 예상됩니다.</p>
-                                </div>
-                            </div>
-
-                            <div class="relative flex gap-6">
-                                <div
-                                    class="size-8 rounded-full bg-text-dark text-white flex items-center justify-center text-[10px] font-black italic shrink-0 z-10">
-                                    02</div>
-                                <div>
-                                    <h4 class="text-sm font-black text-gray-800 mb-1 italic">메뉴 구성 최적화</h4>
-                                    <p class="text-xs text-gray-400 leading-relaxed font-medium">'더블 베이컨 치즈버거'의 세트 판매
-                                        비중이 상승하고 있습니다. 런치 세트 강화를 권장합니다.</p>
-                                </div>
-                            </div>
-
-                            <div class="relative flex gap-6">
-                                <div
-                                    class="size-8 rounded-full bg-text-dark text-white flex items-center justify-center text-[10px] font-black italic shrink-0 z-10">
-                                    03</div>
-                                <div>
-                                    <h4 class="text-sm font-black text-gray-800 mb-1 italic">재방문 프로모션 제안</h4>
-                                    <p class="text-xs text-gray-400 leading-relaxed font-medium">최근 신규 고객은 증가했으나 재방문율이
-                                        소폭 하락했습니다. 쿠폰 발급 이벤트를 제안합니다.</p>
-                                </div>
-                            </div>
-
-                            <div class="relative flex gap-6">
-                                <div
-                                    class="size-8 rounded-full bg-text-dark text-white flex items-center justify-center text-[10px] font-black italic shrink-0 z-10">
-                                    04</div>
-                                <div>
-                                    <h4 class="text-sm font-black text-gray-800 mb-1 italic">재고 효율 분석</h4>
-                                    <p class="text-xs text-gray-400 leading-relaxed font-medium">신선 식품(패티, 채소류)의 폐기율이
-                                        지난주 대비 4% 감소했습니다.</p>
-                                </div>
+                        // AI Insights
+                        const insightsContainer = document.querySelector('.space-y-10.relative');
+                        const insights = data.aiInsights || [];
+                        if (insightsContainer) {
+                            insightsContainer.innerHTML = '<div class="absolute left-4 top-2 bottom-2 w-px bg-gray-100 border-dashed border-l"></div>' +
+                                insights.map((insight, i) => {
+                                    const parts = insight.split(':');
+                                    const title = parts[0] ? parts[0].trim() : '';
+                                    const desc = parts[1] ? parts[1].trim() : '';
+                                    return `
+                        <div class="relative flex gap-6">
+                            <div class="size-8 rounded-full bg-text-dark text-white flex items-center justify-center text-[10px] font-black italic shrink-0 z-10">${String(i + 1).padStart(2, '0')}</div>
+                            <div>
+                                <h4 class="text-sm font-black text-gray-800 mb-1 italic">${title}</h4>
+                                <p class="text-xs text-gray-400 leading-relaxed font-medium">${desc}</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+                    `;
+                                }).join('');
+                        }
+                    }
+
+                    document.addEventListener('DOMContentLoaded', loadAnalytics);
+                </script>
 </body>
 
 </html>

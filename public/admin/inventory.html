@@ -199,6 +199,8 @@
                                 <th class="table-header w-24">ID</th>
                                 <th class="table-header">재료명</th>
                                 <th class="table-header">칼로리</th>
+                                <th class="table-header">단백질</th>
+                                <th class="table-header">나트륨</th>
                                 <th class="table-header">추가 금액</th>
                                 <th class="table-header">알러지</th>
                             </tr>
@@ -227,7 +229,7 @@
                     <input type="text" name="name" required placeholder="예: 소고기 패티"
                         class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">칼로리
                             (kcal)</label>
@@ -235,11 +237,23 @@
                             class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">추가 금액
-                            (원)</label>
-                        <input type="number" name="extraPrice" value="0"
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">단백질
+                            (g)</label>
+                        <input type="number" name="protein" value="0"
                             class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                     </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">나트륨
+                            (mg)</label>
+                        <input type="number" name="sodium" value="0"
+                            class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">추가 금액
+                        (원)</label>
+                    <input type="number" name="extraPrice" value="0"
+                        class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">알러지
@@ -311,6 +325,8 @@
                             <td class="table-cell text-gray-400">${item.ingredientId}</td>
                             <td class="table-cell">${item.name}</td>
                             <td class="table-cell">${item.calories} kcal</td>
+                            <td class="table-cell">${item.protein || 0}g</td>
+                            <td class="table-cell">${item.sodium || 0}mg</td>
                             <td class="table-cell">${item.extraPrice.toLocaleString()}원</td>
                             <td class="table-cell">
                                 <span class="px-3 py-1 ${item.allergyTag ? 'bg-red-50 text-primary' : 'bg-gray-50 text-gray-300'} rounded-full text-[10px] font-bold uppercase tracking-wider">
@@ -337,6 +353,8 @@
             const data = {
                 name: formData.get('name'),
                 calories: parseInt(formData.get('calories')) || 0,
+                protein: parseInt(formData.get('protein')) || 0,
+                sodium: parseInt(formData.get('sodium')) || 0,
                 extraPrice: parseInt(formData.get('extraPrice')) || 0,
                 allergyTag: formData.get('allergyTag') || null
             };
