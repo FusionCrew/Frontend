@@ -248,11 +248,14 @@ export default function KioskCategoryPage({
   return (
     <div className="w-full h-full relative">
       <div style={{
-        opacity: isPaymentActive ? 0 : 1,
+        filter: isPaymentActive ? "brightness(0.5) blur(4px)" : "none",
         pointerEvents: isPaymentActive ? "none" : "auto",
-        transition: "opacity 0.3s ease-in-out",
-        width: "100%",
-        height: "100%"
+        transition: "filter 0.3s ease-in-out, opacity 0.3s ease-in-out",
+        width: "1080px",
+        height: "1920px",
+        position: "absolute",
+        top: 0,
+        left: 0
       }}>
         <BackButton onClick={onBack} />
         <StaffCallButton onClick={() => payment.setShowStaffCallModal(true)} />
@@ -296,7 +299,7 @@ export default function KioskCategoryPage({
         onSimplePaymentComplete={payment.handleSimplePaymentComplete}
         onPaymentDone={handlePaymentDone}
         onCloseStaffModal={() => payment.setShowStaffCallModal(false)}
-        ticketNumber={ticketNumber}
+        ticketNumber={ticketNumber ?? null}
       />
     </div>
   );

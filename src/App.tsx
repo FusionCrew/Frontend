@@ -27,6 +27,28 @@ import MediaPipeDebugPanel from "./components/MediaPipeDebugPanel";
 
 type PageType = "main" | "order" | "menu" | "recommended" | "burgerSingle" | "burgerSet" | "side" | "drink";
 
+// Tracking Overlay Component to isolate high-frequency re-renders
+function TrackingOverlays({ speaking }: { speaking: boolean }) {
+  const tracking = useFaceTracking(true, true);
+
+  return (
+    <>
+      <div style={{ position: "absolute", inset: 0, zIndex: 2000, pointerEvents: "none" }}>
+        <KioskCharacter speaking={speaking} tracking={tracking} />
+      </div>
+
+      <div style={{ position: "absolute", top: 0, right: 0, zIndex: 5000 }}>
+        <MediaPipeDebugPanel
+          faceResults={tracking.faceResults}
+          poseResults={tracking.poseResults}
+          handsResults={tracking.handsResults}
+          videoElement={tracking.videoElement}
+        />
+      </div>
+    </>
+  );
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>("main");
 
@@ -48,8 +70,6 @@ function App() {
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const cart = useCart(cartId);
 
-  // MediaPipe Tracking (Shared across App and Character)
-  const tracking = useFaceTracking(true, true); // Enabled by default for debug view
 
   useEffect(() => {
     const handleResize = () => {
@@ -285,35 +305,23 @@ function App() {
       >
         {/* Pass speaking state to pages if they use KioskCharacter */}
         {/* We can use a context or just let KioskCharacter handle it if we make it smarter */}
-        {/* Layer 0: Persisted Background (Character & Webcam) */}
-        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-          <KioskCharacter speaking={speaking} tracking={tracking} />
-        </div>
-
-        {/* MediaPipe Debug Panel (Stays at the very top for dev) */}
-        <div style={{ position: "absolute", top: 0, right: 0, zIndex: 5000 }}>
-          <MediaPipeDebugPanel
-            faceResults={tracking.faceResults}
-            poseResults={tracking.poseResults}
-            handsResults={tracking.handsResults}
-            videoElement={tracking.videoElement}
-          />
-        </div>
-
-        {/* Layer 10: Dynamic Page Content (Transparent Overlay) */}
+        {/* Layer 1: Dynamic Page Content */}
         <div style={{ position: "relative", zIndex: 10, width: "1080px", height: "1920px" }}>
           {renderer()}
-
-          {/* Global Subtitle Overlay */}
-          {subtitle && (
-            <div
-              className="absolute left-1/2 -translate-x-1/2 bg-white/90 px-8 py-4 rounded-3xl shadow-xl z-[100] text-center"
-              style={{ bottom: "400px", width: "80%", fontSize: "40px", color: "#4A3728", fontFamily: "Noto Sans KR" }}
-            >
-              {subtitle}
-            </div>
-          )}
         </div>
+
+        {/* Layer 2: Character & Tracking Overlays (Isolated Re-renders) */}
+        <TrackingOverlays speaking={speaking} />
+
+        {/* Global Subtitle Overlay */}
+        {subtitle && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 bg-white/90 px-8 py-4 rounded-3xl shadow-xl z-[3000] text-center"
+            style={{ bottom: "400px", width: "80%", fontSize: "40px", color: "#4A3728", fontFamily: "Noto Sans KR" }}
+          >
+            {subtitle}
+          </div>
+        )}
       </div>
     </div>
   );
