@@ -168,13 +168,21 @@
                                         class="px-3 py-1 bg-gray-50 text-gray-400 rounded-full text-[10px] font-bold uppercase tracking-wider">-</span>
                                 </div>
                                 <div class="flex justify-between items-center border-b border-gray-50 pb-4">
-                                    <span class="info-label">칼로리</span>
-                                    <span id="ing-calories" class="info-value">-</span>
+                                    <span class="info-label">단백질</span>
+                                    <span id="ing-protein" class="info-value">-</span>
                                 </div>
-                                <div class="flex justify-between items-center">
+                                <div class="flex justify-between items-center border-b border-gray-50 pb-4">
+                                    <span class="info-label">나트륨</span>
+                                    <span id="ing-sodium" class="info-value">-</span>
+                                </div>
+                                <div class="flex justify-between items-center border-b border-gray-50 pb-4">
                                     <span class="info-label">추가 금액</span>
                                     <span id="ing-extra-price"
                                         class="text-base font-black italic text-gray-800">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="info-label">칼로리</span>
+                                    <span id="ing-calories" class="info-value">-</span>
                                 </div>
                             </div>
                         </div>
@@ -274,6 +282,20 @@
                             class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 outline-none">
                     </div>
                     <div>
+                        <label
+                            class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">단백질</label>
+                        <input type="number" name="protein"
+                            class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">나트륨</label>
+                        <input type="number" name="sodium"
+                            class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 outline-none">
+                    </div>
+                    <div>
                         <label class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">추가
                             금액</label>
                         <input type="number" name="extraPrice"
@@ -327,6 +349,8 @@
                 document.getElementById('header-ing-id').textContent = data.ingredientId;
                 document.getElementById('ing-name').textContent = data.name;
                 document.getElementById('ing-calories').textContent = `${data.calories} kcal`;
+                document.getElementById('ing-protein').textContent = `${data.protein || 0} g`;
+                document.getElementById('ing-sodium').textContent = `${data.sodium || 0} mg`;
                 document.getElementById('ing-extra-price').textContent = `${data.extraPrice.toLocaleString()}원`;
 
                 const allergyLabel = document.getElementById('ing-allergy');
@@ -337,6 +361,8 @@
                 const form = document.getElementById('edit-form');
                 form.name.value = data.name;
                 form.calories.value = data.calories;
+                form.protein.value = data.protein || 0;
+                form.sodium.value = data.sodium || 0;
                 form.extraPrice.value = data.extraPrice;
                 form.allergyTag.value = data.allergyTag || '';
             } catch (err) { alert('데이터를 불러오는데 실패했습니다.'); }
@@ -419,6 +445,8 @@
             const data = {
                 name: formData.get('name'),
                 calories: parseInt(formData.get('calories')),
+                protein: parseInt(formData.get('protein')),
+                sodium: parseInt(formData.get('sodium')),
                 extraPrice: parseInt(formData.get('extraPrice')),
                 allergyTag: formData.get('allergyTag') || null
             };
