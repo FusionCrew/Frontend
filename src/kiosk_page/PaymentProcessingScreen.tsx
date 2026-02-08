@@ -12,39 +12,54 @@ interface PaymentProcessingScreenProps {
 
 export default function PaymentProcessingScreen({ totalAmount, discountAmount, onBack, onComplete }: PaymentProcessingScreenProps) {
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // 3초 후 자동 완료
+  // 뒤로가기 핸들러
+  const handleBack = () => {
+    setCancelled(true);
+    onBack();
+  };
+
+  // 단계별 결제 진행
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onComplete();
+    if (cancelled || isProcessing) return;
+
+    // 1단계: 3초 동안 '카드를 삽입해주세요' 화면 유지
+    const timer = setTimeout(async () => {
+      if (!cancelled) {
+        setIsProcessing(true); // 2단계 시작: '결제 진행중...' 모달 표시
+
+        try {
+          // 실제 결제 API 호출이 일어나는 handleManualOrder 실행
+          // 이 함수 안에서 onProcessOrder가 호출되고 ticketNumber가 업데이트됨
+          await onComplete();
+        } catch (error) {
+          console.error("Payment execution failed:", error);
+          setIsProcessing(false);
+          // 실패 시나리오 처리가 필요하면 여기에 추가
+        }
+      }
     }, 3000);
+
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, cancelled, isProcessing]);
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "#F5EDE4",
-        zIndex: 30
-      }}
-    >
+    <div className="fixed inset-0 w-full h-full" style={{ zIndex: 1000 }}>
       {/* 뒤로가기 버튼 */}
       <button
-        onClick={(e) => { e.stopPropagation(); onBack(); }}
+        onClick={handleBack}
         className="absolute flex items-center justify-center"
-        style={{ 
-          top: "45px", 
+        style={{
+          top: "45px",
           left: "44px",
           width: "80px",
           height: "80px",
           background: "none",
           border: "none",
-          cursor: "pointer"
+          cursor: "pointer",
+          zIndex: 1010
         }}
       >
         <img src={backArrowCircle} alt="뒤로가기" style={{ width: "70px", height: "70px" }} />
@@ -59,7 +74,8 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
         top: "193px",
         left: "50%",
         transform: "translateX(-50%)",
-        textAlign: "center"
+        textAlign: "center",
+        zIndex: 100
       }}>
         <p style={{
           fontFamily: "'Noto Sans KR', sans-serif",
@@ -81,11 +97,6 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
         </p>
       </div>
 
-      {/* 캐릭터 */}
-      <div style={{ position: "relative", zIndex: 0 }}>
-        <KioskCharacter />
-      </div>
-
       {/* 결제 금액 패널 */}
       <div
         style={{
@@ -100,7 +111,8 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
           padding: "0 80px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center"
+          justifyContent: "center",
+          zIndex: 110
         }}
       >
         {/* 구매 금액 */}
@@ -164,52 +176,54 @@ export default function PaymentProcessingScreen({ totalAmount, discountAmount, o
       </div>
 
       {/* 로딩 모달 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 100,
-        }}
-      >
+      {isProcessing && (
         <div
           style={{
-            width: "400px",
-            backgroundColor: "#FFFFFF",
-            borderRadius: "40px",
-            padding: "60px",
-            textAlign: "center",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 150,
           }}
         >
-          {/* 모래시계 아이콘 */}
-          <div style={{
-            fontSize: "100px",
-            marginBottom: "30px",
-            animation: "flip 1s ease-in-out infinite"
-          }}>
-            ⏳
-          </div>
-          
-          {/* 텍스트 */}
-          <p
+          <div
             style={{
-              fontFamily: "'Noto Sans KR', sans-serif",
-              fontSize: "40px",
-              fontWeight: "600",
-              color: "#4A3728",
+              width: "400px",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "40px",
+              padding: "60px",
+              textAlign: "center",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
             }}
           >
-            결제 진행중...
-          </p>
+            {/* 모래시계 아이콘 */}
+            <div style={{
+              fontSize: "100px",
+              marginBottom: "30px",
+              animation: "flip 1s ease-in-out infinite"
+            }}>
+              ⏳
+            </div>
+
+            {/* 텍스트 */}
+            <p
+              style={{
+                fontFamily: "'Noto Sans KR', sans-serif",
+                fontSize: "40px",
+                fontWeight: "600",
+                color: "#4A3728",
+              }}
+            >
+              결제 진행중...
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CSS 애니메이션 */}
       <style>{`

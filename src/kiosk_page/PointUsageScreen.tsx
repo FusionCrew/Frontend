@@ -49,22 +49,17 @@ export default function PointUsageScreen({ onBack, onComplete, totalAmount }: Po
 
   return (
     <div
+      className="fixed inset-0"
       style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "#F5EDE4",
-        zIndex: 20
+        zIndex: 1000
       }}
     >
       {/* 뒤로가기 버튼 */}
       <button
         onClick={onBack}
         className="absolute flex items-center justify-center"
-        style={{ 
-          top: "45px", 
+        style={{
+          top: "45px",
           left: "44px",
           width: "80px",
           height: "80px",
@@ -94,11 +89,6 @@ export default function PointUsageScreen({ onBack, onComplete, totalAmount }: Po
       }}>
         {isVerified ? "포인트 사용" : "전화번호를 입력해주세요"}
       </h1>
-
-      {/* 캐릭터 - 항상 표시 */}
-      <div style={{ position: "relative", zIndex: 0 }}>
-        <KioskCharacter />
-      </div>
 
       {/* 하단 패널 */}
       <BottomPanel height={isVerified ? "550px" : "650px"}>

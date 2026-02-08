@@ -1,6 +1,7 @@
 import bellIcon from "../assets/bell_icon.png";
 import backIcon from "../assets/back_icon.png";
 import kioskCharacter from "../assets/kiosk_character.png";
+import { Live2DStage } from "./Live2DStage";
 
 // 직원 호출 버튼
 interface StaffCallButtonProps {
@@ -12,8 +13,8 @@ export function StaffCallButton({ onClick }: StaffCallButtonProps) {
     <button
       onClick={onClick}
       className="absolute flex items-center gap-1"
-      style={{ 
-        top: "45px", 
+      style={{
+        top: "45px",
         right: "44px",
         color: "#4A3728",
         fontSize: "40px",
@@ -40,8 +41,8 @@ export function BackButton({ onClick }: BackButtonProps) {
     <button
       onClick={onClick}
       className="absolute flex items-center justify-center"
-      style={{ 
-        top: "45px", 
+      style={{
+        top: "45px",
         left: "44px",
         width: "80px",
         height: "80px"
@@ -53,22 +54,11 @@ export function BackButton({ onClick }: BackButtonProps) {
 }
 
 // 키오스크 캐릭터
-export function KioskCharacter() {
+export function KioskCharacter({ speaking, tracking }: { speaking?: boolean; tracking?: any }) {
   return (
-    <img
-      src={kioskCharacter}
-      alt="키오스크 안내 캐릭터"
-      style={{ 
-        position: "absolute",
-        left: "50%",
-        transform: "translateX(-50%)",
-        top: "180px",
-        width: "auto",
-        height: "1800px",
-        objectFit: "contain",
-        objectPosition: "top center"
-      }}
-    />
+    <div className="absolute inset-0 flex justify-center mb-0 pointer-events-none z-0">
+      <Live2DStage speaking={speaking} tracking={tracking} />
+    </div>
   );
 }
 

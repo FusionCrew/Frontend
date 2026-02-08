@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { MenuItem, CartItem } from "../types/kiosk";
+import { addCartItem, clearCart as clearCartApi } from "../api/services";
 
-export function useCart() {
+export function useCart(cartId?: string | null) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [cartExpanded, setCartExpanded] = useState(false);
 
   // 장바구니에 추가
-  const addToCart = (
+  const addToCart = async (
     menu: MenuItem,
     quantity: number,
     side: string,
@@ -15,6 +16,28 @@ export function useCart() {
     size: string,
     removedIngredients: string[]
   ) => {
+    // 1. API 동기화 (cartId가 있을 경우)
+    let backendItemId: string | undefined = undefined;
+    if (cartId) {
+      try {
+        const options: any = {};
+        if (side) options.side = side;
+        if (drink) options.drink = drink;
+        if (size) options.size = size;
+        if (removedIngredients.length > 0) options.removedIngredients = removedIngredients;
+
+        const res = await addCartItem(cartId, {
+          menuItemId: menu.menuItemId || menu.id.toString(),
+          quantity,
+          options
+        });
+        if (res?.itemId) backendItemId = res.itemId;
+      } catch (e) {
+        console.error("Failed to sync cart item to backend", e);
+      }
+    }
+
+    // 2. 로컬 상태 업데이트
     const newItem: CartItem = {
       menu,
       quantity,
@@ -22,6 +45,7 @@ export function useCart() {
       drink,
       size,
       removedIngredients: [...removedIngredients],
+      itemId: backendItemId // 백엔드 아이템 ID 팔로업용
     };
     setCartItems([...cartItems, newItem]);
     setShowCart(true);
@@ -31,7 +55,9 @@ export function useCart() {
   const updateCartQuantity = (index: number, delta: number) => {
     const newItems = [...cartItems];
     const newQty = newItems[index].quantity + delta;
-    
+
+    // TODO: 백엔드 수량 변경 API 연동 (optional for now)
+
     if (newQty <= 0) {
       // 아이템 삭제
       newItems.splice(index, 1);
@@ -67,7 +93,14 @@ export function useCart() {
   };
 
   // 장바구니 비우기
-  const clearCart = () => {
+  const clearCart = async () => {
+    if (cartId) {
+      try {
+        await clearCartApi(cartId);
+      } catch (e) {
+        console.error("Failed to clear cart on backend", e);
+      }
+    }
     setCartItems([]);
     setShowCart(false);
     setCartExpanded(false);
