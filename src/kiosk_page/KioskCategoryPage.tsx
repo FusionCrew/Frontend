@@ -44,15 +44,20 @@ export default function KioskCategoryPage({
   // 동적 데이터가 있으면 필터링해서 사용
   const menuItems = fetchedMenuItems && fetchedMenuItems.length > 0
     ? fetchedMenuItems.filter(item => {
+      if (currentCategory === "all") return true;
       const cat = item.category || item.categoryId;
-      // 백엔드 카테고리(cat_01, cat_02 등)와 프론트엔드 카테고리 매핑
+      // 백엔드 카테고리(cat_burger, cat_side, cat_drink 등)와 프론트엔드 카테고리 매핑
       if (cat === currentCategory) return true;
 
-      // 백엔드 매핑 (cat_02 -> 버거, cat_03 -> 사이드, cat_01 -> 음료)
-      if (currentCategory === "burgerSingle" && cat === "cat_02") return true;
-      if (currentCategory === "burgerSet" && cat === "cat_02") return true;
+      // 백엔드 새 ID 매핑
+      if (currentCategory === "burger" && cat === "cat_burger") return true;
+      if (currentCategory === "side" && cat === "cat_side") return true;
+      if (currentCategory === "drink" && cat === "cat_drink") return true;
+
+      // 레거시 매핑 보완 (필요 시)
+      if (currentCategory === "burger" && cat === "cat_02") return true;
       if (currentCategory === "side" && cat === "cat_03") return true;
-      if (currentCategory === "drink" && (cat === "cat_01" || cat === "cat_03")) return true;
+      if (currentCategory === "drink" && cat === "cat_01") return true;
 
       return false;
     })
@@ -67,8 +72,8 @@ export default function KioskCategoryPage({
     payment.showPaymentComplete || payment.showPointUsage ||
     payment.showSimplePayment;
 
-  // 버거 카테고리 체크
-  const isBurger = currentCategory === "burgerSingle" || currentCategory === "burgerSet";
+  // 버거 카테고리 체크 (단일 "burger"로 통합)
+  const isBurger = currentCategory === "burger" || (menu.selectedMenu && (menu.selectedMenu.categoryId === "cat_burger" || menu.selectedMenu.categoryId === "cat_02"));
 
   // 카테고리 변경 시 장바구니 닫고 메뉴 리셋
   const handleCategoryChange = (category: string) => {
@@ -94,7 +99,9 @@ export default function KioskCategoryPage({
         "",
         "",
         "",  // 사이즈 없음 = 단품
-        menu.removedIngredients
+        menu.removedIngredients,
+        false,
+        menu.selectedOptions
       );
     }
 
@@ -106,7 +113,9 @@ export default function KioskCategoryPage({
         menu.selectedSide,
         menu.selectedDrink,
         "세트",  // 사이즈에 "세트" 표시
-        menu.removedIngredients
+        menu.removedIngredients,
+        menu.isLargeSet,
+        menu.selectedOptions
       );
     }
 
@@ -139,8 +148,8 @@ export default function KioskCategoryPage({
   };
 
   // 하단 패널 높이 계산
-  const panelHeight = cart.showCart && cart.cartItems.length > 0
-    ? (cart.cartExpanded ? "1142px" : "550px")
+  const panelHeight = (cart.showCart && cart.cartItems.length > 0) || menu.showIngredientChange || menu.showSizeSelection
+    ? (cart.cartExpanded || menu.showIngredientChange || menu.showSizeSelection ? "1142px" : "550px")
     : "469px";
 
   // 말풍선 메시지
@@ -172,13 +181,19 @@ export default function KioskCategoryPage({
         <IngredientChangeView
           menu={menu.selectedMenu}
           removedIngredients={menu.removedIngredients}
+          selectedOptions={menu.selectedOptions}
           selectedSide={menu.selectedSide}
           selectedDrink={menu.selectedDrink}
+          isSet={menu.isSet}
+          isLargeSet={menu.isLargeSet}
+          lSizeQty={menu.lSizeQty}
           ingredientAccordionOpen={menu.ingredientAccordionOpen}
           setMenuAccordionOpen={menu.setMenuAccordionOpen}
           onBack={menu.handleBackFromIngredient}
           onAddToCart={addBurgerToCart}
           onToggleIngredient={menu.toggleIngredient}
+          onToggleOption={menu.toggleOption}
+          onToggleLargeSet={menu.toggleLargeSet}
           onSelectSide={menu.setSelectedSide}
           onSelectDrink={menu.setSelectedDrink}
           onSetIngredientAccordionOpen={menu.setIngredientAccordionOpen}
@@ -201,17 +216,14 @@ export default function KioskCategoryPage({
       );
     }
 
-    // 사이즈 선택 (버거)
+    // 사이즈 선택 (버거 - 단품 vs 세트 선택)
     if (menu.showSizeSelection && menu.selectedMenu) {
       return (
         <SizeSelectionView
           menu={menu.selectedMenu}
-          rSizeQty={menu.rSizeQty}
-          lSizeQty={menu.lSizeQty}
           onBack={menu.handleBackFromSizeSelection}
-          onComplete={menu.handleSizeComplete}
-          onRSizeChange={menu.setRSizeQty}
-          onLSizeChange={menu.setLSizeQty}
+          onSingleSelect={menu.handleSingleSelect}
+          onSetSelect={menu.handleSetSelect}
         />
       );
     }
@@ -265,7 +277,12 @@ export default function KioskCategoryPage({
           {renderBottomContent()}
         </BottomPanel>
 
-        {speechMessage && <SpeechBubble message={speechMessage} />}
+        {speechMessage && (
+          <SpeechBubble
+            message={speechMessage}
+            bottom={panelHeight === "1142px" ? "1350px" : "544px"}
+          />
+        )}
       </div>
 
       {/* 결제 화면들 */}

@@ -4,7 +4,7 @@ import dineinIcon from "../assets/dinein_icon.png";
 
 interface KioskOrderProps {
   onBack: () => void;
-  onSelectType: () => void;
+  onSelectType: (type: "DINE_IN" | "TAKE_OUT") => void;
   speaking?: boolean;
 }
 
@@ -42,7 +42,7 @@ export default function KioskOrder({ onBack, onSelectType }: KioskOrderProps) {
       >
         {/* 포장주문 버튼 */}
         <button
-          onClick={onSelectType}
+          onClick={() => onSelectType("TAKE_OUT")}
           className="flex flex-col items-center justify-end shadow-lg"
           style={{
             width: "429px",
@@ -62,7 +62,7 @@ export default function KioskOrder({ onBack, onSelectType }: KioskOrderProps) {
 
         {/* 매장 식사 버튼 */}
         <button
-          onClick={onSelectType}
+          onClick={() => onSelectType("DINE_IN")}
           className="flex flex-col items-center justify-end shadow-lg"
           style={{
             width: "429px",

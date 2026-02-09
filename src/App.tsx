@@ -25,7 +25,7 @@ import { KioskCharacter } from "./components/KioskComponents";
 import { useFaceTracking } from "./hook/useFaceTracking";
 import MediaPipeDebugPanel from "./components/MediaPipeDebugPanel";
 
-type PageType = "main" | "order" | "menu" | "recommended" | "burgerSingle" | "burgerSet" | "side" | "drink";
+type PageType = "main" | "order" | "menu" | "recommended" | "burger" | "side" | "drink" | "all";
 
 // Tracking Overlay Component to isolate high-frequency re-renders
 function TrackingManager({ speaking, children }: { speaking: boolean, children: React.ReactNode }) {
@@ -67,6 +67,7 @@ function App() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [stock, setStock] = useState<Record<string, number>>({});
   const [conversationHistory, setConversationHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [diningType, setDiningType] = useState<"DINE_IN" | "TAKE_OUT">("DINE_IN");
 
   const { devices } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
@@ -168,7 +169,7 @@ function App() {
   const handleOrderFlow = useCallback(async () => {
     if (!cartId || !kioskSessionId) return null;
     try {
-      const orderRes = await createOrder({ cartId, sessionId: kioskSessionId, orderType: "DINE_IN" });
+      const orderRes = await createOrder({ cartId, sessionId: kioskSessionId, orderType: diningType });
       if (orderRes?.orderId) {
         const payRes = await processPayment({ orderId: orderRes.orderId.toString(), amount: orderRes.amount?.totalPrice || 0, method: "CARD" });
         if (payRes.success) {
@@ -191,7 +192,7 @@ function App() {
     if (!cartId || !kioskSessionId) return null;
     try {
       // 1. 주문 생성
-      const orderRes = await createOrder({ cartId, sessionId: kioskSessionId, orderType: "DINE_IN" });
+      const orderRes = await createOrder({ cartId, sessionId: kioskSessionId, orderType: diningType });
       if (orderRes?.orderId) {
         // 2. 결제 처리
         const payRes = await processPayment({
@@ -260,7 +261,7 @@ function App() {
   };
 
   const renderer = () => {
-    if (currentPage === "burgerSingle" || currentPage === "burgerSet" || currentPage === "side" || currentPage === "drink") {
+    if (currentPage === "burger" || currentPage === "side" || currentPage === "drink" || currentPage === "all") {
       return (
         <KioskCategoryPage
           onBack={goToMenu}
@@ -289,7 +290,15 @@ function App() {
       />
     );
     if (currentPage === "menu") return <KioskMenu onBack={goToOrder} onRecommended={goToRecommended} onCategory={(cat) => setCurrentPage(cat as PageType)} />;
-    if (currentPage === "order") return <KioskOrder onBack={goToMain} onSelectType={goToMenu} />;
+    if (currentPage === "order") return (
+      <KioskOrder
+        onBack={goToMain}
+        onSelectType={(type) => {
+          setDiningType(type as "DINE_IN" | "TAKE_OUT");
+          goToMenu();
+        }}
+      />
+    );
     return <KioskMain onOrder={goToOrder} onAccessibility={goToOrder} />;
   };
 

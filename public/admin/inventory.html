@@ -46,6 +46,7 @@
         .table-header { @apply text-[10px] font-bold text-gray-400 uppercase tracking-widest px-6 py-4; }
         .table-cell { @apply px-6 py-5 text-sm font-semibold text-gray-700 border-t border-gray-50; }
     </style>
+    <link rel="stylesheet" href="css/animations.css">
 </head>
 
 <body class="antialiased">
@@ -100,7 +101,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col overflow-hidden">
+        <main class="flex-1 flex flex-col overflow-hidden animate-page-entrance">
             <header class="h-20 bg-transparent flex items-center justify-between px-10">
                 <div class="flex items-center gap-3">
                     <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -110,24 +111,153 @@
                 </div>
 
                 <div class="flex items-center gap-8">
-                    <div class="flex items-center gap-6">
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <div class="flex items-center gap-6 relative">
+                        <!-- Search Container -->
+                        <div id="header-search-container"
+                            class="absolute right-full mr-4 hidden items-center bg-white border border-gray-100 rounded-xl px-4 py-2 shadow-premium animate-in fade-in slide-in-from-right-2 duration-200">
+                            <span class="material-symbols-outlined text-gray-400 mr-2 text-xl">search</span>
+                            <input id="header-search-input" type="text" placeholder="메뉴, 재고 검색..."
+                                class="text-sm bg-transparent outline-none w-48 font-medium">
+                        </div>
+
+                        <button id="header-search-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
                             <span class="material-symbols-outlined text-[22px]">search</span>
                         </button>
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
-                            <span class="material-symbols-outlined text-[22px]">notifications</span>
-                            <span
-                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
-                        </button>
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
-                            <span class="material-symbols-outlined text-[22px]">settings</span>
-                        </button>
+
+                        <div class="relative">
+                            <button id="header-notify-btn"
+                                class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                                <span class="material-symbols-outlined text-[22px]">notifications</span>
+                                <span
+                                    class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                            </button>
+
+                            <!-- Notification Dropdown -->
+                            <div id="header-notify-dropdown"
+                                class="absolute right-0 mt-4 w-80 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                                    <h3 class="text-sm font-bold text-gray-800">최신 알림</h3>
+                                    <span class="text-[10px] font-bold text-primary italic">NEW</span>
+                                </div>
+                                <div class="max-h-[360px] overflow-y-auto">
+                                    <div
+                                        class="px-6 py-4 hover:bg-gray-50 border-b border-gray-50 cursor-pointer transition-colors">
+                                        <p class="text-xs font-bold text-gray-800 mb-1">⚠️ 재고 부족 알림</p>
+                                        <p class="text-[10px] text-gray-400 leading-tight">소고기 패티의 재고가 15% 미만입니다. 발주가
+                                            필요합니다.</p>
+                                        <p class="text-[9px] text-primary font-black mt-2 italic uppercase">2분 전</p>
+                                    </div>
+                                    <div
+                                        class="px-6 py-4 hover:bg-gray-50 border-b border-gray-50 cursor-pointer transition-colors">
+                                        <p class="text-xs font-bold text-gray-800 mb-1">🔔 직원 호출 발생</p>
+                                        <p class="text-[10px] text-gray-400 leading-tight">Table #4 고객님이 직원을 호출하셨습니다.
+                                        </p>
+                                        <p class="text-[9px] text-primary font-black mt-2 italic uppercase">12분 전</p>
+                                    </div>
+                                    <div class="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors">
+                                        <p class="text-xs font-bold text-gray-800 mb-1">📈 매출 리포트</p>
+                                        <p class="text-[10px] text-gray-400 leading-tight"> 어제 매출 데이터 분석이 완료되었습니다.</p>
+                                        <p class="text-[9px] text-primary font-black mt-2 italic uppercase">1시간 전</p>
+                                    </div>
+                                </div>
+                                <a href="#"
+                                    class="block w-full py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50">전체
+                                    알림 보기</a>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <button id="header-settings-btn"
+                                class="text-gray-400 hover:text-gray-600 transition-colors">
+                                <span class="material-symbols-outlined text-[22px]">settings</span>
+                            </button>
+
+                            <!-- Settings Dropdown -->
+                            <div id="header-settings-dropdown"
+                                class="absolute right-0 mt-4 w-56 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <div class="p-2">
+                                    <div class="px-4 py-2 border-b border-gray-50 mb-1">
+                                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">환경 설정
+                                        </p>
+                                    </div>
+                                    <a href="#"
+                                        class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                        <div class="flex items-center gap-3">
+                                            <span
+                                                class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">dark_mode</span>
+                                            <span class="text-xs font-bold text-gray-700">다크 모드</span>
+                                        </div>
+                                        <div class="w-8 h-4 bg-gray-200 rounded-full relative">
+                                            <div
+                                                class="absolute left-0.5 top-0.5 size-3 bg-white rounded-full shadow-sm">
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a href="#"
+                                        class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group border-b border-gray-50">
+                                        <span
+                                            class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">language</span>
+                                        <span class="text-xs font-bold text-gray-700">언어 설정</span>
+                                    </a>
+                                    <a href="#"
+                                        class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                        <span
+                                            class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">help</span>
+                                        <span class="text-xs font-bold text-gray-700">고객 센터</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="h-8 w-px bg-gray-200"></div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
-                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                            <span class="material-symbols-outlined text-gray-400">person</span>
+                    <div class="relative">
+                        <div id="header-profile-area" class="flex items-center gap-3 cursor-pointer group">
+                            <span
+                                class="text-sm font-medium text-gray-500 group-hover:text-gray-800 transition-colors">관리자
+                                1님</span>
+                            <div
+                                class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-transparent group-hover:border-primary/20 transition-all">
+                                <span
+                                    class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">person</span>
+                            </div>
+                        </div>
+
+                        <!-- Profile Dropdown -->
+                        <div id="header-profile-dropdown"
+                            class="absolute right-0 mt-4 w-64 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                            <div class="p-6 bg-gray-50/50 border-b border-gray-50">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="size-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                        <span class="material-symbols-outlined text-primary">person</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-800">관리자 1</p>
+                                        <p class="text-[10px] text-gray-400 font-medium">admin@burgershop.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <a href="account.html"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">manage_accounts</span>
+                                    <span class="text-xs font-bold text-gray-700">계정 설정</span>
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">security</span>
+                                    <span class="text-xs font-bold text-gray-700">보안 설정</span>
+                                </a>
+                                <div class="h-px bg-gray-50 my-1 mx-2"></div>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-red-500 transition-colors">logout</span>
+                                    <span class="text-xs font-bold text-gray-700 group-hover:text-red-600">로그아웃</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -172,11 +302,18 @@
                 <div class="card">
                     <div class="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
                         <h3 class="font-bold text-gray-800 uppercase tracking-tight">Ingredient List</h3>
-                        <button onclick="toggleModal(true)"
-                            class="px-5 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-sm">add</span>
-                            새 재료 등록
-                        </button>
+                        <div class="flex gap-3">
+                            <button onclick="toggleBulkModal(true)"
+                                class="px-5 py-2.5 bg-gray-100 text-gray-600 text-[11px] font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm">inventory</span>
+                                일괄 재고 설정
+                            </button>
+                            <button onclick="toggleModal(true)"
+                                class="px-5 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm">add</span>
+                                새 재료 등록
+                            </button>
+                        </div>
                     </div>
 
                     <div id="loading-state" class="hidden text-center py-20">
@@ -198,9 +335,8 @@
                             <tr class="bg-gray-50/50">
                                 <th class="table-header w-24">ID</th>
                                 <th class="table-header">재료명</th>
+                                <th class="table-header">재고 수량</th>
                                 <th class="table-header">칼로리</th>
-                                <th class="table-header">단백질</th>
-                                <th class="table-header">나트륨</th>
                                 <th class="table-header">추가 금액</th>
                                 <th class="table-header">알러지</th>
                             </tr>
@@ -214,7 +350,7 @@
         </main>
     </div>
 
-    <!-- Modal Background -->
+    <!-- Add Ingredient Modal -->
     <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center">
         <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-10 relative">
             <button onclick="toggleModal(false)" class="absolute top-6 right-6 text-gray-300 hover:text-gray-500">
@@ -229,7 +365,7 @@
                     <input type="text" name="name" required placeholder="예: 소고기 패티"
                         class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">칼로리
                             (kcal)</label>
@@ -237,15 +373,9 @@
                             class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">단백질
-                            (g)</label>
-                        <input type="number" name="protein" value="0"
-                            class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">나트륨
-                            (mg)</label>
-                        <input type="number" name="sodium" value="0"
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">초기
+                            재고</label>
+                        <input type="number" name="initialStock" value="50"
                             class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all">
                     </div>
                 </div>
@@ -280,13 +410,96 @@
         </div>
     </div>
 
+    <!-- Bulk Stock Modal -->
+    <div id="bulk-modal"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div
+            class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-10 relative max-h-[80vh] overflow-hidden flex flex-col">
+            <button onclick="toggleBulkModal(false)" class="absolute top-6 right-6 text-gray-300 hover:text-gray-500">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h2 class="text-xl font-black text-gray-800 mb-6">일괄 재고 설정</h2>
+            <p class="text-xs text-gray-400 mb-6">각 재료의 재고 수량을 입력하고 저장하세요.</p>
+
+            <div class="flex-1 overflow-y-auto space-y-3" id="bulk-stock-list">
+                <!-- Dynamic content -->
+            </div>
+
+            <div class="flex gap-4 pt-6 border-t border-gray-100 mt-6">
+                <button type="button" onclick="toggleBulkModal(false)"
+                    class="flex-1 h-12 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold hover:bg-gray-200 transition-colors">취소</button>
+                <button onclick="saveBulkStocks()"
+                    class="flex-1 h-12 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/header.js"></script>
     <script>
         const API_BASE_URL = 'http://localhost:8080';
+        let ingredientsData = [];
+        let stocksData = [];
 
         function toggleModal(show) {
             const modal = document.getElementById('modal');
             modal.classList.toggle('hidden', !show);
             if (!show) document.getElementById('add-ingredient-form').reset();
+        }
+
+        function toggleBulkModal(show) {
+            const modal = document.getElementById('bulk-modal');
+            modal.classList.toggle('hidden', !show);
+            if (show) renderBulkStockList();
+        }
+
+        function renderBulkStockList() {
+            const container = document.getElementById('bulk-stock-list');
+            container.innerHTML = ingredientsData.map(item => {
+                const stock = stocksData.find(s => s.menuItemId === item.ingredientId || s.ingredientId === item.ingredientId);
+                const qty = stock ? stock.quantity : 0;
+                const isLow = qty < 10;
+                return `
+                    <div class="flex items-center justify-between p-4 rounded-xl ${isLow ? 'bg-red-50' : 'bg-gray-50'}">
+                        <div class="flex items-center gap-3">
+                            ${isLow ? '<span class="material-symbols-outlined text-primary text-sm">warning</span>' : ''}
+                            <span class="font-semibold text-sm ${isLow ? 'text-primary' : 'text-gray-700'}">${item.name}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="bulk-qty-${item.ingredientId}" value="${qty}" min="0"
+                                class="w-20 h-10 px-3 rounded-lg border ${isLow ? 'border-red-200' : 'border-gray-200'} text-sm text-center font-bold">
+                            <span class="text-xs text-gray-400">개</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function saveBulkStocks() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '저장 중...';
+
+            try {
+                for (const item of ingredientsData) {
+                    const input = document.getElementById(`bulk-qty-${item.ingredientId}`);
+                    const newQty = parseInt(input.value) || 0;
+
+                    // Create or update stock
+                    await fetch(`${API_BASE_URL}/api/v1/admin/stocks`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ menuItemId: item.ingredientId, quantity: newQty })
+                    });
+                }
+                alert('재고가 저장되었습니다.');
+                toggleBulkModal(false);
+                loadIngredients();
+            } catch (err) {
+                alert('저장 실패: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '저장';
+            }
         }
 
         async function loadIngredients() {
@@ -298,35 +511,64 @@
             table.classList.add('hidden');
             loading.classList.remove('hidden');
             error.classList.add('hidden');
+            tbody.innerHTML = '';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
-                if (!response.ok) throw new Error('Fetch failed');
+                // Fetch ingredients and stocks in parallel
+                const [ingredientRes, stockRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/v1/admin/ingredients`),
+                    fetch(`${API_BASE_URL}/api/v1/admin/stocks`)
+                ]);
 
-                const result = await response.json();
-                const items = result.data?.items || [];
+                const ingredientResult = await ingredientRes.json();
+                const stockResult = await stockRes.json();
+
+                ingredientsData = ingredientResult.data?.items || [];
+                stocksData = stockResult.data || [];
+                if (Array.isArray(stockResult.data?.items)) stocksData = stockResult.data.items;
 
                 // Update Stats
-                const totalCountElement = document.querySelector('h2.text-3xl'); // Simple selector for first stat
-                if (totalCountElement) totalCountElement.textContent = `${items.length}건`;
-
-                const allergyCount = items.filter(i => i.allergyTag).length;
-                const extraPriceCount = items.filter(i => i.extraPrice > 0).length;
-
                 const statHeaders = document.querySelectorAll('h2.text-3xl');
-                if (statHeaders.length >= 3) {
-                    statHeaders[1].textContent = `${allergyCount}건`;
-                    statHeaders[2].textContent = `${extraPriceCount}건`;
-                }
+                statHeaders[0].textContent = `${ingredientsData.length}건`;
 
-                items.forEach(item => {
+                const allergyCount = ingredientsData.filter(i => i.allergyTag).length;
+                statHeaders[1].textContent = `${allergyCount}건`;
+
+                const lowStockCount = ingredientsData.filter(i => {
+                    const stock = stocksData.find(s => s.menuItemId === i.ingredientId || s.ingredientId === i.ingredientId);
+                    return stock && stock.quantity < 10;
+                }).length;
+                statHeaders[2].textContent = `${lowStockCount}건`;
+
+                // Update third card label
+                const thirdCardLabel = document.querySelectorAll('.text-xs.font-bold.text-gray-400')[2];
+                if (thirdCardLabel) thirdCardLabel.textContent = '재고 부족';
+                const thirdCardSub = document.querySelectorAll('.text-\\[10px\\].font-bold.text-primary')[2];
+                if (thirdCardSub) thirdCardSub.textContent = '10개 미만';
+
+                ingredientsData.forEach(item => {
+                    const stock = stocksData.find(s => s.menuItemId === item.ingredientId || s.ingredientId === item.ingredientId);
+                    const qty = stock ? stock.quantity : 0;
+                    const isLow = qty < 10;
+                    const isOutOfStock = stock?.outOfStock || qty === 0;
+
                     const row = `
-                        <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer" onclick="location.href='inventory-detail.html?id=${item.ingredientId}'">
+                        <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer ${isLow ? 'bg-red-50/30' : ''}" onclick="location.href='inventory-detail.html?id=${item.ingredientId}'">
                             <td class="table-cell text-gray-400">${item.ingredientId}</td>
-                            <td class="table-cell">${item.name}</td>
+                            <td class="table-cell">
+                                <div class="flex items-center gap-2">
+                                    ${item.name}
+                                    ${isOutOfStock ? '<span class="px-2 py-0.5 bg-red-100 text-primary text-[9px] font-bold rounded-full">품절</span>' : ''}
+                                </div>
+                            </td>
+                            <td class="table-cell">
+                                <div class="flex items-center gap-2">
+                                    ${isLow ? '<span class="material-symbols-outlined text-primary text-sm">warning</span>' : ''}
+                                    <span class="${isLow ? 'text-primary font-black' : 'text-gray-700'}">${qty}</span>
+                                    <span class="text-gray-300 text-xs">개</span>
+                                </div>
+                            </td>
                             <td class="table-cell">${item.calories} kcal</td>
-                            <td class="table-cell">${item.protein || 0}g</td>
-                            <td class="table-cell">${item.sodium || 0}mg</td>
                             <td class="table-cell">${item.extraPrice.toLocaleString()}원</td>
                             <td class="table-cell">
                                 <span class="px-3 py-1 ${item.allergyTag ? 'bg-red-50 text-primary' : 'bg-gray-50 text-gray-300'} rounded-full text-[10px] font-bold uppercase tracking-wider">
@@ -350,27 +592,40 @@
         document.getElementById('add-ingredient-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const data = {
+            const ingredientData = {
                 name: formData.get('name'),
                 calories: parseInt(formData.get('calories')) || 0,
-                protein: parseInt(formData.get('protein')) || 0,
-                sodium: parseInt(formData.get('sodium')) || 0,
+                protein: 0,
+                sodium: 0,
                 extraPrice: parseInt(formData.get('extraPrice')) || 0,
                 allergyTag: formData.get('allergyTag') || null
             };
+            const initialStock = parseInt(formData.get('initialStock')) || 0;
 
             const submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.textContent = '등록 중...';
 
             try {
+                // 1. Create ingredient
                 const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(ingredientData)
                 });
 
                 if (!response.ok) throw new Error('Create failed');
+                const result = await response.json();
+                const newIngId = result.data.ingredientId;
+
+                // 2. Initialize stock if > 0
+                if (initialStock > 0 && newIngId) {
+                    await fetch(`${API_BASE_URL}/api/v1/admin/stocks`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ menuItemId: newIngId, quantity: initialStock })
+                    });
+                }
 
                 alert('성공적으로 등록되었습니다.');
                 toggleModal(false);

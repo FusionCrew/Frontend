@@ -37,13 +37,16 @@ export async function getMenuItems(categoryId?: string): Promise<MenuItem[]> {
   if (!response.success || !response.data) return [];
 
   return response.data.items.map(item => ({
-    id: parseInt(item.menuItemId.split('_')[1]) || 0, // Converting pay_0001 or similar to number if possible, or just keeping it as string if type allows
+    id: parseInt(item.menuItemId.split('_')[1]) || Math.abs(item.menuItemId.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0)) % 1000000,
     menuItemId: item.menuItemId,
     name: item.name,
     price: item.price,
     category: item.categoryId as any,
-    image: item.thumbnailUrl,
-    isAvailable: item.isAvailable
+    image: item.imageUrl || item.thumbnailUrl,
+    isAvailable: !item.hidden,
+    description: item.description,
+    ingredients: item.ingredients || [],
+    optionGroups: item.optionGroups || []
   })) as any;
 }
 

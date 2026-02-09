@@ -26,7 +26,7 @@ export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMe
         className="absolute left-1/2 -translate-x-1/2 flex"
         style={{ top: "150px", gap: "29px", zIndex: 10 }}
       >
-        {/* 전체 메뉴 탭 (선택됨) */}
+        {/* 카테고리 메뉴 탭 (선택됨) */}
         <button
           style={{
             width: "446px",
@@ -39,12 +39,12 @@ export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMe
             fontWeight: "500"
           }}
         >
-          전체 메뉴
+          카테고리 메뉴
         </button>
 
-        {/* 추천 메뉴 탭 */}
+        {/* 전체 메뉴 탭 (모튼 메뉴) */}
         <button
-          onClick={onRecommended}
+          onClick={() => onCategory("all")}
           style={{
             width: "446px",
             height: "142px",
@@ -56,7 +56,7 @@ export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMe
             fontWeight: "500"
           }}
         >
-          추천 메뉴
+          전체 메뉴
         </button>
       </div>
 
@@ -81,9 +81,9 @@ export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMe
 
           {/* 카테고리 버튼들 */}
           <div className="flex" style={{ gap: "35px" }}>
-            {/* 버거 단품 */}
+            {/* 버거 */}
             <button
-              onClick={() => onCategory("burgerSingle")}
+              onClick={() => onCategory("burger")}
               className="flex flex-col items-center"
               style={{ background: "none", border: "none", cursor: "pointer" }}
             >
@@ -97,7 +97,7 @@ export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMe
                   marginBottom: "16px"
                 }}
               >
-                <img src={menuBurgerSingle} alt="버거 단품" style={{ width: "auto", height: "140px", objectFit: "contain" }} />
+                <img src={menuBurgerSingle} alt="버거" style={{ width: "auto", height: "140px", objectFit: "contain" }} />
               </div>
               <span
                 style={{
@@ -107,37 +107,7 @@ export default function KioskMenu({ onBack, onRecommended, onCategory }: KioskMe
                   color: "#4A3728"
                 }}
               >
-                버거 단품
-              </span>
-            </button>
-
-            {/* 버거 세트 */}
-            <button
-              onClick={() => onCategory("burgerSet")}
-              className="flex flex-col items-center"
-              style={{ background: "none", border: "none", cursor: "pointer" }}
-            >
-              <div
-                className="flex items-center justify-center"
-                style={{
-                  width: "195px",
-                  height: "178px",
-                  backgroundColor: "#FDEAEA",
-                  borderRadius: "24px",
-                  marginBottom: "16px"
-                }}
-              >
-                <img src={menuBurgerSet} alt="버거 세트" style={{ width: "auto", height: "140px", objectFit: "contain" }} />
-              </div>
-              <span
-                style={{
-                  fontFamily: "'Noto Sans KR', sans-serif",
-                  fontSize: "40px",
-                  fontWeight: "500",
-                  color: "#4A3728"
-                }}
-              >
-                버거 세트
+                버거
               </span>
             </button>
 

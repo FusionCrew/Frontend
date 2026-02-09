@@ -82,7 +82,7 @@ export default function CartView({
                   {item.menu.name}{(item.size && !item.menu.name.includes("세트")) ? " 세트" : ""}
                 </p>
                 {/* 옵션 정보 - 확장 시에만 표시 */}
-                {cartExpanded && item.size && (
+                {cartExpanded && (
                   <p
                     style={{
                       fontFamily: "'Noto Sans KR', sans-serif",
@@ -92,11 +92,14 @@ export default function CartView({
                       marginBottom: "4px",
                     }}
                   >
-                    {item.size} 사이즈
+                    {item.size}{item.isLargeSet ? " (라지)" : ""}
                     {item.removedIngredients.length > 0
                       ? `, NO ${item.removedIngredients.join(", ")}`
                       : ""}
                     {item.drink ? `, ${item.drink}` : ""}
+                    {item.selectedOptions && item.selectedOptions.length > 0
+                      ? `, ${item.selectedOptions.map((o) => o.name).join(", ")}`
+                      : ""}
                   </p>
                 )}
                 <p
@@ -107,7 +110,15 @@ export default function CartView({
                     color: "#C32911",
                   }}
                 >
-                  {(item.menu.price * item.quantity).toLocaleString()}원
+                  {(() => {
+                    let price = item.menu.price;
+                    if (item.size === "세트") {
+                      price += 3000;
+                      if (item.isLargeSet) price += 500;
+                    }
+                    const optionsPrice = item.selectedOptions?.reduce((sum, opt) => sum + opt.extraPrice, 0) || 0;
+                    return ((price + optionsPrice) * item.quantity).toLocaleString();
+                  })()}원
                 </p>
               </div>
             </div>
@@ -121,7 +132,7 @@ export default function CartView({
             />
           </div>
         ))}
-        
+
         {/* 접혀있을 때 추가 아이템 개수 표시 */}
         {!cartExpanded && cartItems.length > 1 && (
           <p

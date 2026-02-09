@@ -162,6 +162,15 @@
                             <div class="p-8 bg-gray-50 rounded-2xl space-y-4">
                                 <h3 class="text-sm font-bold text-gray-800">등록 정보 요약</h3>
                                 <div id="summary-view" class="grid grid-cols-2 gap-4 text-xs">
+                                    <div class="col-span-2 flex justify-center mb-4">
+                                        <div
+                                            class="size-24 rounded-xl bg-white border border-gray-100 overflow-hidden flex items-center justify-center p-1">
+                                            <img id="summary-image" src="" alt="Menu"
+                                                class="w-full h-full object-contain hidden">
+                                            <span id="summary-image-placeholder"
+                                                class="material-symbols-outlined text-gray-200 text-4xl">lunch_dining</span>
+                                        </div>
+                                    </div>
                                     <span class="text-gray-400">메뉴명:</span> <span id="summary-name"
                                         class="font-bold text-gray-700">-</span>
                                     <span class="text-gray-400">판매가:</span> <span id="summary-price"
@@ -171,23 +180,15 @@
                                 </div>
                             </div>
 
-                            <div class="p-10 bg-white border border-gray-100 rounded-3xl space-y-8">
-                                <div class="grid grid-cols-12 gap-6 items-center">
-                                    <div class="col-span-6">
-                                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">옵션
-                                            그룹명 (Kiosk 전용)</p>
-                                        <input type="text" class="w-full" value="재료 추가 및 변경">
-                                    </div>
-                                    <div class="col-span-6 flex gap-8 pt-6">
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" checked
-                                                class="size-5 rounded border-gray-200 text-primary">
-                                            <span class="text-xs font-bold text-gray-400">사용함</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <p class="text-[10px] text-gray-300 italic">* 현재 옵션 상세 설정은 시스템 관리자에게 문의하세요.</p>
+                            <div id="option-groups-container" class="space-y-6">
+                                <!-- Option Groups will be added here dynamically -->
                             </div>
+
+                            <button onclick="addOptionGroup()"
+                                class="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined">add_circle</span>
+                                옵션 그룹 추가
+                            </button>
 
                             <div class="flex items-center justify-between pt-10">
                                 <a href="menu-register-2.html"
@@ -206,6 +207,112 @@
 
     <script>
         const API_BASE_URL = 'http://localhost:8080';
+        let availableIngredients = [];
+
+        async function fetchIngredients() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
+                const result = await response.json();
+                if (result.success) {
+                    availableIngredients = result.data.items || [];
+                }
+            } catch (error) {
+                console.error('Failed to fetch ingredients:', error);
+            }
+        }
+
+        function addOptionGroup() {
+            const container = document.getElementById('option-groups-container');
+            const groupId = Date.now();
+
+            const groupHtml = `
+                <div class="p-8 bg-white border border-gray-100 rounded-3xl space-y-6 relative group-card" data-id="${groupId}">
+                    <div class="absolute top-6 right-6">
+                         <button onclick="removeElement(this.closest('.group-card'))" class="text-gray-300 hover:text-red-500 transition-colors">
+                            <span class="material-symbols-outlined">cancel</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-12 gap-6 items-end">
+                        <div class="col-span-8">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">옵션 그룹명</label>
+                            <input type="text" class="w-full group-name" placeholder="예: 사이즈 선택, 토핑 추가">
+                        </div>
+                        <div class="col-span-4 flex gap-4 pb-3">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="size-4 rounded border-gray-200 text-primary group-required">
+                                <span class="text-xs font-bold text-gray-500">필수</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="size-4 rounded border-gray-200 text-primary group-multiple" checked>
+                                <span class="text-xs font-bold text-gray-500">중복 가능</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 pl-4 border-l-2 border-gray-100 option-items-container">
+                        <!-- Option Items go here -->
+                    </div>
+
+                    <button onclick="addOptionItem(${groupId})" class="text-xs font-bold text-primary hover:text-red-700 flex items-center gap-1 pl-4">
+                        <span class="material-symbols-outlined text-sm">add</span> 재료 항목 추가
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', groupHtml);
+            addOptionItem(groupId);
+        }
+
+        function createIngredientOptions() {
+            let options = '<option value="">재고에서 선택 (선택 시 자동 입력)</option>';
+            availableIngredients.forEach(ing => {
+                options += `<option value="${ing.ingredientId}" data-price="${ing.extraPrice}" data-name="${ing.name}">${ing.name} (+${ing.extraPrice}원)</option>`;
+            });
+            return options;
+        }
+
+        function fillIngredientData(selectEl) {
+            const row = selectEl.closest('.option-item');
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+
+            if (selectEl.value) {
+                const name = selectedOption.getAttribute('data-name');
+                const price = selectedOption.getAttribute('data-price');
+
+                row.querySelector('.item-name').value = name;
+                row.querySelector('.item-price').value = price;
+            }
+        }
+
+        function addOptionItem(groupId) {
+            const groupCard = document.querySelector(`.group-card[data-id="${groupId}"]`);
+            const itemsContainer = groupCard.querySelector('.option-items-container');
+            const ingredientOptions = createIngredientOptions();
+
+            const itemHtml = `
+                <div class="flex items-center gap-4 option-item items-end">
+                    <div class="w-48">
+                         <select class="w-full h-12 px-4 rounded-xl border border-gray-100 bg-gray-50 text-sm focus:border-primary/30 focus:ring-4 focus:ring-primary/5 outline-none transition-all text-gray-500 mb-1" onchange="fillIngredientData(this)">
+                            ${ingredientOptions}
+                        </select>
+                         <input type="text" class="w-full item-name" placeholder="옵션명 (직접 입력 가능)">
+                    </div>
+                   
+                    <div class="relative w-32">
+                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₩</span>
+                        <input type="number" class="w-full pl-6 item-price" placeholder="0" value="0">
+                    </div>
+                    <button onclick="removeElement(this.closest('.option-item'))" class="text-gray-300 hover:text-red-500 mb-1">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+            `;
+            itemsContainer.insertAdjacentHTML('beforeend', itemHtml);
+        }
+
+        function removeElement(element) {
+            element.remove();
+        }
+
 
         const basicData = JSON.parse(localStorage.getItem('menuRegisterData') || '{}');
         const ingredientIds = JSON.parse(localStorage.getItem('menuRegisterIngredients') || '[]');
@@ -214,7 +321,22 @@
             document.getElementById('summary-name').textContent = basicData.name || '-';
             document.getElementById('summary-price').textContent = `${(basicData.price || 0).toLocaleString()}원`;
             document.getElementById('summary-ingredients').textContent = `${ingredientIds.length}개`;
+
+            if (basicData.imageUrl) {
+                const img = document.getElementById('summary-image');
+                img.src = basicData.imageUrl;
+                img.classList.remove('hidden');
+                document.getElementById('summary-image-placeholder').classList.add('hidden');
+            }
         }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            initSummary();
+            await fetchIngredients(); // Wait for ingredients to be fetched
+            // Add initial option group
+            addOptionGroup();
+        });
 
         async function finishRegistration() {
             const btn = document.getElementById('final-btn');
@@ -222,15 +344,47 @@
             btn.textContent = '등록 중...';
 
             try {
-                // 1. Create Menu
+                // Collect Option Groups
+                const optionGroups = [];
+                document.querySelectorAll('.group-card').forEach(card => {
+                    const name = card.querySelector('.group-name').value.trim();
+                    if (!name) return; // Skip empty groups
+
+                    const isRequired = card.querySelector('.group-required').checked;
+                    const isMultipleSelectionAllowed = card.querySelector('.group-multiple').checked;
+
+                    const items = [];
+                    card.querySelectorAll('.option-item').forEach(itemEl => {
+                        const itemName = itemEl.querySelector('.item-name').value.trim();
+                        const itemPrice = parseInt(itemEl.querySelector('.item-price').value) || 0;
+                        if (itemName) {
+                            items.push({ name: itemName, extraPrice: itemPrice });
+                        }
+                    });
+
+                    if (items.length > 0) {
+                        optionGroups.push({
+                            name,
+                            isRequired,
+                            isMultipleSelectionAllowed,
+                            items
+                        });
+                    }
+                });
+
+                // 1. Create Menu with Options
+                const payload = { ...basicData, optionGroups };
+
                 const createRes = await fetch(`${API_BASE_URL}/api/v1/admin/menu-items`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(basicData)
+                    body: JSON.stringify(payload)
                 });
                 const createResult = await createRes.json();
-
-                if (!createResult.success) throw new Error('메뉴 생성 실패');
+                if (!createResult.success) {
+                    const errorMsg = createResult.message || '메뉴 생성 실패';
+                    throw new Error(errorMsg);
+                }
                 const menuItemId = createResult.data.menuItemId;
 
                 // 2. Link Ingredients (if any)

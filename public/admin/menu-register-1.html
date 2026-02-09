@@ -197,13 +197,32 @@
                             <div class="grid grid-cols-12 gap-8">
                                 <div class="col-span-12 space-y-4">
                                     <label class="text-xs font-bold text-gray-400">메뉴 대표 이미지</label>
-                                    <div
-                                        class="h-40 bg-primary/5 border-2 border-dashed border-primary/20 rounded-2xl flex flex-col items-center justify-center gap-2 group cursor-pointer hover:bg-primary/10 transition-colors">
-                                        <p class="text-sm font-bold text-gray-600">제품 사진을 업로드 하세요</p>
-                                        <p class="text-[10px] text-gray-400">PNG, JPG (800x800 px 권장)</p>
-                                        <button
-                                            class="mt-2 px-6 py-2 bg-red-100 text-primary text-[10px] font-bold rounded-full">파일
-                                            선택</button>
+                                    <div id="image-upload-zone"
+                                        class="h-40 bg-primary/5 border-2 border-dashed border-primary/20 rounded-2xl flex flex-col items-center justify-center gap-2 group cursor-pointer hover:bg-primary/10 transition-all relative overflow-hidden">
+
+                                        <!-- Preview Container -->
+                                        <div id="image-preview-container"
+                                            class="hidden absolute inset-0 bg-white flex items-center justify-center">
+                                            <img id="image-preview" src="" alt="Preview"
+                                                class="w-full h-full object-contain p-2">
+                                            <button id="remove-image-btn"
+                                                class="absolute top-2 right-2 size-8 bg-red-100 text-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary hover:text-white transition-all z-10">
+                                                <span class="material-symbols-outlined text-sm">close</span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Placeholder -->
+                                        <div id="upload-placeholder"
+                                            class="flex flex-col items-center justify-center gap-2 transition-opacity duration-300">
+                                            <p class="text-sm font-bold text-gray-600">제품 사진을 업로드 하세요</p>
+                                            <p class="text-[10px] text-gray-400">PNG, JPG (800x800 px 권장)</p>
+                                            <button type="button" id="select-file-btn"
+                                                class="mt-2 px-6 py-2 bg-red-100 text-primary text-[10px] font-bold rounded-full group-hover:bg-primary group-hover:text-white transition-all">파일
+                                                선택</button>
+                                        </div>
+
+                                        <!-- Hidden Input -->
+                                        <input type="file" id="menu-image-input" accept="image/*" class="hidden">
                                     </div>
                                 </div>
 
@@ -275,6 +294,82 @@
     </div>
 
     <script>
+        let selectedImageUrl = null;
+
+        // Load initial data if exists
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedData = JSON.parse(localStorage.getItem('menuRegisterData') || '{}');
+            if (savedData.imageUrl) {
+                showPreview(savedData.imageUrl);
+            }
+        });
+
+        const uploadZone = document.getElementById('image-upload-zone');
+        const fileInput = document.getElementById('menu-image-input');
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImg = document.getElementById('image-preview');
+        const placeholder = document.getElementById('upload-placeholder');
+        const removeBtn = document.getElementById('remove-image-btn');
+
+        uploadZone.addEventListener('click', (e) => {
+            if (e.target.closest('#remove-image-btn')) return;
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        // Drag and Drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('bg-primary/20', 'border-primary/40');
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.classList.remove('bg-primary/20', 'border-primary/40');
+            });
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+
+        function handleFile(file) {
+            // Check file size (limit to 2MB for localStorage)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('이미지 크기는 2MB를 초과할 수 없습니다.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                showPreview(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showPreview(url) {
+            selectedImageUrl = url;
+            previewImg.src = url;
+            previewContainer.classList.remove('hidden');
+            placeholder.classList.add('opacity-0');
+        }
+
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedImageUrl = null;
+            fileInput.value = '';
+            previewContainer.classList.add('hidden');
+            placeholder.classList.remove('opacity-0');
+        });
+
         function saveAndProceed() {
             const menuData = {
                 name: document.getElementById('menu-name').value,
@@ -282,7 +377,7 @@
                 price: parseInt(document.getElementById('menu-price').value) || 0,
                 hidden: document.getElementById('menu-out-of-stock').checked,
                 description: document.getElementById('menu-description').value,
-                imageUrl: null
+                imageUrl: selectedImageUrl
             };
             localStorage.setItem('menuRegisterData', JSON.stringify(menuData));
             window.location.href = '/admin/menu-register-2.html';
