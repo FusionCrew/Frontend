@@ -1,0 +1,12 @@
+﻿src/components/MediaPipeDebugPanel.tsx(4,34): error TS2307: Cannot find module '@mediapipe/hands' or its corresponding type declarations.
+src/components/MediaPipeDebugPanel.tsx(5,47): error TS2307: Cannot find module '@mediapipe/drawing_utils' or its corresponding type declarations.
+src/hook/useFaceTracking.ts(4,48): error TS2307: Cannot find module '@mediapipe/hands' or its corresponding type declarations.
+src/hook/useFaceTracking.ts(375,26): error TS7006: Parameter 'results' implicitly has an 'any' type.
+src/hook/useFaceTracking.ts(383,64): error TS7006: Parameter 'hand' implicitly has an 'any' type.
+src/hook/useFaceTracking.ts(383,81): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/hooks/useApi.ts(56,28): error TS2554: Expected 1 arguments, but got 0.
+src/hooks/useApi.ts(119,52): error TS2554: Expected 1 arguments, but got 3.
+src/main.tsx(4,17): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+src/VoiceKiosk.tsx(823,11): error TS2304: Cannot find name 'BURGER_MENU'.
+src/VoiceKiosk.tsx(823,32): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/VoiceKiosk.tsx(823,38): error TS7006: Parameter 'idx' implicitly has an 'any' type.
