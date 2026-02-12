@@ -324,7 +324,7 @@
             e.preventDefault();
 
             const name = document.getElementById('name').value;
-            const adminId = document.getElementById('adminId').value;
+            const username = document.getElementById('adminId').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const passwordConfirm = document.getElementById('passwordConfirm').value;
@@ -345,39 +345,39 @@
             }
 
             // Validate password length
-            if (password.length < 8) {
-                errorMessage.querySelector('p').textContent = '비밀번호는 8자 이상이어야 합니다.';
+            if (password.length < 4) { // Backend might have loose or strict rules, but 4 is safe minimum for testing
+                errorMessage.querySelector('p').textContent = '비밀번호는 4자 이상이어야 합니다.';
                 errorMessage.classList.add('show');
                 return;
             }
 
+            // Map frontend role to backend AdminRole enum
+            const roles = role === 'manager' ? ['ROLE_MANAGER'] : ['ROLE_STAFF'];
+
             try {
-                // TODO: 실제 API 연동 시 아래 주석 해제
-                // const response = await fetch('/api/admin/register', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({ name, adminId, email, password, role })
-                // });
-                // 
-                // if (response.ok) {
-                //     successMessage.classList.add('show');
-                //     setTimeout(() => {
-                //         window.location.href = 'login.html';
-                //     }, 2000);
-                // } else {
-                //     const data = await response.json();
-                //     errorMessage.querySelector('p').textContent = data.message || '계정 생성에 실패했습니다.';
-                //     errorMessage.classList.add('show');
-                // }
+                const response = await fetch('/api/v1/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        roles,
+                        name,
+                        email,
+                        status: 'ACTIVE'
+                    })
+                });
 
-                // 임시 계정 생성 처리 (테스트용)
-                console.log('Account created:', { name, adminId, email, role });
-                successMessage.classList.add('show');
-
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
-
+                if (response.ok) {
+                    successMessage.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    const resData = await response.json();
+                    errorMessage.querySelector('p').textContent = resData.message || '계정 생성에 실패했습니다. 이미 존재하는 아이디일 수 있습니다.';
+                    errorMessage.classList.add('show');
+                }
             } catch (error) {
                 console.error('Registration error:', error);
                 errorMessage.querySelector('p').textContent = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';

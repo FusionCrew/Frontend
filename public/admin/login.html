@@ -219,28 +219,25 @@
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const adminId = document.getElementById('adminId').value;
+            const username = document.getElementById('adminId').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
 
-            try {
-                // TODO: 실제 API 연동 시 아래 주석 해제
-                // const response = await fetch('/api/admin/login', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({ adminId, password })
-                // });
-                // 
-                // if (response.ok) {
-                //     window.location.href = 'index.html';
-                // } else {
-                //     errorMessage.classList.add('show');
-                // }
+            errorMessage.classList.remove('show');
 
-                // 임시 로그인 처리 (테스트용)
-                if (adminId && password) {
+            try {
+                const response = await fetch('/api/v1/admin/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
                     localStorage.setItem('adminLoggedIn', 'true');
-                    localStorage.setItem('adminId', adminId);
+                    localStorage.setItem('adminId', username);
+                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('refreshToken', data.refreshToken);
                     window.location.href = 'index.html';
                 } else {
                     errorMessage.classList.add('show');

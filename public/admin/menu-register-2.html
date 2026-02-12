@@ -128,10 +128,55 @@
                         </button>
                     </div>
                     <div class="h-8 w-px bg-gray-200"></div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
-                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                            <span class="material-symbols-outlined text-gray-400">person</span>
+
+                    <div class="relative">
+                        <div id="header-profile-area" class="flex items-center gap-3 cursor-pointer group">
+                            <span
+                                class="text-sm font-medium text-gray-500 group-hover:text-gray-800 transition-colors">관리자
+                                1님</span>
+                            <div
+                                class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-transparent group-hover:border-primary/20 transition-all">
+                                <span
+                                    class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">person</span>
+                            </div>
+                        </div>
+
+                        <!-- Profile Dropdown -->
+                        <div id="header-profile-dropdown"
+                            class="absolute right-0 mt-4 w-64 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                            <div class="p-6 bg-gray-50/50 border-b border-gray-50">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="size-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                        <span class="material-symbols-outlined text-primary">person</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-800">관리자 1</p>
+                                        <p class="text-[10px] text-gray-400 font-medium">admin@burgershop.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <a href="account.html"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">manage_accounts</span>
+                                    <span class="text-xs font-bold text-gray-700">계정 설정</span>
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">security</span>
+                                    <span class="text-xs font-bold text-gray-700">보안 설정</span>
+                                </a>
+                                <div class="h-px bg-gray-50 my-1 mx-2"></div>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-red-500 transition-colors">logout</span>
+                                    <span class="text-xs font-bold text-gray-700 group-hover:text-red-600">로그아웃</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -275,6 +320,7 @@
 
         document.addEventListener('DOMContentLoaded', loadIngredients);
     </script>
+    <script src="js/header.js"></script>
 </body>
 
 </html>

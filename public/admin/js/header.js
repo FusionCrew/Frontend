@@ -9,7 +9,38 @@ document.addEventListener('DOMContentLoaded', () => {
     initSettings();
     initProfile();
     initDarkMode();
+    initHeaderUserInfo();
 });
+
+async function initHeaderUserInfo() {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch('/api/v1/admin/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            const user = result.data;
+            const displayName = user.name || user.username;
+
+            // Update Header Name
+            const headerProfileName = document.querySelector('#header-profile-area span');
+            if (headerProfileName) headerProfileName.textContent = `${displayName}님`;
+
+            // Update Dropdown Info
+            const dropdownName = document.querySelector('#header-profile-dropdown .text-sm.font-bold');
+            const dropdownEmail = document.querySelector('#header-profile-dropdown .text-\\[10px\\]');
+
+            if (dropdownName) dropdownName.textContent = displayName;
+            if (dropdownEmail) dropdownEmail.textContent = user.email || '';
+        }
+    } catch (error) {
+        console.error('Failed to load user info:', error);
+    }
+}
 
 function initSearch() {
     const searchBtn = document.getElementById('header-search-btn');

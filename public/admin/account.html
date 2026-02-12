@@ -404,8 +404,100 @@
     </div>
     <script src="js/header.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             if (typeof initHeader === 'function') initHeader();
+
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                // Not logged in with a real token, but we might have mock info.
+                // For now, let's try to fetch if we have one.
+                console.warn('Real accessToken not found. Using static data or mock if available.');
+            }
+
+            try {
+                // 1. Fetch current admin info
+                const meRes = await fetch('/api/v1/admin/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (meRes.ok) {
+                    const meData = await meRes.json();
+                    const user = meData.data;
+                    const displayName = user.name || user.username;
+
+                    // Update header profile
+                    const headerProfileName = document.querySelector('#header-profile-area span');
+                    if (headerProfileName) headerProfileName.textContent = `${displayName}님`;
+
+                    const dropdownProfileName = document.querySelector('#header-profile-dropdown .font-bold');
+                    const dropdownProfileEmail = document.querySelector('#header-profile-dropdown .text-\\[10px\\]');
+                    if (dropdownProfileName) dropdownProfileName.textContent = displayName;
+                    if (dropdownProfileEmail) dropdownProfileEmail.textContent = user.email || `${user.username}@burgershop.com`;
+
+                    // Update main profile card
+                    const profileCardTitle = document.querySelector('.bg-primary h2');
+                    const profileCardEmail = document.querySelector('.bg-primary p:nth-child(2)');
+                    const profileCardLogin = document.querySelector('.bg-primary p:nth-child(3)');
+
+                    if (profileCardTitle) profileCardTitle.textContent = `${displayName}님`;
+                    if (profileCardEmail) profileCardEmail.textContent = user.email || `${user.username}@burgershop.com`;
+                    if (profileCardLogin) {
+                        const loginDate = user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('ko-KR') : '방금 전 (기록 없음)';
+                        profileCardLogin.textContent = `마지막 로그인: ${loginDate}`;
+                    }
+                }
+
+                // 2. Fetch all admins/staff
+                const usersRes = await fetch('/api/v1/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (usersRes.ok) {
+                    const usersData = await usersRes.json();
+                    const users = usersData.data.items;
+
+                    const tbody = document.querySelector('tbody');
+                    if (tbody) {
+                        tbody.innerHTML = ''; // Clear static rows
+
+                        users.forEach(u => {
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-gray-50/50 transition-colors';
+
+                            // Determine role string
+                            const role = u.roles ? u.roles[0].replace('ROLE_', '') : 'STAFF';
+
+                            row.innerHTML = `
+                                <td class="px-8 py-5">
+                                    <span class="font-bold text-gray-900">${u.name || u.username}</span>
+                                </td>
+                                <td class="px-8 py-5">
+                                    <span class="text-gray-700">${role}</span>
+                                </td>
+                                <td class="px-8 py-5">
+                                    <span class="text-gray-700">Online</span>
+                                </td>
+                                <td class="px-8 py-5">
+                                    ${u.username === localStorage.getItem('adminId')
+                                    ? '<span class="px-4 py-1.5 bg-primary text-white text-sm font-medium rounded-lg">접속중</span>'
+                                    : '<span class="px-4 py-1.5 bg-red-50 text-gray-600 text-sm font-medium rounded-lg border border-gray-200">계정 전환 →</span>'}
+                                </td>
+                                <td class="px-8 py-5">
+                                    <div class="flex items-center justify-center gap-4">
+                                        <button class="text-primary hover:text-red-700 transition-colors">
+                                            <span class="material-symbols-outlined text-xl">edit_square</span>
+                                        </button>
+                                        <button class="text-gray-300 hover:text-gray-400 transition-colors">
+                                            <span class="material-symbols-outlined text-xl">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch admin data:', err);
+            }
         });
     </script>
 </body>
