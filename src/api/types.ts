@@ -1,12 +1,28 @@
 // API 응답 타입 정의
 export interface MenuItem {
   id: number;
+  menuItemId?: string; // Original ID from backend
   name: string;
   price: number;
   category: "burgerSingle" | "burgerSet" | "side" | "drink";
   image?: string;
   ingredients?: string[];
+  optionGroups?: KioskOptionGroupDto[];
   description?: string;
+}
+
+export interface KioskOptionGroupDto {
+  optionGroupId: string;
+  name: string;
+  isRequired: boolean;
+  isMultipleSelectionAllowed: boolean;
+  optionItems: KioskOptionItemDto[];
+}
+
+export interface KioskOptionItemDto {
+  optionItemId: string;
+  name: string;
+  extraPrice: number;
 }
 
 export interface PointInfo {
@@ -54,4 +70,32 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
+}
+
+export interface KioskMenuListResponse {
+  success: boolean;
+  data: {
+    items: KioskMenuItemDto[];
+    page?: {
+      size: number;
+      nextCursor: string;
+    }
+  };
+  timestamp: string;
+  requestId: string;
+}
+
+export interface KioskMenuItemDto {
+  menuItemId: string;
+  name: string;
+  price: number;
+  thumbnailUrl?: string;
+  isAvailable?: boolean;
+  categoryId: string;
+  imageUrl?: string;
+  hidden?: boolean;
+  description?: string;
+  ingredients?: string[];
+  optionGroups?: KioskOptionGroupDto[];
 }

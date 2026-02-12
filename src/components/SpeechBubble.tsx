@@ -1,13 +1,14 @@
 interface SpeechBubbleProps {
   message: string;
+  bottom?: string;
 }
 
-export default function SpeechBubble({ message }: SpeechBubbleProps) {
+export default function SpeechBubble({ message, bottom = "544px" }: SpeechBubbleProps) {
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
+      className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center text-center px-8"
       style={{
-        bottom: "544px",
+        bottom,
         width: "791px",
         height: "200px",
         backgroundColor: "#FFFFFF",
@@ -18,6 +19,8 @@ export default function SpeechBubble({ message }: SpeechBubbleProps) {
         fontWeight: "500",
         color: "#4A3728",
         zIndex: 3,
+        transition: "bottom 0.3s ease-in-out",
+        pointerEvents: "none",
       }}
     >
       {message}

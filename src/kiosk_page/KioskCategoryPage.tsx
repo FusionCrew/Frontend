@@ -17,28 +17,63 @@ import { menuData } from "../data/menuData";
 import { useCart } from "../hooks/useCart";
 import { useMenuSelection } from "../hooks/useMenuSelection";
 import { usePaymentFlow } from "../hooks/usePaymentFlow";
-import { CategoryType } from "../types/kiosk";
+import { CategoryType, MenuItem } from "../types/kiosk";
 
 interface Props {
   onBack: () => void;
   onCategory: (category: string) => void;
   currentCategory: CategoryType;
   onGoToMain: () => void;
+  speaking?: boolean;
+  menuItems?: MenuItem[];
+  sharedCart?: any;
+  onProcessOrder?: (amount: number) => Promise<string | null>;
+  ticketNumber?: string | null;
+  onResetTicket?: () => void;
 }
 
-export default function KioskCategoryPage({ onBack, onCategory, currentCategory, onGoToMain }: Props) {
+export default function KioskCategoryPage({
+  onBack, onCategory, currentCategory, onGoToMain, speaking,
+  menuItems: fetchedMenuItems, sharedCart: cart,
+  onProcessOrder, ticketNumber, onResetTicket
+}: Props) {
   // 페이지네이션
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerPage = 3;
-  const menuItems = menuData[currentCategory] || [];
+
+  // 동적 데이터가 있으면 필터링해서 사용
+  const menuItems = fetchedMenuItems && fetchedMenuItems.length > 0
+    ? fetchedMenuItems.filter(item => {
+      if (currentCategory === "all") return true;
+      const cat = item.category || item.categoryId;
+      // 백엔드 카테고리(cat_burger, cat_side, cat_drink 등)와 프론트엔드 카테고리 매핑
+      if (cat === currentCategory) return true;
+
+      // 백엔드 새 ID 매핑
+      if (currentCategory === "burger" && cat === "cat_burger") return true;
+      if (currentCategory === "side" && cat === "cat_side") return true;
+      if (currentCategory === "drink" && cat === "cat_drink") return true;
+
+      // 레거시 매핑 보완 (필요 시)
+      if (currentCategory === "burger" && cat === "cat_02") return true;
+      if (currentCategory === "side" && cat === "cat_03") return true;
+      if (currentCategory === "drink" && cat === "cat_01") return true;
+
+      return false;
+    })
+    : [];
 
   // 커스텀 훅
-  const cart = useCart();
+  // const cart = useCart(); // 제거: Props에서 전달받은 sharedCart 사용
   const menu = useMenuSelection();
   const payment = usePaymentFlow();
 
-  // 버거 카테고리 체크
-  const isBurger = currentCategory === "burgerSingle" || currentCategory === "burgerSet";
+  const isPaymentActive = payment.showPaymentSelection || payment.showPaymentProcessing ||
+    payment.showPaymentComplete || payment.showPointUsage ||
+    payment.showSimplePayment;
+
+  // 버거 카테고리 체크 (단일 "burger"로 통합)
+  const isBurger = currentCategory === "burger" || (menu.selectedMenu && (menu.selectedMenu.categoryId === "cat_burger" || menu.selectedMenu.categoryId === "cat_02"));
 
   // 카테고리 변경 시 장바구니 닫고 메뉴 리셋
   const handleCategoryChange = (category: string) => {
@@ -55,7 +90,7 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
   // 장바구니 추가 (버거 - 단품/세트 분리)
   const addBurgerToCart = () => {
     if (!menu.selectedMenu) return;
-    
+
     // 단품 추가 (rSizeQty = 단품 수량)
     if (menu.rSizeQty > 0) {
       cart.addToCart(
@@ -64,10 +99,12 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
         "",
         "",
         "",  // 사이즈 없음 = 단품
-        menu.removedIngredients
+        menu.removedIngredients,
+        false,
+        menu.selectedOptions
       );
     }
-    
+
     // 세트 추가 (lSizeQty = 세트 수량)
     if (menu.lSizeQty > 0) {
       cart.addToCart(
@@ -76,10 +113,12 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
         menu.selectedSide,
         menu.selectedDrink,
         "세트",  // 사이즈에 "세트" 표시
-        menu.removedIngredients
+        menu.removedIngredients,
+        menu.isLargeSet,
+        menu.selectedOptions
       );
     }
-    
+
     menu.resetSelection();
   };
 
@@ -93,20 +132,31 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
   // 결제 완료
   const handlePaymentDone = () => {
     payment.resetPaymentFlow();
+    if (onResetTicket) onResetTicket();
     cart.clearCart();
     onGoToMain();
   };
 
+  const handleManualOrder = async () => {
+    if (onProcessOrder) {
+      const amount = cart.calculateCartTotal() - payment.usedPoints;
+      await onProcessOrder(amount);
+      // App.tsx에서 ticketNumber가 업데이트되면 PaymentCompleteScreen에서 이를 감지할 것
+      payment.setShowPaymentProcessing(false);
+      payment.setShowPaymentComplete(true);
+    }
+  };
+
   // 하단 패널 높이 계산
-  const panelHeight = cart.showCart && cart.cartItems.length > 0 
-    ? (cart.cartExpanded ? "1142px" : "550px") 
+  const panelHeight = (cart.showCart && cart.cartItems.length > 0) || menu.showIngredientChange || menu.showSizeSelection
+    ? (cart.cartExpanded || menu.showIngredientChange || menu.showSizeSelection ? "1142px" : "550px")
     : "469px";
 
   // 말풍선 메시지
   const speechMessage = menu.showSizeSelection ? "사이즈를 선택해주세요"
     : menu.showIngredientChange ? "변경할 옵션을 선택해주세요"
-    : menu.showSimpleQuantity ? "수량을 선택해주세요"
-    : null;
+      : menu.showSimpleQuantity ? "수량을 선택해주세요"
+        : null;
 
   // 하단 패널 콘텐츠
   const renderBottomContent = () => {
@@ -131,13 +181,19 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
         <IngredientChangeView
           menu={menu.selectedMenu}
           removedIngredients={menu.removedIngredients}
+          selectedOptions={menu.selectedOptions}
           selectedSide={menu.selectedSide}
           selectedDrink={menu.selectedDrink}
+          isSet={menu.isSet}
+          isLargeSet={menu.isLargeSet}
+          lSizeQty={menu.lSizeQty}
           ingredientAccordionOpen={menu.ingredientAccordionOpen}
           setMenuAccordionOpen={menu.setMenuAccordionOpen}
           onBack={menu.handleBackFromIngredient}
           onAddToCart={addBurgerToCart}
           onToggleIngredient={menu.toggleIngredient}
+          onToggleOption={menu.toggleOption}
+          onToggleLargeSet={menu.toggleLargeSet}
           onSelectSide={menu.setSelectedSide}
           onSelectDrink={menu.setSelectedDrink}
           onSetIngredientAccordionOpen={menu.setIngredientAccordionOpen}
@@ -160,17 +216,14 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
       );
     }
 
-    // 사이즈 선택 (버거)
+    // 사이즈 선택 (버거 - 단품 vs 세트 선택)
     if (menu.showSizeSelection && menu.selectedMenu) {
       return (
         <SizeSelectionView
           menu={menu.selectedMenu}
-          rSizeQty={menu.rSizeQty}
-          lSizeQty={menu.lSizeQty}
           onBack={menu.handleBackFromSizeSelection}
-          onComplete={menu.handleSizeComplete}
-          onRSizeChange={menu.setRSizeQty}
-          onLSizeChange={menu.setLSizeQty}
+          onSingleSelect={menu.handleSingleSelect}
+          onSetSelect={menu.handleSetSelect}
         />
       );
     }
@@ -205,46 +258,66 @@ export default function KioskCategoryPage({ onBack, onCategory, currentCategory,
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-200">
-      <div className="relative overflow-hidden" style={{ width: "1080px", height: "1920px", backgroundColor: "#F5EDE4" }}>
+    <div className="w-full h-full relative">
+      <div style={{
+        filter: isPaymentActive ? "brightness(0.5) blur(4px)" : "none",
+        pointerEvents: isPaymentActive ? "none" : "auto",
+        transition: "filter 0.3s ease-in-out, opacity 0.3s ease-in-out",
+        width: "1080px",
+        height: "1920px",
+        position: "absolute",
+        top: 0,
+        left: 0
+      }}>
         <BackButton onClick={onBack} />
         <StaffCallButton onClick={() => payment.setShowStaffCallModal(true)} />
         <CategoryBar currentCategory={currentCategory} onCategory={handleCategoryChange} />
-        
+
         <BottomPanel height={panelHeight}>
           {renderBottomContent()}
         </BottomPanel>
 
-        {speechMessage && <SpeechBubble message={speechMessage} />}
-        
-        <div style={{ position: "relative", zIndex: 0 }}>
-          <KioskCharacter />
-        </div>
-
-        {/* 결제 화면들 */}
-        <PaymentFlow
-          showPaymentSelection={payment.showPaymentSelection}
-          showPaymentProcessing={payment.showPaymentProcessing}
-          showPaymentComplete={payment.showPaymentComplete}
-          showPointUsage={payment.showPointUsage}
-          showSimplePayment={payment.showSimplePayment}
-          showStaffCallModal={payment.showStaffCallModal}
-          usedPoints={payment.usedPoints}
-          totalAmount={cart.calculateCartTotal()}
-          onClosePaymentSelection={() => payment.setShowPaymentSelection(false)}
-          onSelectCard={() => payment.setShowPaymentProcessing(true)}
-          onSelectPoint={() => payment.setShowPointUsage(true)}
-          onSelectSimple={() => payment.setShowSimplePayment(true)}
-          onClosePaymentProcessing={() => payment.setShowPaymentProcessing(false)}
-          onPaymentComplete={() => payment.setShowPaymentComplete(true)}
-          onClosePointUsage={() => payment.setShowPointUsage(false)}
-          onPointUsageComplete={payment.handlePointUsageComplete}
-          onCloseSimplePayment={() => payment.setShowSimplePayment(false)}
-          onSimplePaymentComplete={payment.handleSimplePaymentComplete}
-          onPaymentDone={handlePaymentDone}
-          onCloseStaffModal={() => payment.setShowStaffCallModal(false)}
-        />
+        {speechMessage && (
+          <SpeechBubble
+            message={speechMessage}
+            bottom={panelHeight === "1142px" ? "1350px" : "544px"}
+          />
+        )}
       </div>
+
+      {/* 결제 화면들 */}
+      <PaymentFlow
+        showPaymentSelection={payment.showPaymentSelection}
+        showPaymentProcessing={payment.showPaymentProcessing}
+        showPaymentComplete={payment.showPaymentComplete}
+        showPointUsage={payment.showPointUsage}
+        showSimplePayment={payment.showSimplePayment}
+        showStaffCallModal={payment.showStaffCallModal}
+        usedPoints={payment.usedPoints}
+        totalAmount={cart.calculateCartTotal()}
+        onClosePaymentSelection={() => payment.setShowPaymentSelection(false)}
+        onSelectCard={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowPaymentProcessing(true);
+        }}
+        onSelectPoint={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowPointUsage(true);
+        }}
+        onSelectSimple={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowSimplePayment(true);
+        }}
+        onClosePaymentProcessing={() => payment.setShowPaymentProcessing(false)}
+        onPaymentComplete={handleManualOrder}
+        onClosePointUsage={() => payment.setShowPointUsage(false)}
+        onPointUsageComplete={payment.handlePointUsageComplete}
+        onCloseSimplePayment={() => payment.setShowSimplePayment(false)}
+        onSimplePaymentComplete={payment.handleSimplePaymentComplete}
+        onPaymentDone={handlePaymentDone}
+        onCloseStaffModal={() => payment.setShowStaffCallModal(false)}
+        ticketNumber={ticketNumber ?? null}
+      />
     </div>
   );
 }

@@ -6,7 +6,9 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>메뉴 관리 - 버거샵 대시보드</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
@@ -57,6 +59,7 @@
             @apply bg-white rounded-2xl shadow-premium border border-white overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl;
         }
     </style>
+    <link rel="stylesheet" href="css/animations.css">
 </head>
 
 <body>
@@ -111,7 +114,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col overflow-hidden">
+        <main class="flex-1 flex flex-col overflow-hidden animate-page-entrance">
             <header class="h-20 bg-transparent flex items-center justify-between px-10">
                 <div class="flex items-center gap-3">
                     <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -121,24 +124,153 @@
                 </div>
 
                 <div class="flex items-center gap-8">
-                    <div class="flex items-center gap-6">
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <div class="flex items-center gap-6 relative">
+                        <!-- Search Container -->
+                        <div id="header-search-container"
+                            class="absolute right-full mr-4 hidden items-center bg-white border border-gray-100 rounded-xl px-4 py-2 shadow-premium animate-in fade-in slide-in-from-right-2 duration-200">
+                            <span class="material-symbols-outlined text-gray-400 mr-2 text-xl">search</span>
+                            <input id="header-search-input" type="text" placeholder="메뉴, 재고 검색..."
+                                class="text-sm bg-transparent outline-none w-48 font-medium">
+                        </div>
+
+                        <button id="header-search-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
                             <span class="material-symbols-outlined text-[22px]">search</span>
                         </button>
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors relative">
-                            <span class="material-symbols-outlined text-[22px]">notifications</span>
-                            <span
-                                class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
-                        </button>
-                        <button class="text-gray-400 hover:text-gray-600 transition-colors">
-                            <span class="material-symbols-outlined text-[22px]">settings</span>
-                        </button>
+
+                        <div class="relative">
+                            <button id="header-notify-btn"
+                                class="text-gray-400 hover:text-gray-600 transition-colors relative">
+                                <span class="material-symbols-outlined text-[22px]">notifications</span>
+                                <span
+                                    class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-white"></span>
+                            </button>
+
+                            <!-- Notification Dropdown -->
+                            <div id="header-notify-dropdown"
+                                class="absolute right-0 mt-4 w-80 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                                    <h3 class="text-sm font-bold text-gray-800">최신 알림</h3>
+                                    <span class="text-[10px] font-bold text-primary italic">NEW</span>
+                                </div>
+                                <div class="max-h-[360px] overflow-y-auto">
+                                    <div
+                                        class="px-6 py-4 hover:bg-gray-50 border-b border-gray-50 cursor-pointer transition-colors">
+                                        <p class="text-xs font-bold text-gray-800 mb-1">⚠️ 재고 부족 알림</p>
+                                        <p class="text-[10px] text-gray-400 leading-tight">소고기 패티의 재고가 15% 미만입니다. 발주가
+                                            필요합니다.</p>
+                                        <p class="text-[9px] text-primary font-black mt-2 italic uppercase">2분 전</p>
+                                    </div>
+                                    <div
+                                        class="px-6 py-4 hover:bg-gray-50 border-b border-gray-50 cursor-pointer transition-colors">
+                                        <p class="text-xs font-bold text-gray-800 mb-1">🔔 직원 호출 발생</p>
+                                        <p class="text-[10px] text-gray-400 leading-tight">Table #4 고객님이 직원을 호출하셨습니다.
+                                        </p>
+                                        <p class="text-[9px] text-primary font-black mt-2 italic uppercase">12분 전</p>
+                                    </div>
+                                    <div class="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors">
+                                        <p class="text-xs font-bold text-gray-800 mb-1">📈 매출 리포트</p>
+                                        <p class="text-[10px] text-gray-400 leading-tight">어제 매출 데이터 분석이 완료되었습니다.</p>
+                                        <p class="text-[9px] text-primary font-black mt-2 italic uppercase">1시간 전</p>
+                                    </div>
+                                </div>
+                                <a href="#"
+                                    class="block w-full py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50">전체
+                                    알림 보기</a>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <button id="header-settings-btn"
+                                class="text-gray-400 hover:text-gray-600 transition-colors">
+                                <span class="material-symbols-outlined text-[22px]">settings</span>
+                            </button>
+
+                            <!-- Settings Dropdown -->
+                            <div id="header-settings-dropdown"
+                                class="absolute right-0 mt-4 w-56 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                <div class="p-2">
+                                    <div class="px-4 py-2 border-b border-gray-50 mb-1">
+                                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">환경 설정
+                                        </p>
+                                    </div>
+                                    <a href="#"
+                                        class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                        <div class="flex items-center gap-3">
+                                            <span
+                                                class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">dark_mode</span>
+                                            <span class="text-xs font-bold text-gray-700">다크 모드</span>
+                                        </div>
+                                        <div class="w-8 h-4 bg-gray-200 rounded-full relative">
+                                            <div
+                                                class="absolute left-0.5 top-0.5 size-3 bg-white rounded-full shadow-sm">
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a href="#"
+                                        class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group border-b border-gray-50">
+                                        <span
+                                            class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">language</span>
+                                        <span class="text-xs font-bold text-gray-700">언어 설정</span>
+                                    </a>
+                                    <a href="#"
+                                        class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                        <span
+                                            class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">help</span>
+                                        <span class="text-xs font-bold text-gray-700">고객 센터</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="h-8 w-px bg-gray-200"></div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-500">관리자 1님</span>
-                        <div class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                            <span class="material-symbols-outlined text-gray-400">person</span>
+                    <div class="relative">
+                        <div id="header-profile-area" class="flex items-center gap-3 cursor-pointer group">
+                            <span
+                                class="text-sm font-medium text-gray-500 group-hover:text-gray-800 transition-colors">관리자
+                                1님</span>
+                            <div
+                                class="size-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-transparent group-hover:border-primary/20 transition-all">
+                                <span
+                                    class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">person</span>
+                            </div>
+                        </div>
+
+                        <!-- Profile Dropdown -->
+                        <div id="header-profile-dropdown"
+                            class="absolute right-0 mt-4 w-64 bg-white rounded-2xl shadow-premium border border-gray-50 hidden z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                            <div class="p-6 bg-gray-50/50 border-b border-gray-50">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="size-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                        <span class="material-symbols-outlined text-primary">person</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-800">관리자 1</p>
+                                        <p class="text-[10px] text-gray-400 font-medium">admin@burgershop.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <a href="account.html"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">manage_accounts</span>
+                                    <span class="text-xs font-bold text-gray-700">계정 설정</span>
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">security</span>
+                                    <span class="text-xs font-bold text-gray-700">보안 설정</span>
+                                </a>
+                                <div class="h-px bg-gray-50 my-1 mx-2"></div>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl transition-colors group">
+                                    <span
+                                        class="material-symbols-outlined text-gray-400 group-hover:text-red-500 transition-colors">logout</span>
+                                    <span class="text-xs font-bold text-gray-700 group-hover:text-red-600">로그아웃</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -164,7 +296,7 @@
                 <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <!-- Add Menu Card -->
                     <a href="menu-register-1.html"
-                        class="aspect-[4/5] min-h-[300px] bg-transparent border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-4 transition-all hover:bg-white hover:border-primary/30 group">
+                        class="card aspect-[4/5] bg-transparent border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-4 group hover:bg-white hover:border-primary/30 transition-all">
                         <div
                             class="size-12 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                             <span
@@ -184,12 +316,13 @@
         </main>
     </div>
 
+    <script src="js/header.js"></script>
     <script>
         const API_BASE_URL = 'http://localhost:8080';
 
         function createMenuCard(item) {
             return `
-                <a href="menu-detail.html#${item.menuItemId}" class="card aspect-[4/5] flex flex-col group ${item.hidden ? 'opacity-60 grayscale-[0.3]' : ''}">
+                <a href="menu-detail.html#${item.menuItemId}" class="card aspect-[4/5] flex flex-col group stagger-item hover-scale-premium ${item.hidden ? 'opacity-60 grayscale-[0.3]' : ''}">
                     <div class="w-full aspect-[4/3] bg-gray-50 overflow-hidden relative">
                         ${item.imageUrl ?
                     `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700">` :

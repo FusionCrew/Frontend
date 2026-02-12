@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MenuItem } from "../types/kiosk";
+import { MenuItem, CategoryType, SelectedOption, OptionGroup, OptionItem } from "../types/kiosk";
 
 export function useMenuSelection() {
   // 선택된 메뉴
@@ -18,8 +18,11 @@ export function useMenuSelection() {
 
   // 옵션 선택
   const [removedIngredients, setRemovedIngredients] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
   const [selectedSide, setSelectedSide] = useState("후렌치 후라이");
   const [selectedDrink, setSelectedDrink] = useState("제로 콜라");
+  const [isSet, setIsSet] = useState(false);
+  const [isLargeSet, setIsLargeSet] = useState(false);
   const [rSizeQty, setRSizeQty] = useState(1);
   const [lSizeQty, setLSizeQty] = useState(1);
   const [simpleQty, setSimpleQty] = useState(1);
@@ -29,6 +32,8 @@ export function useMenuSelection() {
     setSelectedMenu(item);
     setNutritionOpen(false);
     setAllergyOpen(false);
+    setIsLargeSet(false);
+    setSelectedOptions([]); // Reset options on new menu selection
   };
 
   // 상세에서 뒤로가기
@@ -50,11 +55,9 @@ export function useMenuSelection() {
     if (!allergyOpen) setNutritionOpen(false);
   };
 
-  // 주문하기 클릭 -> 사이즈 선택으로 (버거용)
+  // 주문하기 클릭 -> 유형 선택으로 (버거용: 단품 vs 세트)
   const handleOrderClick = () => {
-    setShowSizeSelection(true);
-    setRSizeQty(1);
-    setLSizeQty(1);
+    setShowSizeSelection(true); // 유형 선택 화면으로 사용
   };
 
   // 주문하기 클릭 -> 간단 수량 선택으로 (사이드/음료용)
@@ -68,15 +71,29 @@ export function useMenuSelection() {
     setShowSimpleQuantity(false);
   };
 
-  // 사이즈 선택에서 뒤로가기
+  // 유형 선택에서 뒤로가기
   const handleBackFromSizeSelection = () => {
     setShowSizeSelection(false);
   };
 
-  // 선택 완료 -> 재료변경 화면으로
-  const handleSizeComplete = () => {
+  // 유형 선택 완료 (단품)
+  const handleSingleSelect = () => {
+    setIsSet(false);
     setShowSizeSelection(false);
     setShowIngredientChange(true);
+    setIngredientAccordionOpen(true);
+    setRSizeQty(1);
+    setLSizeQty(0);
+  };
+
+  // 유형 선택 완료 (세트)
+  const handleSetSelect = () => {
+    setIsSet(true);
+    setShowSizeSelection(false);
+    setShowIngredientChange(true);
+    setIngredientAccordionOpen(true);
+    setRSizeQty(0);
+    setLSizeQty(1);
   };
 
   // 재료변경에서 뒤로가기
@@ -94,20 +111,62 @@ export function useMenuSelection() {
     }
   };
 
+  // 옵션 토글
+  const toggleOption = (group: OptionGroup, item: OptionItem) => {
+    setSelectedOptions((prev) => {
+      const isSelected = prev.find((o) => o.optionItemId === item.optionItemId);
+      if (isSelected) {
+        return prev.filter((o) => o.optionItemId !== item.optionItemId);
+      } else {
+        // 중복 선택 불가능한 경우 같은 그룹의 다른 옵션 제거
+        const filtered = group.isMultipleSelectionAllowed
+          ? prev
+          : prev.filter((o) => o.optionGroupId !== group.optionGroupId);
+
+        return [
+          ...filtered,
+          {
+            optionGroupId: group.optionGroupId,
+            optionGroupName: group.name,
+            optionItemId: item.optionItemId,
+            name: item.name,
+            extraPrice: item.extraPrice,
+          },
+        ];
+      }
+    });
+  };
+
+  // 라지 세트 토글
+  const toggleLargeSet = () => {
+    setIsLargeSet(!isLargeSet);
+  };
+
   // 총 가격 계산
   const calculateTotal = () => {
     if (!selectedMenu) return 0;
-    return selectedMenu.price * rSizeQty + (selectedMenu.price + 500) * lSizeQty;
+    // 세트인 경우 3000원 추가, 라지 세트인 경우 500원 더 추가
+    let basePrice = isSet ? selectedMenu.price + 3000 : selectedMenu.price;
+    if (isSet && isLargeSet) basePrice += 500;
+
+    // 옵션 가격 추가
+    const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.extraPrice, 0);
+
+    return (basePrice + optionsPrice) * (isSet ? lSizeQty : rSizeQty);
   };
 
   // 선택 완료 후 상태 초기화
   const resetSelection = () => {
     setShowIngredientChange(false);
     setShowSimpleQuantity(false);
+    setShowSizeSelection(false);
     setSelectedMenu(null);
     setIngredientAccordionOpen(false);
     setSetMenuAccordionOpen(false);
     setRemovedIngredients([]);
+    setSelectedOptions([]);
+    setIsSet(false);
+    setIsLargeSet(false);
   };
 
   return {
@@ -123,6 +182,9 @@ export function useMenuSelection() {
     removedIngredients,
     selectedSide,
     selectedDrink,
+    isSet,
+    isLargeSet,
+    selectedOptions,
     rSizeQty,
     lSizeQty,
     simpleQty,
@@ -132,6 +194,7 @@ export function useMenuSelection() {
     setSelectedDrink,
     setRSizeQty,
     setLSizeQty,
+    setIsLargeSet,
     setSimpleQty,
     setIngredientAccordionOpen,
     setSetMenuAccordionOpen,
@@ -144,10 +207,13 @@ export function useMenuSelection() {
     handleOrderClick,
     handleSimpleOrderClick,
     handleBackFromSizeSelection,
-    handleSizeComplete,
+    handleSingleSelect,
+    handleSetSelect,
     handleBackFromIngredient,
     handleBackFromSimpleQuantity,
     toggleIngredient,
+    toggleOption,
+    toggleLargeSet,
     calculateTotal,
     resetSelection,
   };

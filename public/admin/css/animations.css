@@ -1,0 +1,242 @@
+/* 
+ * Premium Animation System
+ * Custom animations for a high-end, responsive feel.
+ */
+
+:root {
+  --ease-premium: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-premium: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* Base Page Entrance */
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-entrance {
+  animation: fadeInSlideUp 0.8s var(--ease-premium) forwards;
+}
+
+/* Staggered Card Entrance */
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: cardEntrance 0.6s var(--ease-premium) forwards;
+}
+
+/* Generate staggered delays */
+.stagger-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.stagger-item:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.stagger-item:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.stagger-item:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.stagger-item:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.stagger-item:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+.stagger-item:nth-child(7) {
+  animation-delay: 0.4s;
+}
+
+.stagger-item:nth-child(8) {
+  animation-delay: 0.45s;
+}
+
+/* Pulse effect for calls/alerts */
+@keyframes subtlePulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: subtlePulse 2s infinite ease-in-out;
+}
+
+/* Hover Scaling */
+.hover-scale-premium {
+  transition: transform 0.4s var(--ease-premium), box-shadow 0.4s var(--ease-premium);
+}
+
+.hover-scale-premium:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Sidebar Active Transition Fix */
+.sidebar-item-active {
+  position: relative;
+  transition: all 0.3s var(--ease-premium);
+}
+
+.sidebar-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background-color: #B91C1C;
+  border-radius: 0 4px 4px 0;
+  animation: sidebarIndicator 0.4s var(--ease-premium);
+}
+
+@keyframes sidebarIndicator {
+  0% {
+    height: 0;
+    opacity: 0;
+  }
+
+  100% {
+    height: 24px;
+    opacity: 1;
+  }
+}
+
+/* Glassmorphism */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.glass-dark-effect {
+  background: rgba(17, 24, 39, 0.7) !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Shimmer/Skeleton Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Data Growth Animations */
+@keyframes growUp {
+  0% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+
+  100% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+.animate-grow-up {
+  animation: growUp 1s var(--ease-premium) forwards;
+}
+
+@keyframes growRight {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: var(--progress-width, 100%);
+  }
+}
+
+.animate-grow-right {
+  animation: growRight 1.2s var(--ease-premium) forwards;
+}
+
+/* Notification Badge Pulse */
+.notification-dot {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  background-color: #EF4444;
+  border: 2px solid #FFFFFF;
+  border-radius: 50%;
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Premium Tooltip */
+.chart-tooltip {
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-premium), transform 0.3s var(--ease-premium);
+  transform: translateY(10px);
+}
+
+.group:hover .chart-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}

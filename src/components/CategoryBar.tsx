@@ -5,14 +5,13 @@ import menuDrink from "../assets/menu_drink.png";
 
 // 카테고리 데이터
 const categories = [
-  { id: "burgerSingle", name: "버거 단품", image: menuBurgerSingle },
-  { id: "burgerSet", name: "버거 세트", image: menuBurgerSet },
+  { id: "burger", name: "버거", image: menuBurgerSingle },
   { id: "side", name: "사이드", image: menuSide },
   { id: "drink", name: "음료", image: menuDrink },
 ];
 
 interface CategoryBarProps {
-  currentCategory: "burgerSingle" | "burgerSet" | "side" | "drink";
+  currentCategory: "burger" | "side" | "drink" | "all";
   onCategory: (category: string) => void;
 }
 
@@ -36,7 +35,7 @@ export default function CategoryBar({ currentCategory, onCategory }: CategoryBar
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
-      style={{ 
+      style={{
         top: "147px",
         width: "918px",
         height: "215px",
@@ -94,9 +93,9 @@ export default function CategoryBar({ currentCategory, onCategory }: CategoryBar
               marginBottom: "8px"
             }}
           >
-            <img 
-              src={cat.image} 
-              alt={cat.name} 
+            <img
+              src={cat.image}
+              alt={cat.name}
               style={{ width: "90px", height: "90px", objectFit: "contain" }}
             />
           </div>

@@ -395,10 +395,15 @@
             try {
                 const res = await fetch(`${API_BASE_URL}/api/v1/admin/stocks`);
                 const result = await res.json();
-                const stock = result.data.items.find(s => s.ingredientId === ingId);
+
+                // Handle both data array and data.items array formats
+                let stocks = result.data || [];
+                if (Array.isArray(result.data?.items)) stocks = result.data.items;
+
+                const stock = stocks.find(s => s.menuItemId === ingId || s.ingredientId === ingId);
 
                 if (stock) {
-                    currentStockId = stock.id;
+                    currentStockId = stock.stockId || stock.id;
                     document.getElementById('stock-quantity').textContent = stock.quantity;
                     document.getElementById('out-of-stock-toggle').checked = stock.outOfStock;
                 } else {
@@ -409,9 +414,9 @@
                         body: JSON.stringify({ ingredientId: ingId, quantity: 0 })
                     });
                     const initResult = await initRes.json();
-                    currentStockId = initResult.data.id;
+                    currentStockId = initResult.data?.stockId || initResult.data?.id;
                 }
-            } catch (err) { console.error('Error loading stock'); }
+            } catch (err) { console.error('Error loading stock:', err); }
         }
 
         async function adjustStock(delta) {

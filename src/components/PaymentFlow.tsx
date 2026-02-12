@@ -17,7 +17,7 @@ interface PaymentFlowProps {
   showStaffCallModal: boolean;
   usedPoints: number;
   totalAmount: number;
-  
+
   // 핸들러
   onClosePaymentSelection: () => void;
   onSelectCard: () => void;
@@ -31,6 +31,7 @@ interface PaymentFlowProps {
   onSimplePaymentComplete: () => void;
   onPaymentDone: () => void;
   onCloseStaffModal: () => void;
+  ticketNumber: string | null;
 }
 
 export default function PaymentFlow({
@@ -54,6 +55,7 @@ export default function PaymentFlow({
   onSimplePaymentComplete,
   onPaymentDone,
   onCloseStaffModal,
+  ticketNumber
 }: PaymentFlowProps) {
   return (
     <>
@@ -92,7 +94,7 @@ export default function PaymentFlow({
       )}
 
       {showPaymentComplete && (
-        <PaymentCompleteScreen onClose={onPaymentDone} />
+        <PaymentCompleteScreen onClose={onPaymentDone} ticketNumber={ticketNumber} />
       )}
 
       <StaffCallModal

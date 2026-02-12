@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
+import { AI_BASE_URL } from "../api/config";
 
 /** ===== 타입 & 옵션 ===== */
 type Opts = {
   enabled: boolean;
   deviceId?: string;
   inputLang: string;
-  outputs: string[];
+  outputs?: string[];
   sttModel: string;
   llmModel: string;
   onResult: (json: { original: string; translations: { lang: string; text: string }[] }) => void;
@@ -111,7 +112,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit, tries
 
 export function useMicStreamer(opts: Opts) {
   const {
-    enabled, deviceId, inputLang, outputs, sttModel, llmModel, onResult, onError,
+    enabled, deviceId, inputLang, outputs = [], sttModel, llmModel, onResult, onError,
     vadGateHigh = 0.01, vadGateLow = 0.004, padMs = 70, minSpeechMs = 800, maxSegmentMs = 5000, preGain = 1.02,
     translationTemperature = 0, translationTopP = 1, translationMaxTokens = 256, translationParallelWorkers,
   } = opts;
@@ -132,7 +133,7 @@ export function useMicStreamer(opts: Opts) {
   useEffect(() => {
     (async () => {
       try {
-        await fetch("/api/warmup", {
+        await fetch(`${AI_BASE_URL}/warmup`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sttModel, llmModel, warmupLanguage: inputLang }),
@@ -140,6 +141,8 @@ export function useMicStreamer(opts: Opts) {
       } catch { }
     })();
   }, [sttModel, llmModel, inputLang]);
+
+  const outputsKey = (outputs && Array.isArray(outputs)) ? outputs.join("|") : "";
 
   useEffect(() => {
     if (!enabled) { cleanup(); return; }
@@ -219,7 +222,7 @@ export function useMicStreamer(opts: Opts) {
 
     return () => { stopped = true; cleanup(); };
   }, [
-    enabled, deviceId, inputLang, outputs.join("|"),
+    enabled, deviceId, inputLang, outputsKey,
     sttModel, llmModel, vadGateHigh, vadGateLow, padMs,
     minSpeechMs, maxSegmentMs, preGain
   ]);
@@ -278,7 +281,7 @@ export function useMicStreamer(opts: Opts) {
       const base64Audio = (reader.result as string).split(',')[1];
 
       const sttRes = await fetchWithRetry(
-        "/api/stt",
+        `${AI_BASE_URL}/stt`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -312,7 +315,7 @@ export function useMicStreamer(opts: Opts) {
           model: llmModel, temperature: translationTemperature, top_p: translationTopP, max_tokens: translationMaxTokens,
         });
         const res = await fetchWithRetry(
-          "/api/translate",
+          `${AI_BASE_URL}/translate`,
           { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: ac.signal },
           2, 300
         );
