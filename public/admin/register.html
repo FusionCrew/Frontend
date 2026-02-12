@@ -157,7 +157,7 @@
             background: #fff;
         }
 
-        .role-option input[type="radio"]:checked + .role-card {
+        .role-option input[type="radio"]:checked+.role-card {
             border-color: #DC2626;
             background-color: #fef2f2;
         }
@@ -170,7 +170,7 @@
             transition: color 0.2s ease;
         }
 
-        .role-option input[type="radio"]:checked + .role-card .role-name {
+        .role-option input[type="radio"]:checked+.role-card .role-name {
             color: #DC2626;
         }
 
@@ -180,7 +180,7 @@
             font-family: "Noto Sans KR", sans-serif;
         }
 
-        .role-option input[type="radio"]:checked + .role-card .role-desc {
+        .role-option input[type="radio"]:checked+.role-card .role-desc {
             color: #DC2626;
         }
 
@@ -239,6 +239,8 @@
             font-size: 20px;
         }
     </style>
+    <link rel="stylesheet" href="css/darkmode.css">
+    <script>if (localStorage.getItem('admin-dark-mode') === 'true') document.documentElement.classList.add('dark');</script>
 </head>
 
 <body>

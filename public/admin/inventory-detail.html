@@ -47,6 +47,8 @@
         .info-value { @apply text-sm font-semibold text-gray-700; }
         .btn-action { @apply px-4 py-2 rounded-xl text-[11px] font-bold transition-all flex items-center gap-2; }
     </style>
+    <link rel="stylesheet" href="css/darkmode.css">
+    <script>if (localStorage.getItem('admin-dark-mode') === 'true') document.documentElement.classList.add('dark');</script>
 </head>
 
 <body class="antialiased">
@@ -425,17 +427,24 @@
                 const res = await fetch(`${API_BASE_URL}/api/v1/admin/stocks/${currentStockId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: delta })
+                    body: JSON.stringify({ delta: delta })
                 });
                 const result = await res.json();
-                document.getElementById('stock-quantity').textContent = result.data.quantity;
+                if (result.data) {
+                    document.getElementById('stock-quantity').textContent = result.data.quantity;
+                }
             } catch (err) { alert('재고 수정 실패'); }
         }
 
         async function toggleOutOfStock() {
             if (!currentStockId) return;
+            const isChecked = document.getElementById('out-of-stock-toggle').checked;
             try {
-                await fetch(`${API_BASE_URL}/api/v1/admin/stocks/${currentStockId}/out-of-stock`, { method: 'POST' });
+                await fetch(`${API_BASE_URL}/api/v1/admin/stocks/${currentStockId}/out-of-stock`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isOutOfStock: isChecked })
+                });
                 loadStock();
             } catch (err) { alert('상태 변경 실패'); }
         }

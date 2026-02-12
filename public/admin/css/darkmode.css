@@ -1,0 +1,389 @@
+/*
+ * Dark Mode Theme System
+ * Activated via .dark class on <html> element.
+ * Uses CSS overrides to avoid modifying Tailwind config per-page.
+ */
+
+/* ─── Base Colors ─── */
+html.dark body {
+  background-color: #0f1117;
+  color: #e5e7eb;
+}
+
+/* ─── Sidebar ─── */
+html.dark aside {
+  background-color: #161921;
+  border-color: #1e2230;
+}
+
+html.dark .sidebar-item-inactive {
+  color: #9ca3af;
+}
+
+html.dark .sidebar-item-inactive:hover {
+  color: #f3f4f6;
+}
+
+html.dark .sidebar-item-active {
+  color: #ffffff;
+}
+
+/* ─── Cards ─── */
+html.dark .card {
+  background-color: #1a1d27;
+  border-color: #252836;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Header ─── */
+html.dark header {
+  background-color: transparent;
+}
+
+html.dark header .text-gray-400 {
+  color: #9ca3af;
+}
+
+html.dark header .text-gray-400:hover {
+  color: #f3f4f6;
+}
+
+/* ─── Text Overrides (comprehensive) ─── */
+html.dark .text-gray-900 {
+  color: #ffffff !important;
+}
+
+html.dark .text-gray-800 {
+  color: #f9fafb !important;
+}
+
+html.dark .text-gray-700 {
+  color: #f3f4f6 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #e5e7eb !important;
+}
+
+html.dark .text-gray-500 {
+  color: #d1d5db !important;
+}
+
+html.dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+html.dark .text-gray-300 {
+  color: #9ca3af !important;
+}
+
+/* Custom text-text-dark class used across pages */
+html.dark .text-text-dark {
+  color: #f3f4f6 !important;
+}
+
+html.dark .text-text-light {
+  color: #d1d5db !important;
+}
+
+/* Black text should become white in dark mode */
+html.dark .text-black {
+  color: #f9fafb !important;
+}
+
+/* Arbitrary Tailwind bracket colors */
+html.dark [class*="text-[#"] {
+  color: #d1d5db !important;
+}
+
+/* Table header & cell text */
+html.dark th {
+  color: #9ca3af !important;
+}
+
+html.dark td {
+  color: #e5e7eb !important;
+}
+
+html.dark td a {
+  color: #93c5fd !important;
+}
+
+/* Labels & values (used in detail pages) */
+html.dark .info-label {
+  color: #9ca3af !important;
+}
+
+html.dark .info-value {
+  color: #f3f4f6 !important;
+}
+
+/* Section titles, headings */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #f9fafb !important;
+}
+
+/* Paragraph and span defaults inside dark body */
+html.dark p {
+  color: #d1d5db;
+}
+
+/* Badge / tag text */
+html.dark .text-red-600 {
+  color: #fca5a5 !important;
+}
+
+html.dark .text-red-500 {
+  color: #fca5a5 !important;
+}
+
+html.dark .text-red-700 {
+  color: #f87171 !important;
+}
+
+html.dark .text-green-600 {
+  color: #86efac !important;
+}
+
+html.dark .text-green-700 {
+  color: #4ade80 !important;
+}
+
+html.dark .text-blue-600 {
+  color: #93c5fd !important;
+}
+
+html.dark .text-yellow-600 {
+  color: #fde047 !important;
+}
+
+html.dark .text-orange-600 {
+  color: #fdba74 !important;
+}
+
+/* ─── Background Overrides ─── */
+html.dark .bg-white {
+  background-color: #1a1d27 !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: #12141c !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: #1e2230 !important;
+}
+
+html.dark .bg-gray-200 {
+  background-color: #252836 !important;
+}
+
+html.dark .bg-gray-50\/50 {
+  background-color: rgba(18, 20, 28, 0.5) !important;
+}
+
+html.dark .bg-gray-50\/30 {
+  background-color: rgba(18, 20, 28, 0.3) !important;
+}
+
+html.dark .bg-bg-sub {
+  background-color: #0f1117 !important;
+}
+
+/* ─── Border Overrides ─── */
+html.dark .border-gray-50 {
+  border-color: #1e2230 !important;
+}
+
+html.dark .border-gray-100 {
+  border-color: #252836 !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: #2d3348 !important;
+}
+
+html.dark .border-gray-300 {
+  border-color: #374151 !important;
+}
+
+html.dark .border-white {
+  border-color: #252836 !important;
+}
+
+/* ─── Hover states ─── */
+html.dark .hover\:bg-gray-50:hover {
+  background-color: #252836 !important;
+}
+
+html.dark .hover\:bg-gray-50\/50:hover {
+  background-color: rgba(37, 40, 54, 0.5) !important;
+}
+
+html.dark .hover\:bg-gray-100:hover {
+  background-color: #252836 !important;
+}
+
+html.dark .hover\:bg-gray-200:hover {
+  background-color: #2d3348 !important;
+}
+
+html.dark .hover\:text-gray-700:hover {
+  color: #f3f4f6 !important;
+}
+
+html.dark .hover\:text-gray-900:hover {
+  color: #ffffff !important;
+}
+
+/* ─── Divide ─── */
+html.dark .divide-gray-50> :not(:first-child) {
+  border-color: #1e2230 !important;
+}
+
+html.dark .divide-gray-100> :not(:first-child) {
+  border-color: #252836 !important;
+}
+
+/* ─── Tables ─── */
+html.dark table {
+  color: #e5e7eb;
+}
+
+html.dark thead tr {
+  background-color: rgba(18, 20, 28, 0.5);
+}
+
+html.dark tbody tr {
+  border-color: #1e2230;
+}
+
+html.dark tbody tr:hover {
+  background-color: rgba(37, 40, 54, 0.5) !important;
+}
+
+/* ─── Form Inputs ─── */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #12141c !important;
+  border-color: #252836 !important;
+  color: #f3f4f6 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+html.dark label {
+  color: #d1d5db !important;
+}
+
+/* ─── Buttons ─── */
+html.dark .btn-action {
+  color: #e5e7eb !important;
+}
+
+html.dark button.bg-gray-100 {
+  background-color: #252836 !important;
+  color: #e5e7eb !important;
+}
+
+/* ─── Dropdowns ─── */
+html.dark [id$="-dropdown"] {
+  background-color: #1a1d27 !important;
+  border-color: #252836 !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Modals ─── */
+html.dark .fixed.inset-0>div:not(.backdrop-blur-sm) {
+  background-color: #1a1d27;
+}
+
+html.dark [id$="-modal"]>div {
+  background-color: #1a1d27 !important;
+}
+
+/* ─── Summary / Stat Cards ─── */
+html.dark .bg-red-50 {
+  background-color: rgba(185, 28, 28, 0.15) !important;
+}
+
+html.dark .bg-red-50\/30 {
+  background-color: rgba(185, 28, 28, 0.1) !important;
+}
+
+html.dark .bg-primary\/10 {
+  background-color: rgba(185, 28, 28, 0.15) !important;
+}
+
+html.dark .bg-green-50 {
+  background-color: rgba(22, 101, 52, 0.15) !important;
+}
+
+html.dark .bg-blue-50 {
+  background-color: rgba(30, 64, 175, 0.15) !important;
+}
+
+html.dark .bg-yellow-50 {
+  background-color: rgba(161, 98, 7, 0.15) !important;
+}
+
+html.dark .bg-orange-50 {
+  background-color: rgba(194, 65, 12, 0.15) !important;
+}
+
+/* ─── Ring / Focus ─── */
+html.dark .ring-gray-100 {
+  --tw-ring-color: #252836 !important;
+}
+
+/* ─── Glass Effects ─── */
+html.dark .glass-effect {
+  background: rgba(26, 29, 39, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ─── Shimmer Skeleton Override ─── */
+html.dark .animate-shimmer {
+  background: linear-gradient(90deg, #1a1d27 25%, #252836 50%, #1a1d27 75%);
+  background-size: 200% 100%;
+}
+
+/* ─── Toggle Switch (Dark Mode button itself) ─── */
+html.dark #dark-mode-toggle .dark-toggle-track {
+  background-color: #B91C1C;
+}
+
+html.dark #dark-mode-toggle .dark-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* ─── Scrollbar ─── */
+html.dark ::-webkit-scrollbar {
+  width: 6px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #12141c;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: #2d3348;
+  border-radius: 3px;
+}
+
+/* ─── Smooth Transition ─── */
+html.dark-transition,
+html.dark-transition *,
+html.dark-transition *::before,
+html.dark-transition *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease !important;
+}

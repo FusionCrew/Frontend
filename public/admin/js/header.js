@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNotifications();
     initSettings();
     initProfile();
+    initDarkMode();
 });
 
 function initSearch() {
@@ -108,5 +109,50 @@ function closeOtherDropdowns(current) {
     if (current !== 'search' && searchContainer) {
         searchContainer.classList.add('hidden');
         searchContainer.classList.remove('flex');
+    }
+}
+
+/* ─── Dark Mode ─── */
+function initDarkMode() {
+    // Apply saved preference immediately (no flash)
+    const isDark = localStorage.getItem('admin-dark-mode') === 'true';
+    if (isDark) {
+        document.documentElement.classList.add('dark');
+    }
+    updateDarkToggleUI(isDark);
+
+    // Bind click
+    const toggle = document.getElementById('dark-mode-toggle');
+    if (!toggle) return;
+
+    toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Add transition class temporarily
+        document.documentElement.classList.add('dark-transition');
+
+        const nowDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('admin-dark-mode', nowDark);
+        updateDarkToggleUI(nowDark);
+
+        // Remove transition class after animation completes
+        setTimeout(() => {
+            document.documentElement.classList.remove('dark-transition');
+        }, 400);
+    });
+}
+
+function updateDarkToggleUI(isDark) {
+    const track = document.querySelector('#dark-mode-toggle .dark-toggle-track');
+    const thumb = document.querySelector('#dark-mode-toggle .dark-toggle-thumb');
+    if (!track || !thumb) return;
+
+    if (isDark) {
+        track.style.backgroundColor = '#B91C1C';
+        thumb.style.transform = 'translateX(16px)';
+    } else {
+        track.style.backgroundColor = '';
+        thumb.style.transform = '';
     }
 }

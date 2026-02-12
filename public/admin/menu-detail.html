@@ -70,6 +70,8 @@
         .toggle .thumb { @apply absolute left-1 top-1 size-5 bg-white rounded-full shadow-sm transition-all; }
         .toggle input:checked ~ .thumb { @apply translate-x-5; }
     </style>
+    <link rel="stylesheet" href="css/darkmode.css">
+    <script>if (localStorage.getItem('admin-dark-mode') === 'true') document.documentElement.classList.add('dark');</script>
 </head>
 
 <body class="antialiased">
@@ -205,7 +207,8 @@
                                             <span class="track"></span>
                                             <span class="thumb"></span>
                                         </label>
-                                        <span id="edit-stock-label" class="text-xs font-bold text-gray-500">품절 시 활성화</span>
+                                        <span id="edit-stock-label" class="text-xs font-bold text-gray-500">품절 시
+                                            활성화</span>
 
                                         <!-- 저장용 hidden 값 (UI 미노출) -->
                                         <select id="edit-hidden" class="hidden">
@@ -339,7 +342,7 @@
         function renderMenuDetail() {
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('menu-content').classList.remove('hidden');
-            
+
             // 재고 상태 hidden으로 표현 (hidden=true면 품절로 간주)
             const isOutOfStock = !!menuData.hidden; // hidden=true면 "품절"로 간주
 
@@ -617,7 +620,7 @@
             const data = await res.json();
             const list = document.getElementById('modal-list');
             const items = data?.data?.items || [];
-            list.innerHTML = items.map(ing =>`
+            list.innerHTML = items.map(ing => `
                 <div class="p-3 bg-gray-50 rounded-xl flex justify-between items-center">
                     <span class="text-sm font-bold">${ing.name}</span>
                     <button onclick="addIngredient('${ing.ingredientId}')" class="text-xs bg-primary text-white px-3 py-1 rounded-lg">추가</button>

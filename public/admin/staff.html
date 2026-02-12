@@ -50,6 +50,8 @@
         .btn-completed { @apply w-full py-5 rounded-xl bg-[#C0C0C0] text-white text-base font-bold text-center; }
     </style>
     <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/darkmode.css">
+    <script>if (localStorage.getItem('admin-dark-mode') === 'true') document.documentElement.classList.add('dark');</script>
 </head>
 
 <body class="antialiased">
@@ -180,16 +182,17 @@
                                         <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">환경 설정
                                         </p>
                                     </div>
-                                    <a href="#"
+                                    <a href="#" id="dark-mode-toggle"
                                         class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors group">
                                         <div class="flex items-center gap-3">
                                             <span
                                                 class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">dark_mode</span>
                                             <span class="text-xs font-bold text-gray-700">다크 모드</span>
                                         </div>
-                                        <div class="w-8 h-4 bg-gray-200 rounded-full relative">
+                                        <div
+                                            class="dark-toggle-track w-8 h-4 bg-gray-200 rounded-full relative transition-colors">
                                             <div
-                                                class="absolute left-0.5 top-0.5 size-3 bg-white rounded-full shadow-sm">
+                                                class="dark-toggle-thumb absolute left-0.5 top-0.5 size-3 bg-white rounded-full shadow-sm transition-transform">
                                             </div>
                                         </div>
                                     </a>
