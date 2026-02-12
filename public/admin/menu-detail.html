@@ -61,6 +61,14 @@
             @apply w-full h-10 px-4 rounded-lg border border-gray-100 bg-gray-50 text-sm focus:border-primary/30 focus:ring-2 focus:ring-primary/5 outline-none transition-all;
         }
         textarea { @apply h-24 py-3 resize-none; }
+        /* Toggle UI */
+        .toggle-wrap { @apply flex items-center gap-3; }
+        .toggle { @apply relative inline-flex items-center cursor-pointer select-none; }
+        .toggle input { @apply sr-only; }
+        .toggle .track { @apply w-12 h-7 bg-gray-200 rounded-full transition-all; }
+        .toggle input:checked + .track { @apply bg-primary; }
+        .toggle .thumb { @apply absolute left-1 top-1 size-5 bg-white rounded-full shadow-sm transition-all; }
+        .toggle input:checked ~ .thumb { @apply translate-x-5; }
     </style>
 </head>
 
@@ -186,13 +194,25 @@
                                     <input id="edit-image-url" class="hidden" type="text">
                                 </div>
 
-                                <span class="text-sm font-medium text-gray-400">숨김 상태</span>
-                                <div id="hidden-container">
-                                    <span id="view-hidden" class="text-sm font-semibold text-gray-800">공개</span>
-                                    <select id="edit-hidden" class="hidden">
-                                        <option value="false">공개 (판매중)</option>
-                                        <option value="true">숨김 (판매중지)</option>
-                                    </select>
+                                <!-- 재고 상태(품절) -->
+                                <span class="text-sm font-medium text-gray-400">재고 상태</span>
+                                <div id="stock-container">
+                                    <span id="view-stock" class="text-sm font-semibold text-gray-800">판매중</span>
+
+                                    <div id="edit-stock-wrap" class="hidden toggle-wrap">
+                                        <label class="toggle">
+                                            <input id="edit-out-of-stock" type="checkbox">
+                                            <span class="track"></span>
+                                            <span class="thumb"></span>
+                                        </label>
+                                        <span id="edit-stock-label" class="text-xs font-bold text-gray-500">품절 시 활성화</span>
+
+                                        <!-- 저장용 hidden 값 (UI 미노출) -->
+                                        <select id="edit-hidden" class="hidden">
+                                            <option value="false">false</option>
+                                            <option value="true">true</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <span class="text-sm font-medium text-gray-400">카테고리</span>
@@ -319,22 +339,38 @@
         function renderMenuDetail() {
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('menu-content').classList.remove('hidden');
+            
+            // 재고 상태 hidden으로 표현 (hidden=true면 품절로 간주)
+            const isOutOfStock = !!menuData.hidden; // hidden=true면 "품절"로 간주
 
             // View Mode
             document.getElementById('view-name').textContent = menuData.name;
-            document.getElementById('view-price').textContent = `${menuData.price.toLocaleString()}원`;
+            document.getElementById('view-price').textContent = `${Number(menuData.price).toLocaleString()}원`;
             document.getElementById('view-image-url').textContent = menuData.imageUrl || '없음';
-            document.getElementById('view-hidden').textContent = menuData.hidden ? '숨김' : '공개';
             document.getElementById('view-category').textContent = menuData.categoryId || '-';
             document.getElementById('view-description').textContent = menuData.description || '등록된 설명이 없습니다.';
+            document.getElementById('view-stock').textContent = isOutOfStock ? '품절' : '판매중';
+            document.getElementById('view-stock').className = isOutOfStock
+                ? 'text-sm font-semibold text-red-600'
+                : 'text-sm font-semibold text-gray-800';
 
             // Edit Mode Init
             document.getElementById('edit-name').value = menuData.name;
             document.getElementById('edit-price').value = menuData.price;
             document.getElementById('edit-image-url').value = menuData.imageUrl || '';
-            document.getElementById('edit-hidden').value = menuData.hidden.toString();
             document.getElementById('edit-category').value = menuData.categoryId || 'cat_burger';
             document.getElementById('edit-description').value = menuData.description || '';
+
+            // hidden 값을 저장용(select hidden)에 세팅
+            const editHiddenEl = document.getElementById('edit-hidden');
+            editHiddenEl.value = isOutOfStock ? 'true' : 'false';
+
+            // 토글 초기화 + 단방향 동기화(토글 -> edit-hidden)
+            const outToggle = document.getElementById('edit-out-of-stock');
+            outToggle.checked = isOutOfStock;
+            outToggle.onchange = () => {
+                editHiddenEl.value = outToggle.checked ? 'true' : 'false';
+            };
 
             renderIngredients(menuData.ingredients || []);
             renderOptionGroups(menuData.optionGroups || []);
@@ -474,16 +510,24 @@
             const editBtn = document.getElementById('edit-toggle-btn');
             const saveBtn = document.getElementById('save-btn');
 
+            const editStockWrap = document.getElementById('edit-stock-wrap');
+
             if (isEditMode) {
                 viewEls.forEach(el => el.classList.add('hidden'));
-                editEls.forEach(el => { if (el.id !== 'edit-toggle-btn') el.classList.remove('hidden'); });
+                editEls.forEach(el => {
+                    if (el.id !== 'edit-hidden') el.classList.remove('hidden');
+                });
+                editStockWrap.classList.remove('hidden');
                 editBtn.textContent = '취소';
                 saveBtn.classList.remove('hidden');
             } else {
                 viewEls.forEach(el => el.classList.remove('hidden'));
                 editEls.forEach(el => { if (el.id !== 'edit-toggle-btn') el.classList.add('hidden'); });
+                editStockWrap.classList.add('hidden');
                 editBtn.textContent = '수정';
                 saveBtn.classList.add('hidden');
+
+                renderMenuDetail();
             }
         }
 
@@ -533,6 +577,8 @@
                     menuData = result.data;
                     if (isEditMode) toggleEditMode();
                     renderMenuDetail();
+                } else {
+                    alert('저장 실패: ' + (result.message || 'unknown'));
                 }
             } catch (err) { alert('저장 실패: ' + err.message); }
         }
@@ -570,7 +616,8 @@
             const res = await fetch(`${API_BASE_URL}/api/v1/admin/ingredients`);
             const data = await res.json();
             const list = document.getElementById('modal-list');
-            list.innerHTML = data.data.items.map(ing => `
+            const items = data?.data?.items || [];
+            list.innerHTML = items.map(ing =>`
                 <div class="p-3 bg-gray-50 rounded-xl flex justify-between items-center">
                     <span class="text-sm font-bold">${ing.name}</span>
                     <button onclick="addIngredient('${ing.ingredientId}')" class="text-xs bg-primary text-white px-3 py-1 rounded-lg">추가</button>
