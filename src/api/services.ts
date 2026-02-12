@@ -294,14 +294,20 @@ export async function processPayment(
  * 직원 호출
  * POST /staff/call
  */
-export async function callStaff(kioskId?: string): Promise<StaffCallResult> {
+export async function callStaff(sessionId: string, kioskId: string = "KIOSK_001"): Promise<StaffCallResult> {
   if (USE_MOCK_DATA) {
     return { success: true, message: "직원이 호출되었습니다." };
   }
 
   const response = await apiFetch<any>("/kiosk/staff-calls", {
     method: "POST",
-    body: JSON.stringify({ kioskId: kioskId || "KIOSK_001" }),
+    body: JSON.stringify({
+      sessionId,
+      reason: "OTHER",
+      context: {
+        screen: "MENU"
+      }
+    }),
   });
   return { success: response.success, message: response.message || "호출 완료" };
 }

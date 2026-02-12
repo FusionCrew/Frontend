@@ -12,17 +12,19 @@ export function StaffCallButton({ onClick }: StaffCallButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="absolute flex items-center gap-1"
+      className="absolute flex items-center gap-1 active:scale-95 transition-transform"
       style={{
         top: "45px",
-        right: "44px",
+        left: "50%",
+        transform: "translateX(-50%)",
         color: "#4A3728",
         fontSize: "40px",
         fontWeight: "400",
         fontFamily: "'Noto Sans KR', sans-serif",
         background: "none",
         border: "none",
-        cursor: "pointer"
+        cursor: "pointer",
+        zIndex: 1000
       }}
     >
       <span>직원 호출</span>

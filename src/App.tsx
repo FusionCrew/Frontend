@@ -253,12 +253,25 @@ function App() {
     llmModel: "gpt-4o"
   });
 
-  const handleStaffCall = async () => {
+  const handleStaffCall = useCallback(async () => {
+    if (!kioskSessionId) {
+      console.error("No kiosk session ID available");
+      return;
+    }
     try {
-      await callStaff("KIOSK_001");
+      console.log("Staff call button clicked!");
+      // window.alert("직원 호출 버튼이 클릭되었습니다!");
+
+      console.log("Calling staff API with sessionId:", kioskSessionId);
+      const res = await callStaff(kioskSessionId, "KIOSK_001");
+      console.log("Staff call API response:", res);
+
       await say("직원을 호출했습니다. 잠시만 기다려 주세요.");
-    } catch (e) { console.error(e); }
-  };
+    } catch (e) {
+      console.error("Staff call error:", e);
+      window.alert("호출 중 오류 발생: " + (e as Error).message);
+    }
+  }, [kioskSessionId]);
 
   const renderer = () => {
     if (currentPage === "burger" || currentPage === "side" || currentPage === "drink" || currentPage === "all") {
@@ -299,7 +312,7 @@ function App() {
         }}
       />
     );
-    return <KioskMain onOrder={goToOrder} onAccessibility={goToOrder} />;
+    return <KioskMain onOrder={goToOrder} onAccessibility={goToOrder} onStaffCall={handleStaffCall} />;
   };
 
   const scaledHeight = 1920 * scale;

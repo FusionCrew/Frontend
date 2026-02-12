@@ -4,14 +4,15 @@ import { StaffCallButton, KioskCharacter } from "../components/KioskComponents";
 interface KioskMainProps {
   onOrder: () => void;
   onAccessibility: () => void;
+  onStaffCall?: () => void;
   speaking?: boolean;
 }
 
-export default function KioskMain({ onOrder, onAccessibility }: KioskMainProps) {
+export default function KioskMain({ onOrder, onAccessibility, onStaffCall }: KioskMainProps) {
   return (
     <div className="w-full h-full relative">
       {/* 직원 호출 버튼 */}
-      <StaffCallButton />
+      <StaffCallButton onClick={onStaffCall} />
 
       {/* 메인 안내 텍스트 */}
       <div
