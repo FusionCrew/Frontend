@@ -270,38 +270,52 @@
                 <!-- Filter Section -->
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
-                        <input type="date" value="2024-03-01"
+                        <input type="date" id="date-start"
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
                     <span class="text-gray-300">~</span>
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
-                        <input type="date" value="2024-03-09"
+                        <input type="date" id="date-end"
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
-                    <button
+                    <button id="btn-search"
                         class="px-6 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조회</button>
                 </div>
 
                 <script src="js/api.js"></script>
                 <script src="js/header.js"></script>
                 <script>
-                    const API_BASE_URL = 'http://localhost:8080';
-
                     async function loadAnalytics() {
-                        try {
-                            const response = await fetch(`${API_BASE_URL}/api/v1/admin/analytics`);
-                            if (!response.ok) throw new Error('API Failed');
+                        const startDateInput = document.getElementById('date-start');
+                        const endDateInput = document.getElementById('date-end');
 
-                            const result = await response.json();
-                            if (result.success && result.data) {
-                                updateUI(result.data);
+                        // Set defaults if empty
+                        if (!startDateInput.value) startDateInput.valueAsDate = new Date();
+                        if (!endDateInput.value) endDateInput.valueAsDate = new Date();
+
+                        const startDate = startDateInput.value;
+                        const endDate = endDateInput.value;
+
+                        try {
+                            const response = await AdminAPI.getAnalytics(startDate, endDate);
+                            if (response.success && response.data) {
+                                updateUI(response.data);
                             }
                         } catch (err) {
                             console.error('Failed to load analytics:', err);
+                            alert('데이터를 불러오는데 실패했습니다.\n' + err.message);
                         }
                     }
+
+                    document.addEventListener('DOMContentLoaded', () => {
+                        // Initial Load
+                        loadAnalytics();
+
+                        // Button Event
+                        document.getElementById('btn-search')?.addEventListener('click', loadAnalytics);
+                    });
 
                     function updateUI(data) {
                         const h2s = document.querySelectorAll('.card h2');

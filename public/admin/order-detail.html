@@ -114,10 +114,10 @@
                         <span class="text-sm font-bold text-gray-800 uppercase tracking-widest">Order #ord_001</span>
                     </div>
                     <div class="flex items-center gap-3 ml-4">
-                        <button
+                        <button id="btn-start-cooking"
                             class="px-5 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조리
                             시작</button>
-                        <button
+                        <button id="btn-cancel-order"
                             class="px-5 py-2.5 bg-gray-100 text-gray-400 text-[11px] font-bold rounded-xl hover:bg-gray-200 transition-all">주문
                             취소</button>
                     </div>
@@ -227,20 +227,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-50">
-                                    <tr>
-                                        <td class="px-10 py-6 text-sm font-bold text-gray-800">불고기 버거</td>
-                                        <td class="px-6 py-6 text-sm font-bold text-gray-500">2</td>
-                                        <td class="px-6 py-6 text-sm font-bold text-gray-500">3500원</td>
-                                        <td class="px-10 py-6 text-sm font-black text-gray-800 italic text-right">7000원
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="px-10 py-6 text-sm font-bold text-gray-800">콜라 (Regular)</td>
-                                        <td class="px-6 py-6 text-sm font-bold text-gray-500">1</td>
-                                        <td class="px-6 py-6 text-sm font-bold text-gray-500">2000원</td>
-                                        <td class="px-10 py-6 text-sm font-black text-gray-800 italic text-right">2000원
-                                        </td>
-                                    </tr>
+                                    <!-- Items will be rendered here -->
                                 </tbody>
                             </table>
                         </div>
@@ -272,7 +259,37 @@
                     console.error('Failed to fetch order detail:', error);
                     alert('주문 정보를 불러오는데 실패했습니다.');
                 }
+
+                // Setup Buttons
+                setupButtons(orderId);
             });
+
+            function setupButtons(orderId) {
+                const btnCancel = document.getElementById('btn-cancel-order');
+
+                // Cancel Button Handler
+                if (btnCancel) {
+                    btnCancel.onclick = async () => {
+                        if (!confirm('정말 주문을 취소하시겠습니까?\n취소 시 결제는 전액 환불 처리됩니다.')) return;
+
+                        try {
+                            btnCancel.disabled = true;
+                            // Note: We use 'CANCELED' (backend enum)
+                            const response = await AdminAPI.updateOrderStatus(orderId, 'CANCELED', 'Cancelled by Admin');
+                            if (response.success) {
+                                alert('주문이 취소되었습니다.');
+                                location.reload();
+                            } else {
+                                throw new Error(response.message || 'Failed to cancel order');
+                            }
+                        } catch (error) {
+                            console.error('Failed to cancel order:', error);
+                            alert('주문 취소 실패: ' + error.message);
+                            btnCancel.disabled = false;
+                        }
+                    };
+                }
+            }
 
             function renderOrderDetail(order) {
                 // Header Info
@@ -283,8 +300,7 @@
                 const statusBadge = document.querySelector('.card:nth-of-type(1) span.rounded-full');
 
                 statusBadge.textContent = order.status;
-                // Status에 따른 배경색 처리 (간단히)
-                if (order.status === 'CANCELED') statusBadge.className = 'px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold uppercase tracking-wider';
+                updateStatusBadgeStyle(statusBadge, order.status);
 
                 basicInfoValues[0].textContent = order.orderId;
                 basicInfoValues[1].textContent = new Date(order.createdAt).toLocaleString();
@@ -297,10 +313,97 @@
                 document.querySelector('.card:nth-of-type(2) .text-lg').textContent = `${order.totalPrice.toLocaleString()}원`;
 
                 // Order Items
+                renderOrderItems(order.items);
+
+                // Update Buttons based on Status
+                updateButtonState(order);
+            }
+
+            function updateStatusBadgeStyle(badge, status) {
+                if (status === 'CANCELED') {
+                    badge.className = 'px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold uppercase tracking-wider';
+                } else if (status === 'MAKING') {
+                    badge.className = 'px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-wider';
+                } else if (status === 'READY') {
+                    badge.className = 'px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-bold uppercase tracking-wider';
+                } else if (status === 'COMPLETED') {
+                    badge.className = 'px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-wider';
+                } else {
+                    badge.className = 'px-3 py-1 bg-red-50 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider';
+                }
+            }
+
+            function updateButtonState(order) {
+                const btnMain = document.getElementById('btn-start-cooking');
+                const btnCancel = document.getElementById('btn-cancel-order');
+
+                if (!btnMain || !btnCancel) return;
+
+                // Reset display
+                btnMain.style.display = 'block';
+                btnCancel.style.display = 'block';
+                btnMain.disabled = false;
+                btnCancel.disabled = false;
+
+                // Reset classes
+                btnMain.className = 'px-5 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all';
+
+                // Configure Main Button Action Helper
+                const setMainAction = (text, nextStatus, confirmMsg) => {
+                    btnMain.textContent = text;
+                    btnMain.onclick = async () => {
+                        if (confirmMsg && !confirm(confirmMsg)) return;
+                        try {
+                            btnMain.disabled = true;
+                            btnMain.textContent = '처리 중...';
+                            const response = await AdminAPI.updateOrderStatus(order.orderId, nextStatus, `Changed to ${nextStatus} by Admin`);
+                            if (response.success) {
+                                location.reload();
+                            } else {
+                                throw new Error(response.message);
+                            }
+                        } catch (e) {
+                            alert('상태 변경 실패: ' + e.message);
+                            btnMain.disabled = false;
+                            btnMain.textContent = text;
+                        }
+                    };
+                };
+
+                // State Logic
+                switch (order.status) {
+                    case 'PAID':
+                    case 'CONFIRMED':
+                    case 'CREATED': // Handling CREATED as startable if needed
+                        setMainAction('조리 시작', 'MAKING');
+                        break;
+                    case 'MAKING':
+                        setMainAction('조리 완료', 'READY');
+                        btnMain.className = 'px-5 py-2.5 bg-blue-600 text-white text-[11px] font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:scale-105 transition-all';
+                        break;
+                    case 'READY':
+                        setMainAction('수령 완료', 'COMPLETED', '고객이 메뉴를 수령하였나요?');
+                        btnMain.className = 'px-5 py-2.5 bg-green-600 text-white text-[11px] font-bold rounded-xl shadow-lg shadow-green-600/20 hover:scale-105 transition-all';
+                        break;
+                    case 'COMPLETED':
+                        btnMain.style.display = 'none';
+                        btnCancel.style.display = 'none';
+                        break;
+                    case 'CANCELED':
+                        btnMain.style.display = 'none';
+                        btnCancel.style.display = 'none';
+                        break;
+                    default:
+                        btnMain.disabled = true;
+                        btnMain.textContent = order.status;
+                }
+            }
+
+            function renderOrderItems(items) {
                 const tbody = document.querySelector('tbody');
                 tbody.innerHTML = '';
 
-                order.items.forEach(item => {
+                items.forEach(item => {
                     const tr = document.createElement('tr');
                     tr.className = 'border-b border-gray-50';
 

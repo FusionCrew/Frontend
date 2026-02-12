@@ -65,6 +65,12 @@ const AdminAPI = {
         body: JSON.stringify({ servedBy }),
     }),
 
+    // Analytics
+    getAnalytics: (startDate, endDate) => {
+        const query = new URLSearchParams({ startDate, endDate }).toString();
+        return request(`/admin/analytics?${query}`);
+    },
+
     // Staff Calls
     getStaffCalls: () => request('/admin/staff-calls'),
     resolveStaffCall: (id) => request(`/admin/staff-calls/${id}/resolve`, {
