@@ -491,7 +491,7 @@
                     await fetch(`${API_BASE_URL}/api/v1/admin/stocks`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ menuItemId: item.ingredientId, quantity: newQty })
+                        body: JSON.stringify({ ingredientId: item.ingredientId, quantity: newQty })
                     });
                 }
                 alert('재고가 저장되었습니다.');
@@ -626,7 +626,7 @@
                     await fetch(`${API_BASE_URL}/api/v1/admin/stocks`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ menuItemId: newIngId, quantity: initialStock })
+                        body: JSON.stringify({ ingredientId: newIngId, quantity: initialStock })
                     });
                 }
 

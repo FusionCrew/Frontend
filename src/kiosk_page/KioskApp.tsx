@@ -172,8 +172,10 @@ export default function KioskApp() {
                 const payRes = await processPayment({ orderId: orderRes.orderId.toString(), amount: orderRes.amount?.totalPrice || 0, method: "CARD" });
                 if (payRes.success) {
                     await confirmOrder(orderRes.orderId);
+                    console.log("[KioskApp] Order created:", orderRes.orderId);
                     const ticketRes = await requestTicket(orderRes.orderId);
-                    const finalTicket = ticketRes?.ticketNumber || orderRes.orderId;
+                    console.log("[KioskApp] TicketResponse:", ticketRes);
+                    const finalTicket = ticketRes?.ticketNumber || (orderRes.orderId ? `#${orderRes.orderId}` : orderRes.orderId);
                     setTicketNumber(finalTicket);
                     await say(lang === "ko" ? `주문이 확정되었습니다. 번호는 ${finalTicket}번입니다.` : `Confirmed. Number ${finalTicket}`);
                     return finalTicket;
@@ -196,8 +198,10 @@ export default function KioskApp() {
 
                 if (payRes.success) {
                     await confirmOrder(orderRes.orderId);
+                    console.log("[KioskApp] Order created (Manual):", orderRes.orderId);
                     const ticketRes = await requestTicket(orderRes.orderId);
-                    const finalTicket = ticketRes?.ticketNumber || orderRes.orderId;
+                    console.log("[KioskApp] TicketResponse (Manual):", ticketRes);
+                    const finalTicket = ticketRes?.ticketNumber || (orderRes.orderId ? `#${orderRes.orderId}` : orderRes.orderId);
                     setTicketNumber(finalTicket);
                     return finalTicket;
                 }

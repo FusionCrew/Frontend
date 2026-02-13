@@ -1,0 +1,16 @@
+﻿On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   public/admin/inventory.html
+	modified:   src/VoiceKiosk.tsx
+	modified:   src/kiosk_page/KioskApp.tsx
+	modified:   src/kiosk_page/PaymentCompleteScreen.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_status.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

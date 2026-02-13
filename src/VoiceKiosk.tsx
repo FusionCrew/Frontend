@@ -820,7 +820,7 @@ export default function VoiceKiosk() {
           // 실시간 재고 참조
           const currentStock = stockRef.current;
 
-          BURGER_MENU.forEach((item, idx) => {
+          displayMenu.forEach((item: any, idx: number) => {
             const row = Math.floor(idx / itemsPerRow);
             const col = idx % itemsPerRow;
             if (row >= rows) return;
@@ -1409,7 +1409,7 @@ export default function VoiceKiosk() {
           // 3. 대기표 발급 요청 (Ticket)
           console.log("[Ticket] Requesting ticket for order:", orderRes.orderId);
           const ticketRes = await requestTicket(orderRes.orderId);
-          const ticketNumber = ticketRes?.ticketNumber || orderRes.orderId;
+          const ticketNumber = ticketRes?.ticketNumber || (orderRes.orderId ? `#${orderRes.orderId}` : orderRes.orderId);
 
           await say(lang === "ko" ? `주문이 확정되었습니다. 대기번호는 ${ticketNumber}번입니다.` : `Order confirmed. Your number is ${ticketNumber}.`);
         }

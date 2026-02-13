@@ -13,6 +13,7 @@ export default function PaymentCompleteScreen({ onClose, ticketNumber }: Payment
   // 랜덤 대기번호 생성 (백업용)
   const randomOrderNumber = useMemo(() => Math.floor(Math.random() * 900) + 100, []);
 
+  console.log("[PaymentCompleteScreen] ticketNumber:", ticketNumber);
   const displayOrderNumber = ticketNumber || randomOrderNumber;
 
   return (
