@@ -1,7 +1,7 @@
 // Mock 데이터 - 개발용
 // API 연동 시 이 파일은 더 이상 사용하지 않음
 
-import { MenuItem, PointInfo } from "./types";
+import type { MenuItem, PointInfo } from "./types";
 
 // 메뉴 목록 Mock 데이터
 export const mockMenuItems: MenuItem[] = [
@@ -17,7 +17,7 @@ export const mockMenuItems: MenuItem[] = [
   { id: 11, name: "통새우 와퍼 세트", price: 9000, category: "burgerSet", ingredients: ["양상추", "토마토", "피클", "양파", "새우패티"] },
   { id: 12, name: "콰트로치즈와퍼 세트", price: 9500, category: "burgerSet", ingredients: ["양상추", "토마토", "피클", "양파", "치즈", "소고기패티"] },
   { id: 13, name: "불고기버거 세트", price: 8500, category: "burgerSet", ingredients: ["양상추", "불고기", "마요네즈"] },
-  
+
   // 사이드
   { id: 21, name: "감자튀김", price: 2500, category: "side" },
   { id: 22, name: "치즈스틱", price: 3000, category: "side" },

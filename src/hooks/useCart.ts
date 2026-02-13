@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MenuItem, CartItem, SelectedOption } from "../types/kiosk";
+import type { MenuItem, CartItem, SelectedOption } from "../types/kiosk";
 import { addCartItem, clearCart as clearCartApi } from "../api/services";
 
 export function useCart(cartId?: string | null) {

@@ -1,4 +1,4 @@
-import { CartItem } from "../../types/kiosk";
+import type { CartItem } from "../../types/kiosk";
 import QuantityControl from "../../components/QuantityControl";
 import recommendedBurger from "../../assets/recommended_burger.png";
 

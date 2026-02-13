@@ -1,4 +1,4 @@
-import { MenuItem } from "../../types/kiosk";
+import type { MenuItem } from "../../types/kiosk";
 import QuantityControl from "../../components/QuantityControl";
 import backArrowCircle from "../../assets/back_arrow_circle.png";
 import recommendedBurger from "../../assets/recommended_burger.png";

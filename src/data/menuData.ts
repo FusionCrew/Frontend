@@ -1,4 +1,4 @@
-import { MenuItem } from "../types/kiosk";
+import type { MenuItem } from "../types/kiosk";
 
 // 카테고리별 메뉴 데이터
 export const menuData: Record<string, MenuItem[]> = {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MenuItem, CategoryType, SelectedOption, OptionGroup, OptionItem } from "../types/kiosk";
+import type { MenuItem, CategoryType, SelectedOption, OptionGroup, OptionItem } from "../types/kiosk";
 
 export function useMenuSelection() {
   // 선택된 메뉴

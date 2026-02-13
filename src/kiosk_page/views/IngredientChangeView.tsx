@@ -1,4 +1,4 @@
-import { MenuItem, SelectedOption, OptionGroup, OptionItem } from "../../types/kiosk";
+import type { MenuItem, SelectedOption, OptionGroup, OptionItem } from "../../types/kiosk";
 import { sideOptions, drinkOptions } from "../../data/menuData";
 import backArrowCircle from "../../assets/back_arrow_circle.png";
 

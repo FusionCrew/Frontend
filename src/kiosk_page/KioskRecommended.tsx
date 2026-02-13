@@ -14,7 +14,7 @@ import CartView from "./views/CartView";
 import { useCart } from "../hooks/useCart";
 import { useMenuSelection } from "../hooks/useMenuSelection";
 import { usePaymentFlow } from "../hooks/usePaymentFlow";
-import { MenuItem } from "../types/kiosk";
+import type { MenuItem } from "../types/kiosk";
 
 interface Props {
   onBack: () => void;
@@ -116,13 +116,19 @@ export default function KioskRecommended({
         <IngredientChangeView
           menu={menu.selectedMenu}
           removedIngredients={menu.removedIngredients}
+          selectedOptions={menu.selectedOptions}
           selectedSide={menu.selectedSide}
           selectedDrink={menu.selectedDrink}
+          isSet={menu.isSet}
+          isLargeSet={menu.isLargeSet}
+          lSizeQty={menu.lSizeQty}
           ingredientAccordionOpen={menu.ingredientAccordionOpen}
           setMenuAccordionOpen={menu.setMenuAccordionOpen}
           onBack={menu.handleBackFromIngredient}
           onAddToCart={addToCart}
           onToggleIngredient={menu.toggleIngredient}
+          onToggleOption={menu.toggleOption}
+          onToggleLargeSet={menu.toggleLargeSet}
           onSelectSide={menu.setSelectedSide}
           onSelectDrink={menu.setSelectedDrink}
           onSetIngredientAccordionOpen={menu.setIngredientAccordionOpen}
@@ -136,12 +142,9 @@ export default function KioskRecommended({
       return (
         <SizeSelectionView
           menu={menu.selectedMenu}
-          rSizeQty={menu.rSizeQty}
-          lSizeQty={menu.lSizeQty}
           onBack={menu.handleBackFromSizeSelection}
-          onComplete={menu.handleSizeComplete}
-          onRSizeChange={menu.setRSizeQty}
-          onLSizeChange={menu.setLSizeQty}
+          onSingleSelect={menu.handleSingleSelect}
+          onSetSelect={menu.handleSetSelect}
         />
       );
     }

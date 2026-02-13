@@ -1,15 +1,15 @@
 // API 연동용 커스텀 훅들
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  getMenuItems, 
-  getMenusByCategory, 
+import {
+  getMenuItems,
+  getMenusByCategory,
   getRecommendedMenus,
   getPointsByPhone,
   processPayment,
-  callStaff 
+  callStaff
 } from "../api/services";
-import { MenuItem, PointInfo } from "../api/types";
+import type { MenuItem, PointInfo } from "../api/types";
 
 /**
  * 메뉴 목록 조회 훅
@@ -23,7 +23,7 @@ export function useMenuItems(category?: "burgerSingle" | "burgerSet" | "side" | 
     const fetchMenus = async () => {
       try {
         setLoading(true);
-        const data = category 
+        const data = category
           ? await getMenusByCategory(category)
           : await getMenuItems();
         setItems(data);
@@ -38,13 +38,13 @@ export function useMenuItems(category?: "burgerSingle" | "burgerSet" | "side" | 
     fetchMenus();
   }, [category]);
 
-  return { items, loading, error, refetch: () => {} };
+  return { items, loading, error, refetch: () => { } };
 }
 
 /**
  * 추천 메뉴 조회 훅
  */
-export function useRecommendedMenus() {
+export function useRecommendedMenus(sessionId: string) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export function useRecommendedMenus() {
     const fetchRecommended = async () => {
       try {
         setLoading(true);
-        const data = await getRecommendedMenus();
+        const data = await getRecommendedMenus(sessionId);
         setItems(data);
         setError(null);
       } catch (err) {
@@ -116,7 +116,7 @@ export function usePayment() {
     try {
       setLoading(true);
       setError(null);
-      const result = await processPayment(orderId, paymentMethod, amount);
+      const result = await processPayment({ orderId: orderId.toString(), amount, method: paymentMethod });
       if (result.success) {
         setOrderNumber(result.orderNumber);
       }
@@ -144,10 +144,10 @@ export function useStaffCall() {
   const [loading, setLoading] = useState(false);
   const [called, setCalled] = useState(false);
 
-  const call = useCallback(async () => {
+  const call = useCallback(async (sessionId: string) => {
     try {
       setLoading(true);
-      await callStaff();
+      await callStaff(sessionId);
       setCalled(true);
     } catch {
       // 에러가 발생해도 UI에서는 호출됨으로 표시

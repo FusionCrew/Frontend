@@ -1,4 +1,4 @@
-import { MenuItem } from "../../types/kiosk";
+import type { MenuItem } from "../../types/kiosk";
 import { categoryLabels } from "../../data/menuData";
 import recommendedBurger from "../../assets/recommended_burger.png";
 

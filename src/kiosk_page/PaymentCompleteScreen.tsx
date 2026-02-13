@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { StaffCallButton, KioskCharacter } from "../components/KioskComponents";
+import { StaffCallButton } from "../components/KioskComponents";
 import StaffCallModal from "../components/StaffCallModal";
 import backArrowCircle from "../assets/back_arrow_circle.png";
 

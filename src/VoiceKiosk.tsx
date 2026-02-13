@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFaceTracking } from "./hook/useFaceTracking";
 import { useAudioDevices } from "./hook/useAudioDevices";
 import { useMicStreamer } from "./hook/useMicStreamer";
-import { getMenuItems, createOrder, callStaff, createCart, addCartItem, processPayment, createKioskSession, recordSessionEvent, confirmOrder, requestTicket } from "./api/services";
-import { MenuItem } from "./api/types";
+import { getMenuItems, createOrder, createCart, addCartItem, processPayment, createKioskSession, recordSessionEvent, confirmOrder, requestTicket } from "./api/services";
+
 
 // 임시 메뉴 리스트 제거 (실제 DB 데이터만 사용하도록)
 const FALLBACK_MENU: any[] = [];
@@ -310,7 +310,7 @@ export default function VoiceKiosk() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [kioskSessionId, setKioskSessionId] = useState<string | null>(null);
   const [cartId, setCartId] = useState<string | null>(null);
-  const [cart, setCart] = useState<any>(null);
+  const [_cart, setCart] = useState<any>(null);
 
   const displayMenu = menuItems.length > 0
     ? menuItems.map((m: any) => ({
@@ -441,23 +441,27 @@ export default function VoiceKiosk() {
   const [poseForDebug, setPoseForDebug] = useState<any[]>([]);
   const poseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [poseVideoElement, setPoseVideoElement] = useState<HTMLVideoElement | null>(null);
-  const [recommendedHistory, setRecommendedHistory] = useState<string[]>([]);
+  const [_recommendedHistory, setRecommendedHistory] = useState<string[]>([]);
   // 마지막 추천 메뉴 (사용자가 "응", "그거 주세요" 등으로 수락할 수 있게)
   const [lastRecommendedItem, setLastRecommendedItem] = useState<string | null>(null);
   // OpenAI messages 형식으로 대화 히스토리 관리
   const [conversationHistory, setConversationHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [pipMode, setPipMode] = useState(false);
-  const pipVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // 고개 끄덕(yes) 감지용
+
+
+
   const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const pipAnimationRef = useRef<number | null>(null);
-  // 고개 끄덕(yes) 감지용
-  const noseHistoryRef = useRef<number[]>([]);
-  const nodStateRef = useRef<"idle" | "down" | "up" | "cooldown">("idle");
-  const lastNodAtRef = useRef<number>(0);
+
+
+
 
   // Web Speech API voices
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(null);
+
   const prevListeningRef = useRef<boolean | null>(null);
   // Pose canvas 그리기
   useEffect(() => {
@@ -1441,7 +1445,7 @@ export default function VoiceKiosk() {
             poseDeviceId={poseDeviceId}
             motionTrigger={motionTrigger}
             specificMotion={specificMotion}
-            onHesitationChange={(score, isHesitating, poseLandmarks, videoEl) => {
+            onHesitationChange={(score, _isHesitating, poseLandmarks, videoEl) => {
               // 디버그용 poseLandmarks를 상위에 저장
               try {
                 setPoseForDebug(poseLandmarks || []);
