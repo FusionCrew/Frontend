@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StaffCallButton, BackButton, KioskCharacter, BottomPanel } from "../components/KioskComponents";
 import CategoryBar from "../components/CategoryBar";
 import SpeechBubble from "../components/SpeechBubble";
@@ -30,12 +30,17 @@ interface Props {
   onProcessOrder?: (amount: number) => Promise<string | null>;
   ticketNumber?: string | null;
   onResetTicket?: () => void;
+  voiceCheckoutSignal?: number;
+  voiceContinueSignal?: number;
+  voiceCartSignal?: number;
+  voicePaymentSignal?: number;
+  voicePaymentMethod?: "CARD" | "POINT" | "SIMPLE" | null;
 }
 
 export default function KioskCategoryPage({
   onBack, onCategory, currentCategory, onGoToMain, speaking,
   menuItems: fetchedMenuItems, sharedCart: cart,
-  onProcessOrder, ticketNumber, onResetTicket
+  onProcessOrder, ticketNumber, onResetTicket, voiceCheckoutSignal, voiceContinueSignal, voiceCartSignal, voicePaymentSignal, voicePaymentMethod
 }: Props) {
   // 페이지네이션
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -67,6 +72,39 @@ export default function KioskCategoryPage({
   // const cart = useCart(); // 제거: Props에서 전달받은 sharedCart 사용
   const menu = useMenuSelection();
   const payment = usePaymentFlow();
+
+  useEffect(() => {
+    if (!voiceCheckoutSignal) return;
+    cart.setShowCart(true);
+    payment.setShowPaymentSelection(true);
+  }, [voiceCheckoutSignal]);
+
+  useEffect(() => {
+    if (!voiceCartSignal) return;
+    cart.setShowCart(true);
+  }, [voiceCartSignal]);
+
+  useEffect(() => {
+    if (!voiceContinueSignal) return;
+    payment.resetPaymentFlow();
+    menu.resetSelection();
+    cart.setShowCart(false);
+    setCurrentIndex(0);
+  }, [voiceContinueSignal]);
+
+  useEffect(() => {
+    if (!voicePaymentSignal || !voicePaymentMethod) return;
+    if (!payment.showPaymentSelection && !payment.showPaymentProcessing && !payment.showPointUsage && !payment.showSimplePayment) {
+      return;
+    }
+    payment.setShowPaymentSelection(false);
+    payment.setShowPaymentProcessing(false);
+    payment.setShowPointUsage(false);
+    payment.setShowSimplePayment(false);
+    if (voicePaymentMethod === "CARD") payment.setShowPaymentProcessing(true);
+    if (voicePaymentMethod === "POINT") payment.setShowPointUsage(true);
+    if (voicePaymentMethod === "SIMPLE") payment.setShowSimplePayment(true);
+  }, [voicePaymentSignal, voicePaymentMethod]);
 
   const isPaymentActive = payment.showPaymentSelection || payment.showPaymentProcessing ||
     payment.showPaymentComplete || payment.showPointUsage ||
@@ -148,9 +186,12 @@ export default function KioskCategoryPage({
   };
 
   // 하단 패널 높이 계산
-  const panelHeight = (cart.showCart && cart.cartItems.length > 0) || menu.showIngredientChange || menu.showSizeSelection
-    ? (cart.cartExpanded || menu.showIngredientChange || menu.showSizeSelection ? "1142px" : "550px")
-    : "469px";
+  const panelHeight =
+    menu.showSizeSelection
+      ? "900px"
+      : (cart.showCart && cart.cartItems.length > 0) || menu.showIngredientChange
+        ? (cart.cartExpanded || menu.showIngredientChange ? "1142px" : "550px")
+        : "469px";
 
   // 말풍선 메시지
   const speechMessage = menu.showSizeSelection ? "사이즈를 선택해주세요"
@@ -280,7 +321,7 @@ export default function KioskCategoryPage({
         {speechMessage && (
           <SpeechBubble
             message={speechMessage}
-            bottom={panelHeight === "1142px" ? "1350px" : "544px"}
+            bottom={panelHeight === "469px" ? "544px" : "1200px"}
           />
         )}
       </div>

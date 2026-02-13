@@ -26,6 +26,12 @@ export function Live2DStage({
     const modelRef = useRef<any>(null);
     const appRef = useRef<any>(null);
     const isPlayingMotionRef = useRef(false);
+    const animRef = useRef<number | null>(null);
+    const lastSeenRef = useRef(0);
+    const targetRef = useRef({ x: 0, y: 0 });
+    const smoothRef = useRef({ x: 0, y: 0 });
+    const biasRef = useRef({ x: 0, y: 0 });
+    const biasReadyAtRef = useRef(0);
 
     const {
         hesitationScore,
@@ -74,10 +80,12 @@ export function Live2DStage({
             });
 
             const { Live2DModel } = PIXI.live2d;
-            const model = await Live2DModel.from(modelPath);
+            const model = await Live2DModel.from(modelPath, { autoInteract: false });
             if (destroyed) return;
 
             modelRef.current = model;
+            // Explicitly disable pointer-driven focus/drag behavior.
+            model.interactive = false;
             app.stage.addChild(model);
 
             const place = () => {
@@ -132,17 +140,61 @@ export function Live2DStage({
         if (!model) return;
         const core = model.internalModel?.coreModel;
         if (!core) return;
+
+        const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+        const maxStep = 0.025; // limit per-frame movement to reduce shaking
+
         const tick = () => {
+            // Mirror-like head/eye follow from FaceMesh/Pose nose coordinates.
+            if (isDetecting && facePosition) {
+                if (!biasReadyAtRef.current) {
+                    biasReadyAtRef.current = Date.now() + 1200;
+                }
+                // Learn neutral center slowly to remove one-sided offset.
+                biasRef.current.x = biasRef.current.x * 0.995 + facePosition.x * 0.005;
+                biasRef.current.y = biasRef.current.y * 0.995 + facePosition.y * 0.005;
+
+                const correctedX = facePosition.x - biasRef.current.x;
+                const correctedY = facePosition.y - biasRef.current.y;
+                targetRef.current.x = clamp(correctedX * 1.35, -1, 1);
+                targetRef.current.y = clamp(correctedY * 1.2, -1, 1);
+                lastSeenRef.current = Date.now();
+            } else {
+                // Keep last target briefly to avoid "snap-to-center" jitter on short detection drops.
+                if (Date.now() - lastSeenRef.current > 500) {
+                    targetRef.current.x = 0;
+                    targetRef.current.y = 0;
+                }
+            }
+            const dx = clamp(targetRef.current.x - smoothRef.current.x, -maxStep, maxStep);
+            const dy = clamp(targetRef.current.y - smoothRef.current.y, -maxStep, maxStep);
+            smoothRef.current.x += dx;
+            smoothRef.current.y += dy;
+            smoothRef.current.x = smoothRef.current.x * 0.94 + targetRef.current.x * 0.06;
+            smoothRef.current.y = smoothRef.current.y * 0.94 + targetRef.current.y * 0.06;
+
+            // Small dead-zone to suppress jitter from tiny detection noise.
+            if (Math.abs(smoothRef.current.x) < 0.03) smoothRef.current.x = 0;
+            if (Math.abs(smoothRef.current.y) < 0.03) smoothRef.current.y = 0;
+
+            core.setParameterValueById("ParamAngleX", clamp(smoothRef.current.x * 20, -20, 20));
+            core.setParameterValueById("ParamAngleY", clamp(smoothRef.current.y * 14, -14, 14));
+            core.setParameterValueById("ParamEyeBallX", clamp(smoothRef.current.x * 0.75, -1, 1));
+            core.setParameterValueById("ParamEyeBallY", clamp(smoothRef.current.y * 0.75, -1, 1));
+
             if (!speaking) {
                 core.setParameterValueById("ParamMouthOpenY", 0);
             } else {
                 core.setParameterValueById("ParamMouthOpenY", Math.sin(Date.now() / 50) * 0.5 + 0.5);
             }
-            requestAnimationFrame(tick);
+            animRef.current = requestAnimationFrame(tick);
         };
-        const rid = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(rid);
-    }, [speaking, facePosition]);
+        animRef.current = requestAnimationFrame(tick);
+        return () => {
+            if (animRef.current != null) cancelAnimationFrame(animRef.current);
+            animRef.current = null;
+        };
+    }, [speaking, isDetecting, facePosition]);
 
     return (
         <div ref={boxRef} className="relative w-full h-full min-h-[400px]">

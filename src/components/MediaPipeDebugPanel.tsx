@@ -1,144 +1,182 @@
-import React, { useEffect, useRef } from "react";
-import { FACEMESH_TESSELATION, FACEMESH_CONTOURS } from "@mediapipe/face_mesh";
-import { POSE_CONNECTIONS } from "@mediapipe/pose";
-import { HAND_CONNECTIONS } from "@mediapipe/hands";
-import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
-
-interface Props {
-    faceResults?: any;
-    poseResults?: any;
-    handsResults?: any;
-    videoElement?: HTMLVideoElement | null;
+﻿interface Props {
+  videoElement?: HTMLVideoElement | null;
+  hesitationScore?: number;
+  isHesitating?: boolean;
+  faceScore?: number;
+  poseScore?: number;
+  poseFeatures?: Record<string, number> | null;
+  isDetecting?: boolean;
+  error?: string | null;
+  isOpen: boolean;
+  onToggle: () => void;
+  sttEnabled: boolean;
+  ttsEnabled: boolean;
+  llmEnabled: boolean;
+  listeningEnabled: boolean;
+  onToggleStt: (next: boolean) => void;
+  onToggleTts: (next: boolean) => void;
+  onToggleLlm: (next: boolean) => void;
+  onStartVoice: () => void;
+  onStopVoice: () => void;
+  micDevices: MediaDeviceInfo[];
+  selectedDeviceId?: string;
+  onSelectDevice: (deviceId: string) => void;
+  voiceLogs: string[];
 }
 
-export default function MediaPipeDebugPanel({ faceResults, poseResults, handsResults, videoElement }: Props) {
-    const faceCanvasRef = useRef<HTMLCanvasElement>(null);
-    const poseCanvasRef = useRef<HTMLCanvasElement>(null);
-    const handsCanvasRef = useRef<HTMLCanvasElement>(null);
+export default function MediaPipeDebugPanel({
+  hesitationScore = 0,
+  isHesitating = false,
+  faceScore = 0,
+  poseScore = 0,
+  poseFeatures = null,
+  isDetecting = false,
+  error = null,
+  isOpen,
+  onToggle,
+  sttEnabled,
+  ttsEnabled,
+  llmEnabled,
+  listeningEnabled,
+  onToggleStt,
+  onToggleTts,
+  onToggleLlm,
+  onStartVoice,
+  onStopVoice,
+  micDevices,
+  selectedDeviceId,
+  onSelectDevice,
+  voiceLogs,
+}: Props) {
+  const handHover = Number(poseFeatures?.hand_hover ?? 0);
+  const torsoLean = Number(poseFeatures?.torso_lean ?? 0);
+  const sway = Number(poseFeatures?.sway ?? 0);
 
-    const lastLogTime = useRef<number>(0);
-
-    const draw = (canvas: HTMLCanvasElement | null, results: any, type: 'face' | 'pose' | 'hands') => {
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d', { alpha: false });
-        if (!ctx) return;
-
-        const w = canvas.width;
-        const h = canvas.height;
-        if (w === 0 || h === 0) return;
-
-        // 1. CLEAR & BACKGROUND
-        ctx.fillStyle = "#1a1a1a";
-        ctx.fillRect(0, 0, w, h);
-
-        // 2. DRAW VIDEO + LANDMARKS (Natural orientation, no mirroring)
-        ctx.save();
-
-        // Draw Video
-        if (videoElement && videoElement.readyState >= 2) {
-            ctx.drawImage(videoElement, 0, 0, w, h);
-        }
-
-        // Draw Landmarks
-        if (results) {
-            try {
-                const drawOptions = {
-                    face: { connector: { color: '#ffffff50', lineWidth: 1 }, contour: { color: '#ffffff', lineWidth: 2 } },
-                    pose: { connector: { color: '#10b981', lineWidth: 3 }, landmark: { color: '#ffffff', lineWidth: 1, radius: 2 } },
-                    hands: { connector: { color: '#33ccff', lineWidth: 4 }, landmark: { color: '#ffffff', lineWidth: 1, radius: 2 } }
-                };
-
-                if (type === 'face' && results.multiFaceLandmarks) {
-                    for (const landmarks of results.multiFaceLandmarks) {
-                        drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, drawOptions.face.connector);
-                        drawConnectors(ctx, landmarks, FACEMESH_CONTOURS, drawOptions.face.contour);
-                    }
-                }
-
-                if (type === 'pose' && results.poseLandmarks) {
-                    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, drawOptions.pose.connector);
-                    drawLandmarks(ctx, results.poseLandmarks, drawOptions.pose.landmark);
-                }
-
-                if (type === 'hands' && results.multiHandLandmarks) {
-                    for (const landmarks of results.multiHandLandmarks) {
-                        drawConnectors(ctx, landmarks, HAND_CONNECTIONS, drawOptions.hands.connector);
-                        drawLandmarks(ctx, landmarks, drawOptions.hands.landmark);
-                    }
-                }
-            } catch (err) {
-                console.error(`[MediaPipe] Error drawing ${type}:`, err);
-            }
-        }
-
-        // 3. DEBUG CENTER POINT (Red dot)
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-
-        // 4. STATUS TEXT (Drawn LAST to be on top)
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 12px Arial";
-        ctx.shadowColor = "black";
-        ctx.shadowBlur = 4;
-        ctx.fillText(`${type.toUpperCase()}: ${results ? 'DETECTED' : 'SEARCHING...'}`, 10, 25);
-        if (videoElement) {
-            ctx.fillText(`Webcam: ${videoElement.readyState >= 2 ? 'OK' : 'LOADING...'}`, 10, 42);
-        }
-        ctx.shadowBlur = 0;
-    };
-
-    useEffect(() => {
-        let requestId: number;
-        const renderLoop = () => {
-            draw(faceCanvasRef.current, faceResults, 'face');
-            draw(poseCanvasRef.current, poseResults, 'pose');
-            draw(handsCanvasRef.current, handsResults, 'hands');
-            requestId = requestAnimationFrame(renderLoop);
-        };
-        requestId = requestAnimationFrame(renderLoop);
-        return () => cancelAnimationFrame(requestId);
-    }, [faceResults, poseResults, handsResults, videoElement]);
-
-    return (
-        <div
-            className="fixed flex flex-col gap-4 p-4 bg-white/10 backdrop-blur-lg rounded-3xl z-[1000] border border-white/20 shadow-2xl"
-            style={{
-                top: '40px',
-                right: '40px',
-                width: '360px',
-            }}
+  return (
+    <div className="fixed z-[5000]" style={{ top: "24px", right: "24px" }}>
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="px-3 py-2 rounded-xl bg-black/70 text-white text-xs border border-white/20 hover:bg-black/80"
         >
-            <div className="flex flex-col gap-2">
-                <span className="text-white text-sm font-bold px-2 tracking-wider">FACE MESH</span>
-                <canvas
-                    ref={faceCanvasRef} width={320} height={240}
-                    className="w-full bg-black/40 rounded-2xl border border-white/10 shadow-inner"
-                />
+          {isOpen ? "DEV 닫기" : "DEV 열기"}
+        </button>
+
+        {isOpen && (
+          <div
+            className="flex flex-col gap-3 p-3 bg-black/60 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl"
+            style={{ width: "380px" }}
+          >
+            <div className="text-white text-xs font-semibold">Server Hesitation (Face+Pose Always On)</div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs text-white">
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                Final: <b>{Math.round(hesitationScore * 100)}%</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                State: <b className={isHesitating ? "text-red-300" : "text-emerald-300"}>{isHesitating ? "HESITATING" : "NORMAL"}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                face_score: <b>{faceScore.toFixed(3)}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                pose_score: <b>{poseScore.toFixed(3)}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                hand_hover: <b>{handHover.toFixed(3)}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                torso_lean: <b>{torsoLean.toFixed(3)}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                sway: <b>{sway.toFixed(3)}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1">
+                Tracking: <b>{isDetecting ? "ON" : "OFF"}</b>
+              </div>
+              <div className="bg-white/10 rounded-lg px-2 py-1 col-span-2">
+                {error ? <span className="text-red-300">{error}</span> : <span className="text-white/80">Local MediaPipe disabled for stability</span>}
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-                <span className="text-white text-sm font-bold px-2 tracking-wider">POSE</span>
-                <canvas
-                    ref={poseCanvasRef} width={320} height={240}
-                    className="w-full bg-black/40 rounded-2xl border border-white/10 shadow-inner"
-                />
+            <div className="text-white text-xs font-semibold">Voice AI Controls</div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => onToggleStt(!sttEnabled)}
+                className={`px-2 py-1 rounded-lg border ${sttEnabled ? "bg-emerald-500/70 text-white border-emerald-300/60" : "bg-white/10 text-white/80 border-white/20"}`}
+              >
+                STT {sttEnabled ? "ON" : "OFF"}
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleTts(!ttsEnabled)}
+                className={`px-2 py-1 rounded-lg border ${ttsEnabled ? "bg-emerald-500/70 text-white border-emerald-300/60" : "bg-white/10 text-white/80 border-white/20"}`}
+              >
+                TTS {ttsEnabled ? "ON" : "OFF"}
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleLlm(!llmEnabled)}
+                className={`px-2 py-1 rounded-lg border ${llmEnabled ? "bg-emerald-500/70 text-white border-emerald-300/60" : "bg-white/10 text-white/80 border-white/20"}`}
+              >
+                LLM {llmEnabled ? "ON" : "OFF"}
+              </button>
             </div>
 
-            <div className="flex flex-col gap-2">
-                <span className="text-white text-sm font-bold px-2 tracking-wider">HANDS</span>
-                <canvas
-                    ref={handsCanvasRef} width={320} height={240}
-                    className="w-full bg-black/40 rounded-2xl border border-white/10 shadow-inner"
-                />
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={onStartVoice}
+                className="flex-1 px-2 py-1 rounded-lg border bg-blue-500/70 text-white border-blue-300/60"
+              >
+                VOICE START
+              </button>
+              <button
+                type="button"
+                onClick={onStopVoice}
+                className="flex-1 px-2 py-1 rounded-lg border bg-white/10 text-white/80 border-white/20"
+              >
+                VOICE STOP
+              </button>
+            </div>
+            <div className="text-[11px] text-white/80">Mic: <b>{listeningEnabled ? "LISTENING" : "PAUSED"}</b></div>
+
+            <div className="text-white text-xs font-semibold">Mic Device</div>
+            <select
+              value={selectedDeviceId || ""}
+              onChange={(e) => onSelectDevice(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-xs text-white"
+            >
+              {micDevices.length === 0 ? (
+                <option value="">No mic detected</option>
+              ) : (
+                micDevices.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Mic ${d.deviceId.slice(0, 6)}`}
+                  </option>
+                ))
+              )}
+            </select>
+
+            <div className="text-white text-xs font-semibold">Voice Logs</div>
+            <div className="max-h-44 overflow-y-auto bg-black/30 border border-white/15 rounded-lg p-2 text-[11px] text-white/90">
+              {voiceLogs.length === 0 ? (
+                <div className="text-white/60">No logs yet</div>
+              ) : (
+                voiceLogs.map((log, idx) => (
+                  <div key={`${idx}-${log}`} className="py-0.5 border-b border-white/10 last:border-b-0">
+                    {log}
+                  </div>
+                ))
+              )}
             </div>
 
-            <div className="text-white/40 text-[10px] text-center mt-1 uppercase tracking-tighter">
-                MediaPipe Analysis Pipeline Active
-            </div>
-        </div>
-    );
+            <div className="text-white/50 text-[10px] text-center uppercase tracking-tight">Developer Panel</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

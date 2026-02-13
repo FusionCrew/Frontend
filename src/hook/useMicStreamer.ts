@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import { AI_BASE_URL } from "../api/config";
 
-/** ===== 타입 & 옵션 ===== */
+/** ===== ???& ?듭뀡 ===== */
 type Opts = {
   enabled: boolean;
   deviceId?: string;
@@ -11,29 +11,30 @@ type Opts = {
   llmModel: string;
   onResult: (json: { original: string; translations: { lang: string; text: string }[] }) => void;
   onError?: (msg: string) => void;
-  // ====== VAD & 세그먼트 파라미터 (필요시 조절) ======
-  /** VAD 시작 임계치 (높을수록 둔감). 기본 0.005 */
+  onDebug?: (msg: string) => void;
+  // ====== VAD & ?멸렇癒쇳듃 ?뚮씪誘명꽣 (?꾩슂??議곗젅) ======
+  /** VAD ?쒖옉 ?꾧퀎移?(?믪쓣?섎줉 ?붽컧). 湲곕낯 0.005 */
   vadGateHigh?: number;
-  /** VAD 종료 임계치(히스테리시스). 기본 0.004 */
+  /** VAD 醫낅즺 ?꾧퀎移??덉뒪?뚮━?쒖뒪). 湲곕낯 0.004 */
   vadGateLow?: number;
-  /** 무음 패딩(ms): 말이 멈춘 뒤 이 시간만 조용하면 segment 종료. 기본 70ms */
+  /** 臾댁쓬 ?⑤뵫(ms): 留먯씠 硫덉텣 ?????쒓컙留?議곗슜?섎㈃ segment 醫낅즺. 湲곕낯 70ms */
   padMs?: number;
-  /** 최소 발화 길이(ms): 이보다 짧으면 폐기. 기본 400ms */
+  /** 理쒖냼 諛쒗솕 湲몄씠(ms): ?대낫??吏㏃쑝硫??먭린. 湲곕낯 400ms */
   minSpeechMs?: number;
-  /** 최대 발화 길이(ms): 이보다 길면 안전하게 강제 컷. 기본 5000ms */
+  /** 理쒕? 諛쒗솕 湲몄씠(ms): ?대낫??湲몃㈃ ?덉쟾?섍쾶 媛뺤젣 而? 湲곕낯 5000ms */
   maxSegmentMs?: number;
-  /** 아주 약한 프리게인(1.0~1.3 권장). 기본 1.05 */
+  /** ?꾩＜ ?쏀븳 ?꾨━寃뚯씤(1.0~1.3 沅뚯옣). 湲곕낯 1.05 */
   preGain?: number;
-  // ====== 번역 파라미터 ======
-  /** 번역 샘플링 파라미터 (이전 모듈과 유사) */
-  translationTemperature?: number; // 기본 0
-  translationTopP?: number;        // 기본 1
-  translationMaxTokens?: number;   // 기본 256
-  /** 병렬 워커 수 상한 */
-  translationParallelWorkers?: number; // 기본 outputs.length
+  // ====== 踰덉뿭 ?뚮씪誘명꽣 ======
+  /** 踰덉뿭 ?섑뵆留??뚮씪誘명꽣 (?댁쟾 紐⑤뱢怨??좎궗) */
+  translationTemperature?: number; // 湲곕낯 0
+  translationTopP?: number;        // 湲곕낯 1
+  translationMaxTokens?: number;   // 湲곕낯 256
+  /** 蹂묐젹 ?뚯빱 ???곹븳 */
+  translationParallelWorkers?: number; // 湲곕낯 outputs.length
 };
 
-/** ===== 유틸 ===== */
+/** ===== ?좏떥 ===== */
 function floatTo16BitPCM(src: Float32Array): Int16Array {
   const out = new Int16Array(src.length);
   for (let i = 0; i < src.length; i++) {
@@ -112,7 +113,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init: RequestInit, tries
 
 export function useMicStreamer(opts: Opts) {
   const {
-    enabled, deviceId, inputLang, outputs = [], sttModel, llmModel, onResult, onError,
+    enabled, deviceId, inputLang, outputs = [], sttModel, llmModel, onResult, onError, onDebug,
     vadGateHigh = 0.01, vadGateLow = 0.004, padMs = 70, minSpeechMs = 800, maxSegmentMs = 5000, preGain = 1.02,
     translationTemperature = 0, translationTopP = 1, translationMaxTokens = 256, translationParallelWorkers,
   } = opts;
@@ -123,20 +124,20 @@ export function useMicStreamer(opts: Opts) {
   const mediaRef = useRef<MediaStream | null>(null);
   const reqCtrlRef = useRef<AbortController | null>(null);
 
-  // 세그먼트 상태
+  // ?멸렇癒쇳듃 ?곹깭
   const segFramesRef = useRef<Float32Array[]>([]);
   const segDurMsRef = useRef<number>(0);
   const silenceMsRef = useRef<number>(0);
   const speakingRef = useRef<boolean>(false);
-  const voicedMsRef = useRef<number>(0);       // ✅ 누적 "발화" 시간(무성 구간 제외)
+  const voicedMsRef = useRef<number>(0);       // ???꾩쟻 "諛쒗솕" ?쒓컙(臾댁꽦 援ш컙 ?쒖쇅)
 
   useEffect(() => {
     (async () => {
       try {
-        await fetch(`${AI_BASE_URL}/warmup`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sttModel, llmModel, warmupLanguage: inputLang }),
+        // Warmup endpoint is not guaranteed in every deployment.
+        // Use health ping to avoid noisy 500s when proxy routes are absent.
+        await fetch(`${AI_BASE_URL}/meta/health`, {
+          method: "GET",
         });
       } catch { }
     })();
@@ -145,25 +146,35 @@ export function useMicStreamer(opts: Opts) {
   const outputsKey = (outputs && Array.isArray(outputs)) ? outputs.join("|") : "";
 
   useEffect(() => {
-    if (!enabled) { cleanup(); return; }
+    if (!enabled) {
+      onDebug?.("mic disabled");
+      cleanup();
+      return;
+    }
 
     let stopped = false;
     (async () => {
       try {
+        onDebug?.(`mic init: device=${deviceId || "default"}`);
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: deviceId ? { deviceId: { exact: deviceId } } : true,
         });
         if (stopped) return;
         mediaRef.current = stream;
+        onDebug?.("mic stream opened");
 
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         ctxRef.current = ctx;
+        if (ctx.state !== "running") {
+          await ctx.resume();
+        }
+        onDebug?.(`audio context: ${ctx.state}`);
         const src = ctx.createMediaStreamSource(stream);
         srcRef.current = src;
         const proc = ctx.createScriptProcessor(2048, 1, 1);
         procRef.current = proc;
 
-        // 초기화
+        // 珥덇린??
         segFramesRef.current = [];
         segDurMsRef.current = 0;
         silenceMsRef.current = 0;
@@ -186,11 +197,12 @@ export function useMicStreamer(opts: Opts) {
 
           if (!speakingRef.current) {
             if (energy >= vadGateHigh) {
+              onDebug?.(`speech start: energy=${energy.toFixed(4)}`);
               speakingRef.current = true;
               segFramesRef.current.push(down);
               segDurMsRef.current += frameMs;
               silenceMsRef.current = 0;
-              voicedMsRef.current += frameMs;             // ✅ 시작 프레임을 발화로 카운트
+              voicedMsRef.current += frameMs;             // ???쒖옉 ?꾨젅?꾩쓣 諛쒗솕濡?移댁슫??
             }
           } else {
             segFramesRef.current.push(down);
@@ -199,13 +211,15 @@ export function useMicStreamer(opts: Opts) {
             if (energy < vadGateLow) {
               silenceMsRef.current += frameMs;
               if (silenceMsRef.current >= padMs || segDurMsRef.current >= maxSegmentMs) {
+                onDebug?.(`speech end: dur=${Math.round(segDurMsRef.current)}ms`);
                 finalizeSegment().catch(e => onError?.(String(e)));
                 resetSegmentState();
               }
             } else {
               silenceMsRef.current = 0;
-              voicedMsRef.current += frameMs;             // ✅ 발화 프레임 누적
+              voicedMsRef.current += frameMs;             // ??諛쒗솕 ?꾨젅???꾩쟻
               if (segDurMsRef.current >= maxSegmentMs) {
+                onDebug?.(`speech cut(max): dur=${Math.round(segDurMsRef.current)}ms`);
                 finalizeSegment().catch(e => onError?.(String(e)));
                 resetSegmentState();
               }
@@ -241,15 +255,18 @@ export function useMicStreamer(opts: Opts) {
     const voicedMs = voicedMsRef.current;
 
     if (!frames.length) return;
-    if (durMs < minSpeechMs) return;
+    if (durMs < minSpeechMs) {
+      onDebug?.(`segment dropped(short): dur=${Math.round(durMs)}ms`);
+      return;
+    }
 
-    // 합치기
+    // ?⑹튂湲?
     const totalLen = frames.reduce((a, b) => a + b.length, 0);
     const merged = new Float32Array(totalLen);
     let off = 0;
     for (const f of frames) { merged.set(f, off); off += f.length; }
 
-    // 품질 지표 계산
+    // ?덉쭏 吏??怨꾩궛
     let peak = 0;
     for (let i = 0; i < merged.length; i++) {
       const a = Math.abs(merged[i]);
@@ -258,9 +275,10 @@ export function useMicStreamer(opts: Opts) {
     const rms = rmsEnergy(merged);
     const voicedFraction = voicedMs > 0 ? voicedMs / Math.max(1, durMs) : 0;
 
-    // 아주 약한 선제 필터 (무성/잡음만인 경우)
+    // ?꾩＜ ?쏀븳 ?좎젣 ?꾪꽣 (臾댁꽦/?≪쓬留뚯씤 寃쎌슦)
     if (voicedFraction < 0.18 && durMs < 1200) {
-      // 거의 무성 + 짧음 ⇒ 아예 폐기
+      // 嫄곗쓽 臾댁꽦 + 吏㏃쓬 ???꾩삁 ?먭린
+      onDebug?.(`segment dropped(noisy): voiced=${voicedFraction.toFixed(2)} dur=${Math.round(durMs)}ms`);
       return;
     }
 
@@ -268,12 +286,13 @@ export function useMicStreamer(opts: Opts) {
     const wavBuf = encodeWav(pcm16, 16000);
     const blob = new Blob([wavBuf], { type: "audio/wav" });
 
-    // 네트워크 요청 컨트롤러
+    // ?ㅽ듃?뚰겕 ?붿껌 而⑦듃濡ㅻ윭
     reqCtrlRef.current?.abort();
     const ac = new AbortController();
     reqCtrlRef.current = ac;
 
     try {
+      onDebug?.(`stt request: dur=${Math.round(durMs)}ms`);
       /** 1) STT (Updated for Spring Boot: JSON with Base64) */
       const reader = new FileReader();
       reader.readAsDataURL(blob);
@@ -288,7 +307,8 @@ export function useMicStreamer(opts: Opts) {
           body: JSON.stringify({
             audioBase64: base64Audio,
             language: inputLang,
-            model: sttModel
+            model: sttModel,
+            mimeType: "audio/wav"
           }),
           signal: ac.signal
         },
@@ -298,10 +318,23 @@ export function useMicStreamer(opts: Opts) {
       // Spring returns AiCommonResponse<SttDto.Result>
       // { success: true, data: { text: "..." } }
       const sttJson = await sttRes.json();
-      const transcript = (sttJson?.data?.text || "").trim();
-      if (!transcript) return;
+      const transcript = (
+        sttJson?.data?.text ||
+        sttJson?.data?.transcript ||
+        sttJson?.text ||
+        ""
+      ).trim();
+      if (!transcript) {
+        const errCode = sttJson?.error?.code || "";
+        const errMsg = sttJson?.error?.message || "";
+        onDebug?.(
+          `stt empty transcript (success=${String(sttJson?.success)} code=${String(errCode)} message=${String(errMsg || sttJson?.message || "")})`
+        );
+        return;
+      }
+      onDebug?.(`stt ok: ${transcript}`);
 
-      /** 2) 번역 — 병렬 */
+      /** 2) 踰덉뿭 ??蹂묐젹 */
       const maxWorkers = Math.max(
         1, Math.min(outputs.length || 1, translationParallelWorkers ?? (outputs.length || 1))
       );

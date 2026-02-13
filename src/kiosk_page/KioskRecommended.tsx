@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StaffCallButton, BackButton, KioskCharacter, BottomPanel } from "../components/KioskComponents";
 import SpeechBubble from "../components/SpeechBubble";
 import PaymentFlow from "../components/PaymentFlow";
@@ -25,11 +25,16 @@ interface Props {
   ticketNumber?: string | null;
   onProcessOrder?: (amount: number) => Promise<string | null>;
   onResetTicket?: () => void;
+  voiceCheckoutSignal?: number;
+  voiceContinueSignal?: number;
+  voiceCartSignal?: number;
+  voicePaymentSignal?: number;
+  voicePaymentMethod?: "CARD" | "POINT" | "SIMPLE" | null;
 }
 
 export default function KioskRecommended({
   onBack, onGoToMain, menuItems: fetchedMenuItems, sharedCart: cart, ticketNumber,
-  onProcessOrder, onResetTicket
+  onProcessOrder, onResetTicket, voiceCheckoutSignal, voiceContinueSignal, voiceCartSignal, voicePaymentSignal, voicePaymentMethod
 }: Props) {
   // 페이지네이션
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,6 +50,39 @@ export default function KioskRecommended({
   // 훅
   const menu = useMenuSelection();
   const payment = usePaymentFlow();
+
+  useEffect(() => {
+    if (!voiceCheckoutSignal) return;
+    cart.setShowCart(true);
+    payment.setShowPaymentSelection(true);
+  }, [voiceCheckoutSignal]);
+
+  useEffect(() => {
+    if (!voiceCartSignal) return;
+    cart.setShowCart(true);
+  }, [voiceCartSignal]);
+
+  useEffect(() => {
+    if (!voiceContinueSignal) return;
+    payment.resetPaymentFlow();
+    menu.resetSelection();
+    cart.setShowCart(false);
+    setCurrentIndex(0);
+  }, [voiceContinueSignal]);
+
+  useEffect(() => {
+    if (!voicePaymentSignal || !voicePaymentMethod) return;
+    if (!payment.showPaymentSelection && !payment.showPaymentProcessing && !payment.showPointUsage && !payment.showSimplePayment) {
+      return;
+    }
+    payment.setShowPaymentSelection(false);
+    payment.setShowPaymentProcessing(false);
+    payment.setShowPointUsage(false);
+    payment.setShowSimplePayment(false);
+    if (voicePaymentMethod === "CARD") payment.setShowPaymentProcessing(true);
+    if (voicePaymentMethod === "POINT") payment.setShowPointUsage(true);
+    if (voicePaymentMethod === "SIMPLE") payment.setShowSimplePayment(true);
+  }, [voicePaymentSignal, voicePaymentMethod]);
 
   const isPaymentActive = payment.showPaymentSelection || payment.showPaymentProcessing ||
     payment.showPaymentComplete || payment.showPointUsage ||
@@ -215,9 +253,18 @@ export default function KioskRecommended({
         usedPoints={payment.usedPoints}
         totalAmount={cart.calculateCartTotal()}
         onClosePaymentSelection={() => payment.setShowPaymentSelection(false)}
-        onSelectCard={() => payment.setShowPaymentProcessing(true)}
-        onSelectPoint={() => payment.setShowPointUsage(true)}
-        onSelectSimple={() => payment.setShowSimplePayment(true)}
+        onSelectCard={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowPaymentProcessing(true);
+        }}
+        onSelectPoint={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowPointUsage(true);
+        }}
+        onSelectSimple={() => {
+          payment.setShowPaymentSelection(false);
+          payment.setShowSimplePayment(true);
+        }}
         onClosePaymentProcessing={() => payment.setShowPaymentProcessing(false)}
         onPaymentComplete={handleManualOrder}
         onClosePointUsage={() => payment.setShowPointUsage(false)}

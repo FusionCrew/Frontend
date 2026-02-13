@@ -1,13 +1,12 @@
 import { useState } from "react";
 import type { MenuItem, CartItem, SelectedOption } from "../types/kiosk";
-import { addCartItem, clearCart as clearCartApi } from "../api/services";
+import { addCartItem, clearCart as clearCartApi, updateCartItem } from "../api/services";
 
 export function useCart(cartId?: string | null) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [cartExpanded, setCartExpanded] = useState(false);
 
-  // 장바구니에 추가
   const addToCart = async (
     menu: MenuItem,
     quantity: number,
@@ -18,8 +17,7 @@ export function useCart(cartId?: string | null) {
     isLargeSet: boolean = false,
     selectedOptions: SelectedOption[] = []
   ) => {
-    // 1. API 동기화 (cartId가 있을 경우)
-    let backendItemId: string | undefined = undefined;
+    let backendItemId: string | undefined;
     if (cartId) {
       try {
         const options: any = {};
@@ -33,7 +31,7 @@ export function useCart(cartId?: string | null) {
         const res = await addCartItem(cartId, {
           menuItemId: menu.menuItemId || menu.id.toString(),
           quantity,
-          options
+          options,
         });
         if (res?.itemId) backendItemId = res.itemId;
       } catch (e) {
@@ -41,7 +39,6 @@ export function useCart(cartId?: string | null) {
       }
     }
 
-    // 2. 로컬 상태 업데이트
     const newItem: CartItem = {
       menu,
       quantity,
@@ -51,60 +48,81 @@ export function useCart(cartId?: string | null) {
       removedIngredients: [...removedIngredients],
       selectedOptions: [...selectedOptions],
       isLargeSet,
-      itemId: backendItemId // 백엔드 아이템 ID 팔로업용
+      itemId: backendItemId,
     };
-    setCartItems([...cartItems, newItem]);
+    setCartItems((prev) => [...prev, newItem]);
     setShowCart(true);
   };
 
-  // 장바구니 아이템 수량 변경 (0이 되면 삭제)
-  const updateCartQuantity = (index: number, delta: number) => {
-    const newItems = [...cartItems];
-    const newQty = newItems[index].quantity + delta;
-
-    // TODO: 백엔드 수량 변경 API 연동 (optional for now)
-
-    if (newQty <= 0) {
-      // 아이템 삭제
-      newItems.splice(index, 1);
-      setCartItems(newItems);
-      // 장바구니가 비면 닫기
-      if (newItems.length === 0) {
-        setShowCart(false);
-        setCartExpanded(false);
-      }
-    } else {
-      newItems[index].quantity = newQty;
-      setCartItems(newItems);
-    }
+  const appendLocalVoiceItem = (menu: MenuItem, quantity: number, itemId?: string) => {
+    const newItem: CartItem = {
+      menu,
+      quantity,
+      side: "",
+      drink: "",
+      size: "",
+      removedIngredients: [],
+      selectedOptions: [],
+      isLargeSet: false,
+      itemId,
+    };
+    setCartItems((prev) => [...prev, newItem]);
+    setShowCart(true);
   };
 
-  // 장바구니 아이템 삭제
-  const removeFromCart = (index: number) => {
-    const newItems = [...cartItems];
-    newItems.splice(index, 1);
-    setCartItems(newItems);
-    if (newItems.length === 0) {
+  const updateCartQuantity = async (index: number, delta: number) => {
+    const current = cartItems[index];
+    if (!current) return;
+    const nextQty = current.quantity + delta;
+    await setCartQuantity(index, nextQty);
+  };
+
+  const setCartQuantity = async (index: number, quantity: number) => {
+    const targetQty = Math.max(0, quantity);
+    const current = cartItems[index];
+    if (!current) return;
+
+    if (cartId && current.itemId) {
+      try {
+        await updateCartItem(cartId, current.itemId, targetQty);
+      } catch (e) {
+        console.error("Failed to sync cart quantity to backend", e);
+      }
+    }
+
+    setCartItems((prev) => {
+      const next = [...prev];
+      if (!next[index]) return prev;
+      if (targetQty <= 0) {
+        next.splice(index, 1);
+      } else {
+        next[index] = { ...next[index], quantity: targetQty };
+      }
+      return next;
+    });
+
+    if (targetQty <= 0 && cartItems.length <= 1) {
       setShowCart(false);
       setCartExpanded(false);
     }
   };
 
-  // 장바구니 총 가격 계산
+  const removeFromCart = async (index: number) => {
+    await setCartQuantity(index, 0);
+  };
+
   const calculateCartTotal = () => {
     return cartItems.reduce((total, item) => {
       let itemPrice = item.menu.price;
-      if (item.size === "세트") {
+      if (item.size === "��Ʈ") {
         itemPrice += 3000;
         if (item.isLargeSet) itemPrice += 500;
       }
-      // 옵션 가격 추가
       const optionsPrice = (item.selectedOptions || []).reduce((sum, opt) => sum + opt.extraPrice, 0);
       return total + (itemPrice + optionsPrice) * item.quantity;
     }, 0);
   };
 
-  // 장바구니 비우기
   const clearCart = async () => {
     if (cartId) {
       try {
@@ -118,9 +136,8 @@ export function useCart(cartId?: string | null) {
     setCartExpanded(false);
   };
 
-  // 장바구니 토글
   const toggleCartExpanded = () => {
-    setCartExpanded(!cartExpanded);
+    setCartExpanded((prev) => !prev);
   };
 
   return {
@@ -128,7 +145,9 @@ export function useCart(cartId?: string | null) {
     showCart,
     cartExpanded,
     addToCart,
+    appendLocalVoiceItem,
     updateCartQuantity,
+    setCartQuantity,
     removeFromCart,
     calculateCartTotal,
     clearCart,
@@ -136,4 +155,3 @@ export function useCart(cartId?: string | null) {
     setShowCart,
   };
 }
-

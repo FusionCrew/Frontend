@@ -1003,7 +1003,7 @@ export default function VoiceKiosk() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text: text,
-            voice: "alloy",
+            voice: "nova",
             speed: 1.0
           })
         });

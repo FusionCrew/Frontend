@@ -61,7 +61,7 @@ export default function SizeSelectionView({
       <div
         style={{
           position: "absolute",
-          top: "160px",
+          top: "240px",
           left: "50%",
           transform: "translateX(-50%)",
           textAlign: "center",
@@ -79,7 +79,7 @@ export default function SizeSelectionView({
       <div
         style={{
           position: "absolute",
-          top: "280px",
+          top: "390px",
           left: "50%",
           transform: "translateX(-50%)",
           display: "flex",

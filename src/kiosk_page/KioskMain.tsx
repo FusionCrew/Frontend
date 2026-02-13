@@ -1,5 +1,5 @@
-import arrowIcon from "../assets/arrow_icon.png";
-import { StaffCallButton, KioskCharacter } from "../components/KioskComponents";
+﻿import arrowIcon from "../assets/arrow_icon.png";
+import { StaffCallButton } from "../components/KioskComponents";
 
 interface KioskMainProps {
   onOrder: () => void;
@@ -11,28 +11,25 @@ interface KioskMainProps {
 export default function KioskMain({ onOrder, onAccessibility, onStaffCall }: KioskMainProps) {
   return (
     <div className="w-full h-full relative">
-      {/* 직원 호출 버튼 */}
       <StaffCallButton onClick={onStaffCall} />
 
-      {/* 메인 안내 텍스트 */}
       <div
         className="absolute left-0 right-0 text-center"
         style={{
           top: "178px",
           color: "#4A3728",
           fontFamily: "'Noto Sans KR', sans-serif",
-          zIndex: 100
+          zIndex: 100,
         }}
       >
         <p style={{ fontSize: "56px", fontWeight: "bold", lineHeight: "1.5" }}>
-          주문을 원하시면 화면을 터치하거나,
+          음성 주문을 시작하려면
         </p>
-        <p style={{ fontSize: "56px", fontWeight: "bold" }}>
-          저에게 말씀해 주세요
+        <p style={{ fontSize: "48px", fontWeight: "bold" }}>
+          오른쪽 DEV에서 VOICE START를 눌러주세요
         </p>
       </div>
 
-      {/* 주문하기 버튼 */}
       <button
         onClick={onOrder}
         className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center gap-3 text-white shadow-lg"
@@ -44,14 +41,13 @@ export default function KioskMain({ onOrder, onAccessibility, onStaffCall }: Kio
           backgroundColor: "#C32911",
           fontSize: "72px",
           fontWeight: "500",
-          fontFamily: "'Noto Sans KR', sans-serif"
+          fontFamily: "'Noto Sans KR', sans-serif",
         }}
       >
         <span>주문하기</span>
-        <img src={arrowIcon} alt="화살표" style={{ height: "80px", width: "auto" }} />
+        <img src={arrowIcon} alt="안내" style={{ height: "80px", width: "auto" }} />
       </button>
 
-      {/* 시각장애인 음성 안내 - 버튼으로부터 33px 아래 */}
       <button
         onClick={onAccessibility}
         className="absolute left-1/2 -translate-x-1/2"
@@ -64,7 +60,7 @@ export default function KioskMain({ onOrder, onAccessibility, onStaffCall }: Kio
           paddingBottom: "4px",
           background: "none",
           border: "none",
-          cursor: "pointer"
+          cursor: "pointer",
         }}
       >
         시각장애인 음성 안내
