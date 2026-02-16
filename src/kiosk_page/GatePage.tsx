@@ -7,6 +7,8 @@ const GatePage: React.FC = () => {
     const handleNavigation = (id: string) => {
         if (id === 'kiosk') {
             navigate('/kiosk');
+        } else if (id === 'kiosk-v2') {
+            navigate('/kiosk/v2');
         } else if (id === 'admin') {
             navigate('/admin/login');
         }
@@ -48,6 +50,20 @@ const GatePage: React.FC = () => {
                         <div className="option-info">
                             <span className="option-label">키오스크</span>
                             <span className="option-desc">Kiosk Mode</span>
+                        </div>
+                        <span className="material-symbols-outlined arrow">chevron_right</span>
+                    </button>
+
+                    <button
+                        className="gate-option-card kiosk-v2-option"
+                        onClick={() => handleNavigation('kiosk-v2')}
+                    >
+                        <div className="option-icon">
+                            <span className="material-symbols-outlined">auto_awesome</span>
+                        </div>
+                        <div className="option-info">
+                            <span className="option-label">키오스크 v2</span>
+                            <span className="option-desc">Design Preview</span>
                         </div>
                         <span className="material-symbols-outlined arrow">chevron_right</span>
                     </button>
@@ -198,6 +214,12 @@ const GatePage: React.FC = () => {
         .admin-option {
             background: #fffafa;
             border-color: #fecaca;
+        }
+
+        /* Accent for Kiosk v2 */
+        .kiosk-v2-option {
+            background: #f0f9ff;
+            border-color: #bae6fd;
         }
       `}} />
         </div>

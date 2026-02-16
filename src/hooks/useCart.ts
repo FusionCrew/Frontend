@@ -113,11 +113,8 @@ export function useCart(cartId?: string | null) {
 
   const calculateCartTotal = () => {
     return cartItems.reduce((total, item) => {
+      // v2: set price is expressed via selectedOptions (e.g. side choice), not via magic "size" strings.
       let itemPrice = item.menu.price;
-      if (item.size === "¼¼Æ®") {
-        itemPrice += 3000;
-        if (item.isLargeSet) itemPrice += 500;
-      }
       const optionsPrice = (item.selectedOptions || []).reduce((sum, opt) => sum + opt.extraPrice, 0);
       return total + (itemPrice + optionsPrice) * item.quantity;
     }, 0);

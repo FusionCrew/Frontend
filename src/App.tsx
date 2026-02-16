@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import GatePage from "./kiosk_page/GatePage";
 import KioskApp from "./kiosk_page/KioskApp";
 import AdminLoginPage from "./kiosk_page/AdminLoginPage";
+import KioskV2FigmaPage from "./kiosk_page/v2/KioskV2FigmaPage";
 import "./App.css";
 
 function App() {
@@ -9,6 +10,9 @@ function App() {
     <Routes>
       {/* Starting point: Gate selection page */}
       <Route path="/" element={<GatePage />} />
+
+      {/* Design preview (Figma bundle -> in-app) */}
+      <Route path="/kiosk/v2" element={<KioskV2FigmaPage />} />
 
       {/* Kiosk flow - supporting all nested routes under /kiosk */}
       <Route path="/kiosk/*" element={<KioskApp />} />

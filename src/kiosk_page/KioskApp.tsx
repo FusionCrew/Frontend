@@ -1028,6 +1028,31 @@ export default function KioskApp() {
     const isOrderDomainUtterance = (raw: string): boolean => {
         const t = normalizeTranscript(raw).toLowerCase();
         if (!t) return false;
+        const compact = t.replace(/\s/g, "");
+
+        // Allow menu Q&A queries (menu list / ingredient / allergen / calories).
+        const infoTokens = [
+            "메뉴",
+            "뭐있",
+            "뭐가있",
+            "뭐있어",
+            "뭐있나요",
+            "뭐뭐있",
+            "목록",
+            "종류",
+            "재료",
+            "알레르기",
+            "칼로리",
+            "kcal",
+            "들어가",
+            "들어간",
+            "포함",
+            "제외",
+            "빼고",
+            "없는",
+        ];
+        if (infoTokens.some((k) => compact.includes(k))) return true;
+
         const keys = [
             "주문", "결제", "장바구니", "메뉴", "버거", "사이드", "음료", "추천",
             "카드", "포인트", "간편", "신용카드", "포장", "매장", "추가", "삭제", "빼", "수량",

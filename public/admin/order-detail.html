@@ -338,7 +338,10 @@
 
             function renderOrderDetail(order) {
                 // Header Info
-                document.querySelector('header span.text-sm').textContent = `Order #${order.orderId}`;
+                const suffixMatch = String(order.orderId || '').match(/_(\\d+)$/);
+                const suffixNo = suffixMatch ? Number(suffixMatch[1]) : null;
+                const displayNo = order.orderNumber || suffixNo || order.orderId;
+                document.querySelector('header span.text-sm').textContent = `Order #${displayNo}`;
 
                 // Basic Info
                 const basicInfoValues = document.querySelectorAll('.card:nth-of-type(1) .info-value');

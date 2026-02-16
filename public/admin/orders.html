@@ -364,11 +364,14 @@
             tbody.innerHTML = orders.map(order => {
                 const statusInfo = STATUS_MAP[order.status] || { label: order.status, class: 'status-completed' };
                 const date = new Date(order.createdAt).toLocaleString('ko-KR');
+                const suffixMatch = String(order.orderId || '').match(/_(\d+)$/);
+                const suffixNo = suffixMatch ? Number(suffixMatch[1]) : null;
+                const displayNo = order.orderNumber || suffixNo || order.orderId;
 
                 return `
                     <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
                         onclick="location.href='order-detail.html?id=${order.orderId}'">
-                        <td class="table-cell">#${order.orderId}</td>
+                        <td class="table-cell">#${displayNo}</td>
                         <td class="table-cell text-gray-400">${date}</td>
                         <td class="table-cell">${(order.totalPrice || 0).toLocaleString()}원</td>
                         <td class="table-cell">
