@@ -88,7 +88,7 @@ export default function KioskV2FigmaPage() {
   const [diningType, setDiningType] = useState<DiningType | null>(null);
   // Allow browsing menu before dining type is chosen (voice-first flow).
   const [browseWithoutDining, setBrowseWithoutDining] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("best");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("set");
   const [showOrderView, setShowOrderView] = useState(false);
   const [detailTarget, setDetailTarget] = useState<V2MenuItem | null>(null);
   const [setSideTarget, setSetSideTarget] = useState<V2MenuItem | null>(null);
@@ -105,6 +105,8 @@ export default function KioskV2FigmaPage() {
   const [detailData, setDetailData] = useState<MenuDetailData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const menuScrollRef = useRef<HTMLDivElement>(null);
+  const [menuPageCount, setMenuPageCount] = useState(1);
+  const [menuActivePage, setMenuActivePage] = useState(0);
   const orderScrollRef = useRef<HTMLDivElement>(null);
   const cartButtonRef = useRef<HTMLButtonElement>(null);
   const cartBadgeRef = useRef<HTMLSpanElement>(null);
@@ -128,7 +130,6 @@ export default function KioskV2FigmaPage() {
   const [categories, setCategories] = useState<Array<{ key: CategoryKey; label: string }>>(() => {
     // Keep a consistent order for v2.
     const preferred: Array<{ key: CategoryKey; label: string }> = [
-      { key: "best", label: "베스트메뉴" },
       { key: "set", label: "세트 메뉴" },
       { key: "single", label: "단품" },
       { key: "chicken", label: "치킨" },
@@ -145,7 +146,7 @@ export default function KioskV2FigmaPage() {
   const [apiMenuItemsByCategory, setApiMenuItemsByCategory] = useState<Map<CategoryKey, V2MenuItem[]>>(() => {
     const m = new Map<CategoryKey, V2MenuItem[]>();
 
-    // Ignore figma "best" items: best is a subset view of "set" to avoid duplicates.
+    // Keep FIGMA data only as a visual fallback until DB data arrives.
     for (const it of FIGMA_MENU_ITEMS) {
       if (it.categoryKey === "best") continue;
       const v2: V2MenuItem = {
@@ -161,41 +162,6 @@ export default function KioskV2FigmaPage() {
       arr.push(v2);
       m.set(it.categoryKey, arr);
     }
-
-    const sideItems = m.get("side") ?? [];
-    const drinkItems = m.get("drink") ?? [];
-    const defaultSide = sideItems.find((s) => s.name === DEFAULT_SET_SIDE_NAME);
-    const defaultDrink = drinkItems.find((d) => d.name === DEFAULT_SET_DRINK_NAME);
-    const defaultSidePrice = defaultSide?.price ?? 2500;
-    const defaultDrinkPrice = defaultDrink?.price ?? 1800;
-
-    // Derive "단품" from "세트": price = set price - default side - default drink.
-    const setItems = m.get("set") ?? [];
-    const singleItems: V2MenuItem[] = setItems
-      .filter((x) => typeof x.name === "string" && x.name.trim().length > 0)
-      .map((x) => {
-        const name = x.name.endsWith("세트") ? x.name.slice(0, -2) : x.name;
-        return {
-          ...x,
-          id: x.id + 10_000, // stable derived id
-          name,
-          price: Math.max(0, x.price - defaultSidePrice - defaultDrinkPrice),
-          categoryKey: "single",
-          badge: undefined,
-        };
-      });
-    m.set("single", singleItems);
-
-    // Best subset (order matters).
-    const bestNames = ["징거버거세트", "타워버거세트", "오리지널치킨세트", "핫윙콤보세트"];
-    const setByName = new Map<string, V2MenuItem>();
-    for (const it of setItems) setByName.set(it.name, it);
-    const bestItems: V2MenuItem[] = [];
-    for (const nm of bestNames) {
-      const it = setByName.get(nm);
-      if (it) bestItems.push(it);
-    }
-    m.set("best", bestItems);
 
     return m;
   });
@@ -416,30 +382,39 @@ export default function KioskV2FigmaPage() {
     return Math.abs(h) % 1_000_000;
   };
 
+  const categoryLabelMap: Record<string, string> = {
+    set: "세트 메뉴",
+    single: "단품",
+    chicken: "치킨",
+    side: "사이드 메뉴",
+    drink: "음료",
+  };
+
+  const mapCategoryKey = (cid: string): CategoryKey => {
+    switch (cid) {
+      case "cat_set":
+        return "set";
+      case "cat_burger":
+        return "single";
+      case "cat_chicken":
+        return "chicken";
+      case "cat_side":
+        return "side";
+      case "cat_drink":
+        return "drink";
+      default:
+        return cid;
+    }
+  };
+
   const mapApiMenuItem = (dto: { menuItemId: string; name: string; price: number; categoryId: string; thumbnailUrl?: string; imageUrl?: string; hidden?: boolean; description?: string; ingredients?: string[]; optionGroups?: any[]; }): V2MenuItem => {
-    const toV2Key = (cid: string) => {
-      switch (cid) {
-        case "cat_set":
-          return "set";
-        case "cat_burger":
-          return "single";
-        case "cat_chicken":
-          return "chicken";
-        case "cat_side":
-          return "side";
-        case "cat_drink":
-          return "drink";
-        default:
-          return cid;
-      }
-    };
     return {
       id: stableIdFromMenuItemId(dto.menuItemId),
       menuItemId: dto.menuItemId,
       name: dto.name,
       price: dto.price,
       image: dto.imageUrl || dto.thumbnailUrl || "",
-      categoryKey: toV2Key(dto.categoryId),
+      categoryKey: mapCategoryKey(dto.categoryId),
       description: dto.description,
       ingredients: dto.ingredients || [],
       optionGroups: dto.optionGroups || [],
@@ -470,19 +445,27 @@ export default function KioskV2FigmaPage() {
         const cats = await fetchKioskCategories();
         if (cancelled) return;
         if (cats.length > 0) {
-          const merged: Array<{ key: CategoryKey; label: string }> = [
-            { key: "best", label: "베스트메뉴" },
-            { key: "set", label: "세트 메뉴" },
-            { key: "single", label: "단품" },
-            // Ignore backend's cat_* duplicates because v2 uses its own canonical keys.
-            ...cats
-              .filter((c) => !["cat_set", "cat_burger", "cat_chicken", "cat_side", "cat_drink"].includes(c.categoryId))
-              .map((c) => ({ key: c.categoryId, label: c.name })),
-          ];
+          const preferredOrder: CategoryKey[] = ["set", "single", "chicken", "side", "drink"];
           const byKey = new Map<string, string>();
-          for (const c of merged) if (!byKey.has(c.key)) byKey.set(c.key, c.label);
-          setCategories(Array.from(byKey.entries()).map(([key, label]) => ({ key, label })));
-          setSelectedCategory("best");
+          for (const c of cats) {
+            const key = mapCategoryKey(c.categoryId);
+            const label = key === c.categoryId ? c.name : (categoryLabelMap[key] ?? c.name);
+            if (!byKey.has(key)) byKey.set(key, label);
+          }
+
+          const ordered: Array<{ key: CategoryKey; label: string }> = [];
+          for (const key of preferredOrder) {
+            const label = byKey.get(key);
+            if (label) ordered.push({ key, label });
+          }
+          for (const [key, label] of byKey.entries()) {
+            if (!preferredOrder.includes(key)) ordered.push({ key, label });
+          }
+
+          if (ordered.length > 0) {
+            setCategories(ordered);
+            setSelectedCategory((prev) => (ordered.some((c) => c.key === prev) ? prev : ordered[0].key));
+          }
         }
       } catch {
         // Keep FIGMA fallback.
@@ -501,53 +484,13 @@ export default function KioskV2FigmaPage() {
     const load = async () => {
       if (!selectedCategory) return;
       // FIGMA fallback is already preloaded in state.
-      // "best" and "single" are derived views; they still need "set/side/drink" from API
-      // so that set-option IDs exist in DB (otherwise orders become "Unknown").
-      const primaryFetchKey: CategoryKey =
-        selectedCategory === "best" || selectedCategory === "single" ? "set" : selectedCategory;
-
+      const primaryFetchKey: CategoryKey = selectedCategory;
       const fetchKeys: CategoryKey[] = [primaryFetchKey];
       // Set flow needs side + drink even if user never visits those categories.
       if (primaryFetchKey === "set") fetchKeys.push("side", "drink");
       if (primaryFetchKey === "side") fetchKeys.push("drink");
 
-      const uniqueFetchKeys = Array.from(new Set(fetchKeys)).filter((k) => k !== "best" && k !== "single");
-
-      const recomputeDerived = (next: Map<CategoryKey, V2MenuItem[]>) => {
-        const setItems = next.get("set") ?? [];
-        const sideItems = next.get("side") ?? [];
-        const drinkItems = next.get("drink") ?? [];
-
-        const defaultSide = sideItems.find((s) => s.name === DEFAULT_SET_SIDE_NAME);
-        const defaultSidePrice = defaultSide?.price ?? 2500;
-
-        const defaultDrink = drinkItems.find((d) => d.name === DEFAULT_SET_DRINK_NAME);
-        const defaultDrinkPrice = defaultDrink?.price ?? 1800;
-
-        const singleItems: V2MenuItem[] = setItems.map((x) => {
-          const name = x.name.endsWith("세트") ? x.name.slice(0, -2) : x.name;
-          return {
-            ...x,
-            id: x.id + 10_000,
-            name,
-            price: Math.max(0, x.price - defaultSidePrice - defaultDrinkPrice),
-            categoryKey: "single",
-            badge: undefined,
-          };
-        });
-        next.set("single", singleItems);
-
-        // Keep best as a subset of set (fallback to first 16 if names don't match).
-        const bestNames = ["징거버거세트", "타워버거세트", "오리지널치킨세트", "핫윙콤보세트"];
-        const setByName = new Map<string, V2MenuItem>();
-        for (const it of setItems) setByName.set(it.name, it);
-        const bestItems: V2MenuItem[] = [];
-        for (const nm of bestNames) {
-          const it = setByName.get(nm);
-          if (it) bestItems.push(it);
-        }
-        next.set("best", bestItems.length > 0 ? bestItems : setItems.slice(0, 16));
-      };
+      const uniqueFetchKeys = Array.from(new Set(fetchKeys));
 
       try {
         setMenuLoading(true);
@@ -559,27 +502,15 @@ export default function KioskV2FigmaPage() {
         );
         if (cancelled) return;
 
-        // If any KFC items exist in the fetched batch, enforce KFC-only for all keys.
-        // This avoids mixing old seed items (e.g. fries R/L) into the set picker.
-        const anyKfc = results.some((r) => (r.items || []).some((it: any) => (it?.menuItemId || "").startsWith("kfc_")));
-        const normalizedResults = anyKfc
-          ? results.map((r) => ({ ...r, items: (r.items || []).filter((it: any) => (it?.menuItemId || "").startsWith("kfc_")) }))
-          : results;
-
-        const anyNonEmpty = normalizedResults.some((r) => (r.items || []).length > 0);
+        const anyNonEmpty = results.some((r) => (r.items || []).length > 0);
         if (!anyNonEmpty) return;
 
         setApiMenuItemsByCategory((prev) => {
           const next = new Map(prev);
-          let touchedCore = false;
-
-          for (const r of normalizedResults) {
+          for (const r of results) {
             if (!r.items || r.items.length === 0) continue;
             next.set(r.key, r.items.map(mapApiMenuItem));
-            if (r.key === "set" || r.key === "side" || r.key === "drink") touchedCore = true;
           }
-
-          if (touchedCore) recomputeDerived(next);
           return next;
         });
       } catch {
@@ -736,9 +667,15 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
       try {
         const d: any = await getMenuDetail(item.menuItemId);
         if (d) {
+          const singleNameFallback =
+            item.categoryKey === "single" &&
+            typeof item.name === "string" &&
+            item.name.trim().length > 0 &&
+            !item.name.trim().endsWith("세트");
+          const resolvedName = singleNameFallback ? item.name : (d.name ?? item.name);
           return {
             id: item.menuItemId,
-            name: d.name ?? item.name,
+            name: resolvedName,
             price: d.price ?? item.price,
             image: item.image,
             categoryLabel: labelOfCategory(item.categoryKey),
@@ -782,6 +719,67 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
     const scrollAmount = 600;
     el.scrollBy({ left: direction === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
   };
+
+  const updateMenuPagination = useCallback(() => {
+    const el = menuScrollRef.current;
+    if (!el) {
+      setMenuPageCount(1);
+      setMenuActivePage(0);
+      return;
+    }
+    const pageWidth = Math.max(1, el.clientWidth);
+    const pageCount = Math.max(1, Math.ceil(el.scrollWidth / pageWidth));
+    const maxScrollLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+    let pageIndex = 0;
+    if (pageCount > 1 && maxScrollLeft > 0) {
+      // Map [0..maxScrollLeft] -> [0..pageCount-1] so right-end always lands on the last dot.
+      const ratio = el.scrollLeft / maxScrollLeft;
+      pageIndex = Math.round(ratio * (pageCount - 1));
+      pageIndex = Math.min(pageCount - 1, Math.max(0, pageIndex));
+    }
+    setMenuPageCount(pageCount);
+    setMenuActivePage(pageIndex);
+  }, []);
+
+  useEffect(() => {
+    const isMenuListVisible = (diningType != null || browseWithoutDining) && !showOrderView && !setSideTarget && !detailTarget;
+    if (!isMenuListVisible) {
+      setMenuPageCount(1);
+      setMenuActivePage(0);
+      return;
+    }
+
+    const el = menuScrollRef.current;
+    if (!el) return;
+
+    const onScroll = () => updateMenuPagination();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    updateMenuPagination();
+    const raf1 = window.requestAnimationFrame(() => updateMenuPagination());
+    const raf2 = window.requestAnimationFrame(() => updateMenuPagination());
+    const t = window.setTimeout(() => updateMenuPagination(), 120);
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => updateMenuPagination());
+      ro.observe(el);
+      const child = el.firstElementChild as Element | null;
+      if (child) ro.observe(child);
+      return () => {
+        window.cancelAnimationFrame(raf1);
+        window.cancelAnimationFrame(raf2);
+        window.clearTimeout(t);
+        el.removeEventListener("scroll", onScroll);
+        ro.disconnect();
+      };
+    }
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+      window.clearTimeout(t);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [updateMenuPagination, filteredItems.length, detailTarget, diningType, browseWithoutDining, showOrderView, setSideTarget]);
 
   const scrollOrder = (direction: "left" | "right") => {
     const el = orderScrollRef.current;
@@ -1973,10 +1971,18 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                     {!detailTarget ? (
                       <div className="flex justify-center pb-2">
                         <div className="flex gap-1.5">
-                          {[0, 1, 2].map((dot) => (
-                            <div
+                          {Array.from({ length: menuPageCount }, (_, dot) => (
+                            <button
+                              type="button"
                               key={dot}
-                              className={`w-2 h-2 rounded-full ${dot === 0 ? "bg-red-500" : "bg-gray-300"}`}
+                              onClick={() => {
+                                const el = menuScrollRef.current;
+                                if (!el) return;
+                                const pageWidth = Math.max(1, el.clientWidth);
+                                el.scrollTo({ left: dot * pageWidth, behavior: "smooth" });
+                              }}
+                              className={`w-2 h-2 rounded-full transition-colors ${dot === menuActivePage ? "bg-red-500" : "bg-gray-300"}`}
+                              aria-label={`메뉴 ${dot + 1}페이지`}
                             />
                           ))}
                         </div>
@@ -2261,4 +2267,3 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
     </div>
   );
 }
-
