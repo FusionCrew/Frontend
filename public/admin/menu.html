@@ -323,7 +323,8 @@
     <script>
         const API_BASE_URL = 'http://localhost:8080';
 
-        function createMenuCard(item) {
+        function createMenuCard(item, index) {
+            const orderLabel = `#${index + 1}`;
             return `
                 <a href="menu-detail.html#${item.menuItemId}" class="card aspect-[4/5] flex flex-col group stagger-item hover-scale-premium ${item.hidden ? 'opacity-60 grayscale-[0.3]' : ''}">
                     <div class="w-full aspect-[4/3] bg-gray-50 overflow-hidden relative">
@@ -335,7 +336,7 @@
                     </div>
                     <div class="flex-1 p-6 flex flex-col justify-between">
                         <div class="space-y-1">
-                            <h3 class="font-bold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">${item.name}</h3>
+                            <h3 class="font-bold text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">${orderLabel} ${item.name}</h3>
                             <p class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">${item.menuItemId}</p>
                         </div>
                         <div class="flex items-end justify-between">
@@ -368,8 +369,8 @@
                 gridEl.classList.remove('opacity-50');
                 gridEl.innerHTML = addCardHtml;
 
-                items.forEach(item => {
-                    gridEl.insertAdjacentHTML('beforeend', createMenuCard(item));
+                items.forEach((item, index) => {
+                    gridEl.insertAdjacentHTML('beforeend', createMenuCard(item, index));
                 });
             } catch (error) {
                 console.error('Error:', error);
