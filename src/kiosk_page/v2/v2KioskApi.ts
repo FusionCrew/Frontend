@@ -11,8 +11,6 @@ export async function fetchKioskCategories(): Promise<V2CategoryDto[]> {
 
 export type V2MenuListItem = KioskMenuItemDto;
 
-let kfcCatalogMode = false;
-
 function normalizeCategoryId(categoryKeyOrId?: string): string | undefined {
   if (!categoryKeyOrId) return undefined;
   // Backend uses cat_* ids. v2 UI uses short keys (set/side/drink/chicken/single).
@@ -35,16 +33,34 @@ function normalizeCategoryId(categoryKeyOrId?: string): string | undefined {
 
 export async function fetchKioskMenuItems(categoryId?: string): Promise<V2MenuListItem[]> {
   const normalized = normalizeCategoryId(categoryId);
-  const endpoint = normalized ? `/kiosk/menu-items?categoryId=${encodeURIComponent(normalized)}` : "/kiosk/menu-items";
-  const res = await apiFetch<KioskMenuListResponse>(endpoint);
-  if (!res?.success || !res.data?.items) return [];
+  const all: V2MenuListItem[] = [];
+  let cursor: string | undefined;
+  const size = 200;
 
-  // If KFC seeded items exist, keep v2 kiosk consistent by showing only that catalog.
-  // This prevents old seed data (e.g. fries R/L) from leaking into the set picker.
-  const items = res.data.items;
-  const hasKfcNow = items.some((it) => it.menuItemId?.startsWith("kfc_"));
-  if (hasKfcNow) kfcCatalogMode = true;
-  return kfcCatalogMode ? items.filter((it) => it.menuItemId?.startsWith("kfc_")) : items;
+  for (let i = 0; i < 20; i++) {
+    const params = new URLSearchParams();
+    if (normalized) params.set("categoryId", normalized);
+    params.set("size", String(size));
+    if (cursor) params.set("cursor", cursor);
+
+    const endpoint = `/kiosk/menu-items?${params.toString()}`;
+    const res = await apiFetch<KioskMenuListResponse>(endpoint);
+    if (!res?.success || !res.data?.items) break;
+
+    const items = res.data.items;
+    all.push(...items);
+
+    const next = res.data.page?.nextCursor;
+    if (!next || items.length === 0) break;
+    cursor = next;
+  }
+
+  const dedup = new Map<string, V2MenuListItem>();
+  for (const it of all) {
+    if (!it?.menuItemId) continue;
+    if (!dedup.has(it.menuItemId)) dedup.set(it.menuItemId, it);
+  }
+  return Array.from(dedup.values());
 }
 
 export type V2RecommendationItem = { menuItemId: string; name: string; reason?: string };

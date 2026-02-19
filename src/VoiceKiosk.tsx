@@ -1425,7 +1425,7 @@ export default function VoiceKiosk() {
 
   /* ======================== UI ======================== */
   return (
-    <div className="fixed inset-0 bg-black text-white flex flex-row items-center justify-center gap-8 p-6">
+    <div className="fixed inset-0 bg-white text-black flex flex-row items-center justify-center gap-8 p-6">
       {/* PIP 토글 버튼 */}
       <button
         onClick={togglePipMode}
