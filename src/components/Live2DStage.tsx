@@ -131,8 +131,23 @@ export function Live2DStage({
     useEffect(() => {
         const model = modelRef.current;
         if (!model) return;
-        const m = specificMotion || motionList[Math.floor(Math.random() * motionList.length)];
-        model.motion(m, 0, 3);
+        const motionName = specificMotion || motionList[Math.floor(Math.random() * motionList.length)];
+        const motionGroup = "";
+        let motionIndex = 0;
+
+        if (motionName === "idle") {
+            motionIndex = 0;
+        } else {
+            const parsed = Number.parseInt(String(motionName).replace(/^m/i, ""), 10);
+            if (!Number.isFinite(parsed) || parsed < 1) return;
+            motionIndex = parsed;
+        }
+
+        try {
+            model.motion(motionGroup, motionIndex, 3);
+        } catch (e) {
+            console.warn("[Live2D] motion play failed", e);
+        }
     }, [motionTrigger, specificMotion]);
 
     useEffect(() => {

@@ -45,6 +45,11 @@ type VoiceAction =
   | { type: "NONE" };
 
 type Msg = { role: "user" | "assistant"; content: string };
+type MotionCode =
+  | "idle"
+  | "m01" | "m02" | "m03" | "m04" | "m05" | "m06" | "m07" | "m08" | "m09" | "m10"
+  | "m11" | "m12" | "m13" | "m14" | "m15" | "m16" | "m17" | "m18" | "m19" | "m20"
+  | "m21" | "m22" | "m23" | "m24" | "m25" | "m26";
 
 const NOISE_TRANSCRIPT_PATTERNS = [
   // Common filler/noise that should not trigger ordering logic.
@@ -79,7 +84,97 @@ const CONTROL_TRANSCRIPT_TOKENS = [
   "뒤로",
 ];
 
+const LIVE2D_MOTION_CATALOG: Array<{ id: MotionCode; description: string }> = [
+  { id: "idle", description: "기본 대기 모션." },
+  { id: "m01", description: "가볍게 끄덕거림." },
+  { id: "m02", description: "손을 모으며 강하게 끄덕거림." },
+  { id: "m03", description: "팔짱끼며 마지못하게 못마땅하며 끄덕거림." },
+  { id: "m04", description: "살짝 놀라지만 이내 인정하고 끄덕거림." },
+  { id: "m05", description: "양팔을 벌리며 조금 놀라며 가볍게 끄덕거림." },
+  { id: "m06", description: "양손을 접어 오른쪽(사용자 기준)으로 옮기며 설명함." },
+  { id: "m07", description: "양손을 접어 왼쪽(사용자 기준)으로 옮기며 설명함." },
+  { id: "m08", description: "팔을 벌렸다 모으며 공손하게 고개 숙여 인사하고 미소." },
+  { id: "m09", description: "중간 정도로 고개 숙여 인사." },
+  { id: "m10", description: "앞으로 나왔다가 뒤로 가며 당황, 홍조 후 복귀." },
+  { id: "m11", description: "팔짱을 끼고 고개를 좌우로 저어 부정 표현." },
+  { id: "m12", description: "기겁하며 두 손을 들고 놀람, 고개를 저어 부정 표현." },
+  { id: "m13", description: "팔을 뒤로 벌리고 다가와 의심하는 표정." },
+  { id: "m14", description: "팔을 뒤로 벌리고 다가와 황당/한심한 표정." },
+  { id: "m15", description: "눈을 게슴츠레 뜨고 고개를 좌우로 살짝 움직임." },
+  { id: "m16", description: "손을 모았다 벌리며 홍조, 슬픈 표정과 눈물." },
+  { id: "m17", description: "홍조를 띄우고 다가와 옆으로 바라보며 게슴츠레한 표정." },
+  { id: "m18", description: "홍조를 띄우고 눈 감고 웃으며 고개를 젖혔다 복귀." },
+  { id: "m19", description: "홍조와 수줍음, 고개 숙여 좌우로 비틀다 게슴츠레한 눈." },
+  { id: "m20", description: "팔짱, 얼굴에 손을 대고 고민하는 표정." },
+  { id: "m21", description: "홍조를 살짝 띄우고 좌우로 살짝 뛰며 기뻐함." },
+  { id: "m22", description: "다가오며 홍조, 눈 감고 기쁜 표정으로 웃음." },
+  { id: "m23", description: "고개를 왼쪽으로 기울이며 살짝 놀랐다 평온해짐." },
+  { id: "m24", description: "살짝 놀라며 홍조, 귀엽게 화난 표정." },
+  { id: "m25", description: "살짝 놀라는 표정 후 자연스러운 표정으로 복귀." },
+  { id: "m26", description: "조금 크게 놀라는 표정 후 자연스러운 포즈로 복귀." },
+];
+
+const MOTION_ID_SET = new Set<string>(LIVE2D_MOTION_CATALOG.map((m) => m.id));
+const ACTION_DEFAULT_MOTION: Partial<Record<VoiceAction["type"], MotionCode>> = {
+  SET_DINING: "m01",
+  NAVIGATE: "m06",
+  NAVIGATE_CATEGORY: "m06",
+  CONTINUE_ORDER: "m01",
+  ADD_MENU: "m01",
+  CHANGE_QTY: "m01",
+  CHANGE_QTY_AT: "m01",
+  REMOVE_MENU: "m11",
+  REMOVE_MENU_AT: "m11",
+  CHECK_CART: "m06",
+  CHECKOUT: "m08",
+  SELECT_PAYMENT: "m08",
+  CALL_STAFF: "m09",
+  ACCEPT_SUGGESTION: "m21",
+  ACCEPT_SUGGESTION_ITEM: "m21",
+  ASK_SET_OR_SINGLE: "m06",
+  ASK_REMOVE_TARGET: "m06",
+  ASK_SLOT_CLARIFY: "m06",
+  ASK_SUGGESTION_CLARIFY: "m06",
+  START_REPLACE_LAST: "m20",
+  REPLACE_LAST: "m06",
+};
+
+function normalizeMotionId(input: unknown): MotionCode | null {
+  const raw = String(input || "").trim().toLowerCase();
+  if (!raw) return null;
+  if ((raw === "idle" || raw.startsWith("idle_")) && MOTION_ID_SET.has("idle")) return "idle";
+  const compact = raw.replace(/\s+/g, "");
+  const m = compact.match(/^m0?([1-9]|1\d|2[0-6])(?:_.+)?$/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  const id = `m${String(n).padStart(2, "0")}`;
+  return MOTION_ID_SET.has(id) ? (id as MotionCode) : null;
+}
+
+function parseInlineMotionTaggedText(
+  text: string
+): Array<{ text: string; motion: MotionCode | null }> {
+  const out: Array<{ text: string; motion: MotionCode | null }> = [];
+  const src = String(text || "");
+  const tagRe = /\((idle|m0?[1-9]|m1\d|m2[0-6])(?:_[^)]+)?\)/gi;
+  let last = 0;
+  let pendingMotion: MotionCode | null = null;
+
+  for (let m = tagRe.exec(src); m; m = tagRe.exec(src)) {
+    const chunk = src.slice(last, m.index).trim();
+    if (chunk) out.push({ text: chunk, motion: pendingMotion });
+    pendingMotion = normalizeMotionId(m[1]);
+    last = m.index + m[0].length;
+  }
+
+  const tail = src.slice(last).trim();
+  if (tail) out.push({ text: tail, motion: pendingMotion });
+  if (out.length === 0 && src.trim()) out.push({ text: src.trim(), motion: null });
+  return out;
+}
+
 export default function V2VoiceManager({
+  uiScale = 1,
   sessionId,
   diningType,
   selectedCategory,
@@ -102,7 +197,10 @@ export default function V2VoiceManager({
   onSelectPayment,
   onCallStaff,
   tracking,
+  onSpeakingChange,
+  onPlayMotion,
 }: {
+  uiScale?: number;
   sessionId: string | null;
   diningType: "DINE_IN" | "TAKE_OUT" | null;
   selectedCategory: string;
@@ -134,6 +232,8 @@ export default function V2VoiceManager({
     isDetecting?: boolean;
     error?: string | null;
   };
+  onSpeakingChange?: (speaking: boolean) => void;
+  onPlayMotion?: (motion: MotionCode) => void;
 }) {
   const [isDevPanelOpen, setIsDevPanelOpen] = useState(false);
   const [sttEnabled, setSttEnabled] = useState(true);
@@ -144,12 +244,17 @@ export default function V2VoiceManager({
   const [voiceLogs, setVoiceLogs] = useState<string[]>([]);
   const [subtitle, setSubtitle] = useState<string>("");
 
+  useEffect(() => {
+    onSpeakingChange?.(speaking);
+  }, [onSpeakingChange, speaking]);
+
   const { devices: micDevices } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
 
   const shouldListenAfterSpeechRef = useRef(true);
   const autoVoiceStartedRef = useRef(false);
   const prevListeningRef = useRef(false);
+  const currentActionTypeRef = useRef<VoiceAction["type"] | null>(null);
   const [conversationHistory, setConversationHistory] = useState<Msg[]>([]);
   const [hesitationAssistConsumed, setHesitationAssistConsumed] = useState(false);
   const hesitationTimerRef = useRef<number | null>(null);
@@ -398,62 +503,112 @@ const isOrderDomainUtterance = useCallback(
 );
 
 const say = useCallback(
-    async (text: string) => {
-      setSubtitle(text);
-      addVoiceLog(`TTS OUT: ${text}`);
-      if (!ttsEnabled) return;
+    async (
+      text: string,
+      motion?: MotionCode | null,
+      segments?: Array<{ text: string; motion?: string | null }>
+    ) => {
+      const baseMotion =
+        motion ??
+        (currentActionTypeRef.current ? ACTION_DEFAULT_MOTION[currentActionTypeRef.current] ?? null : null);
 
-      setSpeaking(true);
-      if (sessionId) {
-        try {
-          recordSessionEvent(sessionId, "SYSTEM_NOTICE", { type: "TTS_PLAYED", text });
-        } catch {
-          // ignore
+      const normalizedSegments = Array.isArray(segments)
+        ? segments
+            .map((s) => ({
+              text: String(s?.text || "").trim(),
+              motion: normalizeMotionId(s?.motion) ?? baseMotion,
+            }))
+            .filter((s) => s.text.length > 0)
+        : [];
+
+      const inlineSegments =
+        normalizedSegments.length > 0
+          ? normalizedSegments
+          : parseInlineMotionTaggedText(text).map((s) => ({
+              text: s.text,
+              motion: s.motion ?? baseMotion,
+            }));
+
+      if (inlineSegments.length === 0) return;
+
+      if (!ttsEnabled) {
+        const firstMotion = inlineSegments[0]?.motion;
+        if (firstMotion) {
+          onPlayMotion?.(firstMotion);
+          addVoiceLog(`MOTION: ${firstMotion}`);
         }
+        return;
       }
 
+      setSpeaking(true);
       prevListeningRef.current = listeningEnabled;
       setListeningEnabled(false);
+
       try {
-        const ac = new AbortController();
-        const t = window.setTimeout(() => ac.abort(), 8000);
-        const res = await fetch(`${AI_BASE_URL}/tts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, language: "ko", voice: "nova", speed: 1.0 }),
-          signal: ac.signal,
-        });
-        window.clearTimeout(t);
-        if (!res.ok) {
-          addVoiceLog(`TTS ERROR: ${res.status} ${res.statusText}`);
-          return;
+        for (const seg of inlineSegments) {
+          setSubtitle(seg.text);
+          addVoiceLog(`TTS OUT: ${seg.text}`);
+          if (seg.motion) {
+            onPlayMotion?.(seg.motion);
+            addVoiceLog(`MOTION: ${seg.motion}`);
+          }
+          if (sessionId) {
+            try {
+              recordSessionEvent(sessionId, "SYSTEM_NOTICE", {
+                type: "TTS_PLAYED",
+                text: seg.text,
+                motion: seg.motion,
+              });
+            } catch {
+              // ignore
+            }
+          }
+
+          const ac = new AbortController();
+          const t = window.setTimeout(() => ac.abort(), 8000);
+          try {
+            const res = await fetch(`${AI_BASE_URL}/tts`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: seg.text, language: "ko", voice: "nova", speed: 1.0 }),
+              signal: ac.signal,
+            });
+            if (!res.ok) {
+              addVoiceLog(`TTS ERROR: ${res.status} ${res.statusText}`);
+              continue;
+            }
+            const json = await res.json();
+            const audioB64 = json.data?.audioBase64;
+            if (!audioB64) {
+              addVoiceLog("TTS ERROR: empty audio");
+              continue;
+            }
+            const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+            await new Promise<void>((resolve) => {
+              audio.onended = () => resolve();
+              audio.onerror = () => resolve();
+              void audio.play().catch(() => resolve());
+            });
+          } catch (e: any) {
+            addVoiceLog(`TTS ERROR: ${e?.message || String(e)}`);
+          } finally {
+            window.clearTimeout(t);
+          }
         }
-        const json = await res.json();
-        const audioB64 = json.data?.audioBase64;
-        if (audioB64) {
-          const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
-          await new Promise<void>((resolve) => {
-            audio.onended = () => resolve();
-            audio.onerror = () => resolve();
-            void audio.play().catch(() => resolve());
-          });
-        } else {
-          addVoiceLog("TTS ERROR: empty audio");
-        }
-      } catch (e: any) {
-        addVoiceLog(`TTS ERROR: ${e?.message || String(e)}`);
       } finally {
         setSpeaking(false);
         setListeningEnabled(shouldListenAfterSpeechRef.current);
       }
     },
-    [addVoiceLog, listeningEnabled, sessionId, ttsEnabled]
+    [addVoiceLog, listeningEnabled, onPlayMotion, sessionId, ttsEnabled]
   );
 
   const applyVoiceAction = useCallback(
     async (action: VoiceAction): Promise<boolean> => {
       if (!action || action.type === "NONE") return false;
       addVoiceLog(`ACTION: ${action.type}`);
+      currentActionTypeRef.current = action.type;
+      try {
 
       // If dining type isn't chosen yet, gate ordering/navigation and ask first.
       if (
@@ -694,6 +849,9 @@ const say = useCallback(
         return true;
       }
       return false;
+      } finally {
+        currentActionTypeRef.current = null;
+      }
     },
     [
       addVoiceLog,
@@ -822,6 +980,9 @@ const say = useCallback(
           pageHint,
           cartItems: cartSnapshot,
           menuCatalog: menuCatalog.slice(0, 160),
+          live2dMotionCatalog: LIVE2D_MOTION_CATALOG,
+          llmInstruction:
+            "Return spoken reply text in data.text. Choose one motion id from live2dMotionCatalog and return in data.motion (idle or m01~m26). If you need mid-sentence motion changes, return data.segments as [{text, motion}] and do not include motion tags inside text.",
         };
 
         const res = await fetch(`${AI_BASE_URL}/llm/chat`, {
@@ -842,6 +1003,15 @@ const say = useCallback(
         const reply = json.data?.text || json.data?.reply || "";
         const structuredAction = String(json.data?.action || "NONE");
         const structuredActionData = json.data?.actionData || {};
+        const llmMotion = normalizeMotionId(json.data?.motion);
+        const llmSegments = Array.isArray(json.data?.segments)
+          ? (json.data.segments as any[])
+              .map((s) => ({
+                text: String(s?.text || "").trim(),
+                motion: normalizeMotionId(s?.motion),
+              }))
+              .filter((s) => s.text.length > 0)
+          : [];
 
         addVoiceLog(`LLM OUT: ${reply || "(empty)"}`);
         if (sessionId) {
@@ -851,6 +1021,8 @@ const say = useCallback(
               text: reply,
               action: structuredAction,
               actionData: structuredActionData,
+              motion: llmMotion,
+              segments: llmSegments,
             });
           } catch {
             // ignore
@@ -859,8 +1031,12 @@ const say = useCallback(
         setConversationHistory([...messages, { role: "assistant", content: reply }]);
 
         const actionHandled = await applyLlmAction(structuredAction, structuredActionData);
-        if (!actionHandled && reply) {
-          await say(reply);
+        if (!actionHandled) {
+          if (llmSegments.length > 0) {
+            await say(reply || llmSegments.map((s) => s.text).join(" "), llmMotion, llmSegments);
+          } else if (reply) {
+            await say(reply, llmMotion);
+          }
         }
       } catch (e) {
         console.error(e);
@@ -996,7 +1172,7 @@ const say = useCallback(
           // ignore
         }
       }
-      void say(msg);
+      void say(msg, "m25");
     }, 2500);
 
     return () => {
@@ -1013,7 +1189,10 @@ const say = useCallback(
     <>
       {trimmedSubtitle ? (
         // Place the TTS subtitle slightly above the menu panel for better context.
-        <div className="fixed z-[4500] left-1/2 bottom-[610px] -translate-x-1/2 pointer-events-none">
+        <div
+          className="fixed z-[4500] left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{ bottom: `${Math.max(24, Math.round(610 * uiScale))}px` }}
+        >
           <div className="px-6 py-3 rounded-2xl bg-black/70 text-white text-lg font-semibold shadow-lg max-w-[960px] truncate">
             {trimmedSubtitle}
           </div>

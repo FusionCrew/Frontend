@@ -56,10 +56,25 @@ export function BackButton({ onClick }: BackButtonProps) {
 }
 
 // 키오스크 캐릭터
-export function KioskCharacter({ speaking, tracking }: { speaking?: boolean; tracking?: any }) {
+export function KioskCharacter({
+  speaking,
+  tracking,
+  motionTrigger,
+  specificMotion,
+}: {
+  speaking?: boolean;
+  tracking?: any;
+  motionTrigger?: number;
+  specificMotion?: string | null;
+}) {
   return (
     <div className="absolute inset-0 flex justify-center mb-0 pointer-events-none z-0">
-      <Live2DStage speaking={speaking} tracking={tracking} />
+      <Live2DStage
+        speaking={speaking}
+        tracking={tracking}
+        motionTrigger={motionTrigger}
+        specificMotion={specificMotion}
+      />
     </div>
   );
 }

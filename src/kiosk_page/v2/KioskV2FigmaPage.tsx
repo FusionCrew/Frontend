@@ -74,6 +74,9 @@ type MenuDetailData = {
   allergens?: string[];
 };
 
+const BASE_KIOSK_WIDTH = 1080;
+const BASE_KIOSK_HEIGHT = 1920;
+
 export default function KioskV2FigmaPage() {
   const PAYMENT_MS = 5000;
   const SET_SIDE_OPTION_GROUP_ID = "SET_SIDE";
@@ -124,9 +127,17 @@ export default function KioskV2FigmaPage() {
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
   const [staffCallBusy, setStaffCallBusy] = useState(false);
   const [staffCallToast, setStaffCallToast] = useState<string | null>(null);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : BASE_KIOSK_WIDTH,
+    height: typeof window !== "undefined" ? window.innerHeight : BASE_KIOSK_HEIGHT,
+  }));
   const [pointPhone, setPointPhone] = useState("");
   const [availablePoints, setAvailablePoints] = useState<number | null>(null);
   const [useAllPoints, setUseAllPoints] = useState(true);
+  const [voiceSpeaking, setVoiceSpeaking] = useState(false);
+  const [motionPanelOpen, setMotionPanelOpen] = useState(false);
+  const [motionTrigger, setMotionTrigger] = useState(0);
+  const [specificMotion, setSpecificMotion] = useState<string | null>(null);
   const [categories, setCategories] = useState<Array<{ key: CategoryKey; label: string }>>(() => {
     // Keep a consistent order for v2.
     const preferred: Array<{ key: CategoryKey; label: string }> = [
@@ -168,6 +179,38 @@ export default function KioskV2FigmaPage() {
   const [menuLoading, setMenuLoading] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [pendingCategoryKey, setPendingCategoryKey] = useState<CategoryKey | null>(null);
+  const availableMotions = useMemo(
+    () => [
+      { id: "idle", label: "idle_default" },
+      { id: "m01", label: "m01_nod_light" },
+      { id: "m02", label: "m02_nod_strong_hands_together" },
+      { id: "m03", label: "m03_reluctant_nod_arms_crossed" },
+      { id: "m04", label: "m04_surprised_then_ack_nod" },
+      { id: "m05", label: "m05_open_arms_surprised_nod" },
+      { id: "m06", label: "m06_explain_shift_right" },
+      { id: "m07", label: "m07_explain_shift_left" },
+      { id: "m08", label: "m08_polite_bow_smile" },
+      { id: "m09", label: "m09_mid_bow" },
+      { id: "m10", label: "m10_fluster_forward_back" },
+      { id: "m11", label: "m11_disagree_headshake_crossed" },
+      { id: "m12", label: "m12_shock_double_hand_deny" },
+      { id: "m13", label: "m13_suspicious_lean_in" },
+      { id: "m14", label: "m14_awkward_disdain_look" },
+      { id: "m15", label: "m15_teasing_squint_sway" },
+      { id: "m16", label: "m16_sad_teary_blush_hands" },
+      { id: "m17", label: "m17_flirty_side_glance_blush" },
+      { id: "m18", label: "m18_blush_eyes_closed_smile" },
+      { id: "m19", label: "m19_shy_blush_wiggle" },
+      { id: "m20", label: "m20_thinking_troubled_crossed" },
+      { id: "m21", label: "m21_happy_bounce_blush" },
+      { id: "m22", label: "m22_happy_close_eyes_approach" },
+      { id: "m23", label: "m23_tilt_then_calm" },
+      { id: "m24", label: "m24_cute_angry_blush" },
+      { id: "m25", label: "m25_small_surprise_recover" },
+      { id: "m26", label: "m26_big_surprise_recover" },
+    ],
+    []
+  );
 
   const { cartItems, addToCart, removeFromCart, setCartQuantity, clearCart, calculateCartTotal } = useCart(cartId);
 
@@ -790,6 +833,21 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = calculateCartTotal();
+  const kioskScale = useMemo(() => {
+    const sw = viewportSize.width / BASE_KIOSK_WIDTH;
+    const sh = viewportSize.height / BASE_KIOSK_HEIGHT;
+    return Math.max(0.2, Math.min(sw, sh));
+  }, [viewportSize.height, viewportSize.width]);
+  const kioskViewportWidth = Math.round(BASE_KIOSK_WIDTH * kioskScale);
+  const kioskViewportHeight = Math.round(BASE_KIOSK_HEIGHT * kioskScale);
+
+  useEffect(() => {
+    const onResize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const menuIndexByMenuItemId = useMemo(() => {
     const m = new Map<string, V2MenuItem>();
@@ -1051,6 +1109,11 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
     }
   };
 
+  const playMotion = useCallback((motionName: string) => {
+    setSpecificMotion(motionName);
+    setMotionTrigger((prev) => prev + 1);
+  }, []);
+
   const animateFlyToCartImages = (sourceEl: HTMLElement, images: Array<{ src: string; alt: string }>) => {
     const dest = (cartBadgeRef.current ?? cartButtonRef.current) as HTMLElement | null;
     if (!dest) return;
@@ -1205,13 +1268,26 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900 flex justify-center items-end">
-      <div className="bg-black flex flex-col overflow-hidden" style={{ width: "1080px", height: "1920px" }}>
+    <div className="fixed inset-0 bg-gray-900 overflow-hidden flex items-center justify-center">
+      <div className="relative" style={{ width: `${kioskViewportWidth}px`, height: `${kioskViewportHeight}px` }}>
+        <div
+          className="absolute left-0 top-0 origin-top-left bg-black flex flex-col overflow-hidden"
+          style={{
+            width: `${BASE_KIOSK_WIDTH}px`,
+            height: `${BASE_KIOSK_HEIGHT}px`,
+            transform: `scale(${kioskScale})`,
+          }}
+        >
         <div className="bg-black relative overflow-hidden" style={{ height: "1344px" }}>
           {/* Live2D character (ported from v1) */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-[920px] h-[1100px]">
-              <KioskCharacter tracking={tracking} />
+              <KioskCharacter
+                speaking={voiceSpeaking}
+                tracking={tracking}
+                motionTrigger={motionTrigger}
+                specificMotion={specificMotion}
+              />
             </div>
           </div>
         </div>
@@ -1412,9 +1488,9 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
             </div>
           ) : null}
 
-          <div className="flex items-center justify-between px-4 py-1 bg-white/80 backdrop-blur-sm border-b border-gray-200 rounded-t-xl">
+          <div className="flex items-center justify-between px-6 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-200 rounded-t-xl">
             <button
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
               aria-label="홈"
               disabled={diningType == null}
               onClick={() => {
@@ -1425,21 +1501,21 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                 void clearCart();
               }}
             >
-              <Home className="w-4 h-4 text-gray-600" />
+              <Home className="w-6 h-6 text-gray-600" />
             </button>
-            <h1 className="text-lg text-red-600 text-center">
+            <h1 className="text-2xl font-semibold text-red-600 text-center">
               {diningType == null
                 ? browseWithoutDining
                   ? "메뉴 보기 (식사 방법 미선택)"
                   : "식사 방법 선택"
                 : `PREMIUM BURGER 키오스크 (${diningType === "DINE_IN" ? "매장" : "포장"})`}
             </h1>
-            <div className="flex items-center gap-2">
-              <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="직원 호출" onClick={handleStaffCall}>
-                <Bell className="w-4 h-4 text-gray-600" />
+            <div className="flex items-center gap-3">
+              <button className="p-3 hover:bg-gray-100 rounded-xl transition-colors" aria-label="직원 호출" onClick={handleStaffCall}>
+                <Bell className="w-6 h-6 text-gray-600" />
               </button>
-              <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="음성">
-                <Volume2 className="w-4 h-4 text-gray-600" />
+              <button className="p-3 hover:bg-gray-100 rounded-xl transition-colors" aria-label="음성">
+                <Volume2 className="w-6 h-6 text-gray-600" />
               </button>
             </div>
           </div>
@@ -2128,18 +2204,18 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
               매장 식사 또는 포장을 선택해 주세요.
             </div>
           ) : (
-            <div className="bg-white border-t border-gray-200 px-4 py-1.5 flex-shrink-0">
+            <div className="bg-white border-t border-gray-200 px-6 py-3 flex-shrink-0">
               {!showOrderView ? (
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-5">
                 <button
                   ref={cartButtonRef}
                   onClick={() => setShowOrderView(true)}
-                  className="flex items-center gap-2 px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-xs"
+                  className="flex items-center gap-3 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-base font-semibold"
                 >
                   <span className="text-gray-700">장바구니</span>
                   <span
                     ref={cartBadgeRef}
-                    className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px]"
+                    className="bg-red-500 text-white text-sm px-2.5 py-1 rounded-full min-w-[28px] text-center leading-none"
                   >
                     {totalItems}
                   </span>
@@ -2147,15 +2223,15 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
 
                 <button
                   onClick={clearCart}
-                  className="px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2.5 text-base text-gray-700 hover:bg-gray-100 rounded-xl transition-colors font-medium"
                 >
                   전체삭제
                 </button>
 
-                <div className="flex items-center gap-2 text-xs flex-1 justify-end">
-                  <div className="text-gray-900 font-medium">{formatKRW(totalPrice)}</div>
-                  <div className="text-gray-600">|</div>
-                  <div className="text-gray-600">
+                <div className="flex items-center gap-3 text-base flex-1 justify-end">
+                  <div className="text-gray-900 font-semibold text-lg">{formatKRW(totalPrice)}</div>
+                  <div className="text-gray-500">|</div>
+                  <div className="text-gray-700 font-medium">
                     {totalItems}개
                   </div>
                 </div>
@@ -2163,7 +2239,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                 <button
                   onClick={() => setShowOrderView(true)}
                   disabled={cartItems.length === 0}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`px-7 py-2.5 rounded-xl text-base font-semibold transition-all ${
                     cartItems.length === 0
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-red-500 text-white hover:bg-red-600 shadow-md"
@@ -2173,30 +2249,30 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                 </button>
               </div>
               ) : (
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-5">
                 <button
                   onClick={() => setShowOrderView(false)}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-xs"
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-base"
                   aria-label="뒤로"
                 >
-                  <ChevronLeft className="w-4 h-4 text-gray-700" />
+                  <ChevronLeft className="w-5 h-5 text-gray-700" />
                 </button>
 
                 <div className="flex-1">
-                   <div className="grid grid-cols-3 gap-2 text-xs">
+                   <div className="grid grid-cols-3 gap-3 text-sm">
                      <div className="text-gray-600 text-center">개수</div>
                      <div className="text-gray-600 text-center">주문금액</div>
                      <div className="text-gray-600 text-center">할인금액</div>
-                     <div className="font-medium text-gray-900 text-center">{totalItems}</div>
-                     <div className="font-medium text-gray-900 text-center">{formatKRW(totalPrice)}</div>
-                     <div className="font-medium text-gray-900 text-center">{formatKRW(usedPoints)}</div>
+                     <div className="font-semibold text-gray-900 text-center text-base">{totalItems}</div>
+                     <div className="font-semibold text-gray-900 text-center text-base">{formatKRW(totalPrice)}</div>
+                     <div className="font-semibold text-gray-900 text-center text-base">{formatKRW(usedPoints)}</div>
                    </div>
                  </div>
  
                  <button
                    onClick={openPayment}
                    disabled={cartItems.length === 0}
-                   className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                   className={`px-7 py-2.5 rounded-xl text-base font-semibold transition-all ${
                      cartItems.length === 0
                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                        : "bg-red-500 text-white hover:bg-red-600 shadow-md"
@@ -2210,8 +2286,37 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
            )}
         </div>
       </div>
+      </div>
+
+      <div className="fixed z-[5000] flex items-start" style={{ top: "24px", left: "24px" }}>
+        <button
+          type="button"
+          onClick={() => setMotionPanelOpen((v) => !v)}
+          className="bg-black/70 text-white px-3 py-2 rounded-r-xl shadow-lg hover:bg-black/80 transition-colors"
+        >
+          Motion
+        </button>
+        {motionPanelOpen ? (
+          <div className="ml-2 w-[300px] max-h-[70vh] overflow-y-auto rounded-xl border border-white/20 bg-black/70 p-2 backdrop-blur text-white">
+            <div className="mb-2 text-xs text-white/80">Live2D Motion</div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {availableMotions.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => playMotion(m.id)}
+                  className="px-2 py-1.5 rounded-md bg-white/15 hover:bg-white/25 text-left text-[11px] font-medium transition-colors"
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <V2VoiceManager
+        uiScale={kioskScale}
         sessionId={kioskSessionId}
         diningType={diningType}
         selectedCategory={selectedCategory}
@@ -2253,6 +2358,8 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
           startPaymentProcessing(m === "SIMPLE" ? "SIMPLE" : "CARD");
         }}
         onCallStaff={handleStaffCall}
+        onSpeakingChange={setVoiceSpeaking}
+        onPlayMotion={playMotion}
         tracking={{
           videoElement: tracking.videoElement,
           hesitationScore: tracking.hesitationScore,
