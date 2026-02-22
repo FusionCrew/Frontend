@@ -217,9 +217,17 @@ export async function clearCart(cartId: string): Promise<any> {
  * 주문 생성 (결제 전)
  */
 export async function createOrder(order: any): Promise<any> {
+  const normalizeOrderType = (raw: unknown): string | undefined => {
+    if (raw == null) return undefined;
+    const norm = String(raw).trim().toUpperCase().replace(/[-\s]+/g, "_");
+    if (norm === "TAKE_OUT" || norm === "TAKEOUT" || norm === "TO_GO" || norm === "TAKEAWAY") return "TAKEOUT";
+    if (norm === "DINE_IN" || norm === "DINEIN" || norm === "EAT_IN" || norm === "FOR_HERE") return "DINE_IN";
+    return norm || undefined;
+  };
+  const payload = { ...order, orderType: normalizeOrderType(order?.orderType) };
   const response = await apiFetch<any>("/kiosk/orders", {
     method: "POST",
-    body: JSON.stringify(order),
+    body: JSON.stringify(payload),
   });
   return response.data;
 }

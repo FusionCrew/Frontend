@@ -7,6 +7,8 @@ import { FIGMA_CATEGORIES, FIGMA_MENU_ITEMS } from "./figmaMenuData";
 import { getKfcAllergensForMenuName } from "./kfcAllergenData";
 import { KioskCharacter } from "../../components/KioskComponents";
 import {
+  addCartItem,
+  clearCart as clearCartApi,
   confirmOrder,
   createCart,
   createKioskSession,
@@ -105,6 +107,8 @@ export default function KioskV2FigmaPage() {
   const setPickerBurgerThumbRef = useRef<HTMLDivElement>(null);
   const setPickerSideThumbRef = useRef<HTMLDivElement>(null);
   const setPickerDrinkThumbRef = useRef<HTMLDivElement>(null);
+  const setPickerSideRef = useRef<V2MenuItem | null>(null);
+  const setPickerDrinkRef = useRef<V2MenuItem | null>(null);
   const [detailData, setDetailData] = useState<MenuDetailData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const menuScrollRef = useRef<HTMLDivElement>(null);
@@ -127,6 +131,7 @@ export default function KioskV2FigmaPage() {
   const [showStaffCallModal, setShowStaffCallModal] = useState(false);
   const [staffCallBusy, setStaffCallBusy] = useState(false);
   const [staffCallToast, setStaffCallToast] = useState<string | null>(null);
+  const [paymentToast, setPaymentToast] = useState<string | null>(null);
   const [viewportSize, setViewportSize] = useState(() => ({
     width: typeof window !== "undefined" ? window.innerWidth : BASE_KIOSK_WIDTH,
     height: typeof window !== "undefined" ? window.innerHeight : BASE_KIOSK_HEIGHT,
@@ -221,7 +226,7 @@ export default function KioskV2FigmaPage() {
   const sideItemsForSet = useMemo((): V2MenuItem[] => {
     const side = apiMenuItemsByCategory.get("side") ?? [];
     // Curated initial rule: exclude desserts and any "음료" mislabeled as side.
-    return side.filter((s) => {
+    const filtered = side.filter((s) => {
       const nm = (s.name || "").trim();
       if (!nm) return false;
       if (nm.startsWith("파이 ")) return false;
@@ -229,6 +234,37 @@ export default function KioskV2FigmaPage() {
       if (nm.startsWith("음료")) return false;
       return true;
     });
+
+    const normalizeSideName = (raw: string) =>
+      String(raw || "")
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[()]/g, "")
+        .replace(/조각/g, "");
+
+    const priorityMatchers: Array<(n: string) => boolean> = [
+      (n) => n.includes("케이준후라이m") || n.includes("케이준후라이미디엄") || n.includes("케이준후라이레귤러"),
+      (n) => n.includes("치즈스틱") && !n.includes("고구마"),
+      (n) => n.includes("프렌치프라이") && (n.includes("r") || n.includes("레귤러") || n.includes("미디엄")),
+      (n) => n.includes("프렌치프라이") && (n.includes("l") || n.includes("라지")),
+      (n) => n.includes("치킨텐더") && (n.includes("2") || n.includes("두")),
+      (n) => n.includes("케이준후라이"),
+      (n) => n.includes("어니언링"),
+      (n) => n.includes("고구마치즈스틱"),
+      (n) => n.includes("콘샐러드") || n.includes("콘셀러드") || n.includes("콘샐라드"),
+    ];
+
+    return filtered
+      .map((item, originalIndex) => {
+        const normalized = normalizeSideName(item.name || "");
+        const priorityIndex = priorityMatchers.findIndex((fn) => fn(normalized));
+        return { item, originalIndex, priorityIndex: priorityIndex < 0 ? 999 : priorityIndex };
+      })
+      .sort((a, b) => {
+        if (a.priorityIndex !== b.priorityIndex) return a.priorityIndex - b.priorityIndex;
+        return a.originalIndex - b.originalIndex;
+      })
+      .map((x) => x.item);
   }, [apiMenuItemsByCategory]);
 
   const drinkItemsForSet = useMemo((): V2MenuItem[] => {
@@ -242,6 +278,14 @@ export default function KioskV2FigmaPage() {
   const defaultSetDrink = useMemo(() => {
     return drinkItemsForSet.find((d) => d.name === DEFAULT_SET_DRINK_NAME) ?? drinkItemsForSet[0] ?? null;
   }, [drinkItemsForSet]);
+
+  useEffect(() => {
+    setPickerSideRef.current = setPickerSide;
+  }, [setPickerSide]);
+
+  useEffect(() => {
+    setPickerDrinkRef.current = setPickerDrink;
+  }, [setPickerDrink]);
 
   const sideImageByName = useMemo(() => {
     const m = new Map<string, string>();
@@ -286,6 +330,8 @@ export default function KioskV2FigmaPage() {
 
   const openSetSidePicker = (item: V2MenuItem, sourceEl: HTMLElement | null, quantity: number = 1) => {
     lastMenuClickRef.current = sourceEl;
+    // Ensure set picker is visible even if cart/order panel was open.
+    setShowOrderView(false);
     setSetSideTarget(item);
     setSetPickerStep("side");
     setSetPickerSide(defaultSetSide);
@@ -609,6 +655,54 @@ export default function KioskV2FigmaPage() {
     return () => ro.disconnect();
   }, [setPickerStep, sideItemsForSet.length, drinkItemsForSet.length, updateSetPickerScrollButtons]);
 
+  useEffect(() => {
+    const el = orderScrollRef.current;
+    if (!el) return;
+    if (!showOrderView) return;
+    if (cartItems.length < 4) return;
+
+    let rafId: number | null = null;
+    let lastTs = 0;
+    let direction: 1 | -1 = 1;
+    // Continuous speed in px/sec for smooth marquee-like motion.
+    const speed = 12;
+
+    // Force instant scrolling while running RAF loop.
+    el.style.scrollBehavior = "auto";
+
+    const tick = (ts: number) => {
+      const max = Math.max(0, el.scrollWidth - el.clientWidth);
+      if (max <= 1) {
+        // Layout may not be ready on first frames; keep polling.
+        rafId = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min(0.05, Math.max(0.001, (ts - lastTs) / 1000));
+      lastTs = ts;
+
+      const next = el.scrollLeft + direction * speed * dt;
+      if (next <= 0) {
+        el.scrollLeft = 0;
+        direction = 1;
+      } else if (next >= max) {
+        el.scrollLeft = max;
+        direction = -1;
+      } else {
+        el.scrollLeft = next;
+      }
+
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => {
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+      el.style.scrollBehavior = "";
+    };
+  }, [cartItems, showOrderView]);
+
   const startPaymentProcessing = (method: PaymentMethod) => {
     setPaymentMethod(method);
     setPaymentStep("processing");
@@ -641,6 +735,24 @@ export default function KioskV2FigmaPage() {
 
         if (!sid || !cid || !diningType) throw new Error("Missing session/cart/diningType");
 
+        // Ensure backend cart reflects local UI cart before order/payment.
+        // Voice flow can add local items before backend cart/session is fully initialized.
+        await clearCartApi(cid);
+        for (const ci of cartItems) {
+          const options: any = {};
+          if (ci.side) options.side = ci.side;
+          if (ci.drink) options.drink = ci.drink;
+          if (ci.size) options.size = ci.size;
+          if (ci.isLargeSet) options.isLargeSet = true;
+          if ((ci.removedIngredients || []).length > 0) options.removedIngredients = ci.removedIngredients;
+          if ((ci.selectedOptions || []).length > 0) options.selectedOptions = ci.selectedOptions;
+          await addCartItem(cid, {
+            menuItemId: ci.menu.menuItemId || String(ci.menu.id),
+            quantity: Math.max(1, Number(ci.quantity || 1)),
+            options,
+          });
+        }
+
         const orderRes = await createOrder({ cartId: cid, sessionId: sid, orderType: diningType });
         const orderId = orderRes?.orderId;
         if (!orderId) throw new Error("Order create failed");
@@ -652,7 +764,7 @@ export default function KioskV2FigmaPage() {
         const payRes = await processPayment({
           orderId: String(orderId),
           amount: finalAmount,
-          method: "CARD",
+          method,
         });
         if (!payRes?.success) throw new Error("Payment failed");
 
@@ -669,8 +781,15 @@ export default function KioskV2FigmaPage() {
         } else {
           void requestTicket(String(orderId));
         }
-      } catch {
-        orderNo = Math.floor(Math.random() * 900) + 100;
+      } catch (e: any) {
+        const msg = String(e?.message || e || "unknown");
+        console.error("[payment] failed", { message: msg, method, cartId, diningType, cartCount: cartItems.length });
+        await minDelay;
+        setPaymentPhase("idle");
+        setPaymentStep("select");
+        setPaymentToast(`결제 처리에 실패했습니다. 다시 시도해 주세요. (${msg})`);
+        window.setTimeout(() => setPaymentToast(null), 2500);
+        return;
       }
 
       await minDelay;
@@ -679,6 +798,27 @@ export default function KioskV2FigmaPage() {
       setPaymentStep("complete");
     })();
   };
+
+  const handleVoicePaymentCompleteSpoken = useCallback(() => {
+    if (paymentStep !== "complete") return;
+    if (paymentTimerRef.current != null) {
+      window.clearTimeout(paymentTimerRef.current);
+      paymentTimerRef.current = null;
+    }
+    paymentTimerRef.current = window.setTimeout(() => {
+      paymentTimerRef.current = null;
+      resetPaymentUi();
+      setSetSideTarget(null);
+      setDetailTarget(null);
+      setDetailData(null);
+      setDetailLoading(false);
+      setDiningType(null);
+      setBrowseWithoutDining(false);
+      setShowOrderView(false);
+      setSelectedCategory("set");
+      void clearCart();
+    }, 5000);
+  }, [clearCart, paymentStep]);
 
   const inferDetail = (item: V2MenuItem): MenuDetailData => {
     const categoryLabel = labelOfCategory(item.categoryKey);
@@ -862,17 +1002,33 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
 
   const voiceMenuCatalog = useMemo(() => {
     const seen = new Set<string>();
-    const out: Array<{ menuItemId: string; name: string; category: string; price: number }> = [];
+    const out: Array<{
+      menuItemId: string;
+      name: string;
+      category: string;
+      price: number;
+      allergies?: string[];
+      ingredients?: string[];
+    }> = [];
     for (const items of apiMenuItemsByCategory.values()) {
       for (const it of items) {
         const menuItemId = it.menuItemId ?? `FIGMA_${it.id}`;
         if (seen.has(menuItemId)) continue;
         seen.add(menuItemId);
+        const mappedAllergies = getKfcAllergensForMenuName(it.name);
+        const mappedIngredients =
+          Array.isArray(it.ingredients) && it.ingredients.length
+            ? it.ingredients
+                .map((x) => String(x || "").trim())
+                .filter((x) => x && x !== "정보 준비중")
+            : [];
         out.push({
           menuItemId,
           name: it.name,
           category: `${it.categoryKey} ${labelOfCategory(it.categoryKey)}`,
           price: it.price,
+          allergies: mappedAllergies && mappedAllergies.length ? mappedAllergies : undefined,
+          ingredients: mappedIngredients.length ? mappedIngredients : undefined,
         });
       }
     }
@@ -887,6 +1043,42 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
     }));
   }, [cartItems]);
 
+  const pulseCartFeedback = useCallback(() => {
+    const target = (cartBadgeRef.current ?? cartButtonRef.current) as HTMLElement | null;
+    if (!target || typeof target.animate !== "function") return;
+    target.animate(
+      [
+        { transform: "scale(1)" },
+        { transform: "scale(1.16)" },
+        { transform: "scale(1)" },
+      ],
+      { duration: 420, easing: "ease-out" }
+    );
+  }, []);
+
+  const voicePreviewSetPickerSelection = useCallback(
+    (selection: { sideMenuItemId?: string; drinkMenuItemId?: string }) => {
+      if (!setSideTarget) return;
+      if (selection.sideMenuItemId) {
+        const sidePicked =
+          sideItemsForSet.find((s) => (s.menuItemId ?? `FIGMA_${s.id}`) === selection.sideMenuItemId) ?? null;
+        if (sidePicked) {
+          setSetPickerSide(sidePicked);
+          setPickerSideRef.current = sidePicked;
+        }
+      }
+      if (selection.drinkMenuItemId) {
+        const drinkPicked =
+          drinkItemsForSet.find((d) => (d.menuItemId ?? `FIGMA_${d.id}`) === selection.drinkMenuItemId) ?? null;
+        if (drinkPicked) {
+          setSetPickerDrink(drinkPicked);
+          setPickerDrinkRef.current = drinkPicked;
+        }
+      }
+    },
+    [drinkItemsForSet, setSideTarget, sideItemsForSet]
+  );
+
   const voiceAddMenu = useCallback(
     async (menuItemId: string, quantity: number) => {
       const it = menuIndexByMenuItemId.get(menuItemId);
@@ -894,25 +1086,29 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
 
       // If the set picker is open, interpret "ADD_MENU" as selecting side/drink.
       if (setSideTarget) {
-        if (setPickerStep === "side") {
-          const sidePicked = sideItemsForSet.find((s) => (s.menuItemId ?? `FIGMA_${s.id}`) === menuItemId) ?? null;
-          if (!sidePicked) return false;
+        const sidePicked = sideItemsForSet.find((s) => (s.menuItemId ?? `FIGMA_${s.id}`) === menuItemId) ?? null;
+        if (sidePicked) {
           setSetPickerSide(sidePicked);
-          setSetPickerStep("drink");
+          setPickerSideRef.current = sidePicked;
+          if (setPickerStep === "side") setSetPickerStep("drink");
           return true;
         }
-        if (setPickerStep === "drink") {
-          const drinkPicked = drinkItemsForSet.find((d) => (d.menuItemId ?? `FIGMA_${d.id}`) === menuItemId) ?? null;
-          if (!drinkPicked) return false;
-          const side = setPickerSide ?? defaultSetSide ?? sideItemsForSet[0] ?? null;
-          if (!side) return false;
-          setSetPickerDrink(drinkPicked);
-          await addSetWithOptionsToCart(setSideTarget, side, drinkPicked, setPickerQty);
-          setSetSideTarget(null);
-          setSetPickerStep("side");
-          setSetPickerQty(1);
-          return true;
-        }
+
+        const drinkPicked = drinkItemsForSet.find((d) => (d.menuItemId ?? `FIGMA_${d.id}`) === menuItemId) ?? null;
+        if (!drinkPicked) return false;
+        setSetPickerDrink(drinkPicked);
+        setPickerDrinkRef.current = drinkPicked;
+        const side = setPickerSideRef.current ?? defaultSetSide ?? sideItemsForSet[0] ?? null;
+        if (!side) return false;
+        await addSetWithOptionsToCart(setSideTarget, side, drinkPicked, setPickerQty);
+        setSetSideTarget(null);
+        setSetPickerStep("side");
+        setSetPickerSide(null);
+        setSetPickerDrink(null);
+        setPickerSideRef.current = null;
+        setPickerDrinkRef.current = null;
+        setSetPickerQty(1);
+        return true;
       }
 
       const isSetLike =
@@ -922,7 +1118,12 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
         openSetSidePicker(it, null, quantity);
         return true;
       }
+      const cardEl = document.querySelector<HTMLElement>(`[data-menu-card-id="${String(it.id)}"]`);
+      if (cardEl) {
+        animateFlyToCart(cardEl, it);
+      }
       await addToCart(toCartMenuItem(it), Math.max(1, quantity), "", "", "", [], false, []);
+      if (!cardEl) pulseCartFeedback();
       return true;
     },
     [
@@ -933,11 +1134,12 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
       menuIndexByMenuItemId,
       openSetSidePicker,
       setPickerQty,
-      setPickerSide,
       setPickerStep,
       setSideTarget,
       sideItemsForSet,
       toCartMenuItem,
+      pulseCartFeedback,
+      animateFlyToCart,
     ]
   );
 
@@ -1027,7 +1229,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
     void clearCart();
   };
 
-  const animateFlyToCart = (sourceEl: HTMLElement, item: V2MenuItem) => {
+  function animateFlyToCart(sourceEl: HTMLElement, item: V2MenuItem) {
     const dest = (cartBadgeRef.current ?? cartButtonRef.current) as HTMLElement | null;
     if (!dest) return;
 
@@ -1107,7 +1309,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
     } catch {
       // ignore
     }
-  };
+  }
 
   const playMotion = useCallback((motionName: string) => {
     setSpecificMotion(motionName);
@@ -1487,6 +1689,11 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
               <div className="px-4 py-2 rounded-full bg-black/70 text-white text-sm shadow-lg">{staffCallToast}</div>
             </div>
           ) : null}
+          {paymentToast ? (
+            <div className="absolute left-1/2 top-16 -translate-x-1/2 z-40">
+              <div className="px-4 py-2 rounded-full bg-red-600/90 text-white text-sm shadow-lg">{paymentToast}</div>
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-between px-6 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-200 rounded-t-xl">
             <button
@@ -1520,7 +1727,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
             </div>
           </div>
 
-          {diningType == null && !browseWithoutDining ? (
+          {diningType == null && !browseWithoutDining && !setSideTarget ? (
             <div className="flex-1 flex items-center justify-center p-4 bg-gray-100">
               <div className="w-full grid grid-cols-2 gap-4">
                 <button
@@ -1605,7 +1812,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                           <div className="w-[72px]" />
                         </div>
 
-                          <div className="h-[420px] overflow-hidden bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-4 flex gap-4">
+                          <div className="h-[396px] overflow-hidden bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-3 flex gap-3">
                           <div className="w-56 flex-shrink-0">
                             <div
                               ref={setPickerBurgerThumbRef}
@@ -1766,7 +1973,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                                 onScroll={updateSetPickerScrollButtons}
                                 className="absolute inset-0 overflow-y-auto pr-1 scroll-smooth"
                               >
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-4 gap-1.5">
                                 {(setPickerStep === "side" ? sideItemsForSet : drinkItemsForSet).map((s) => {
                                   const selected =
                                     setPickerStep === "side" ? setPickerSide?.id === s.id : setPickerDrink?.id === s.id;
@@ -1781,12 +1988,12 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                                           setSetPickerDrink(s);
                                         }
                                       }}
-                                      className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow p-2 text-left ${
+                                      className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow p-1 text-left ${
                                         selected ? "border-red-500 ring-2 ring-red-200" : "border-gray-200 hover:border-gray-300"
                                       }`}
                                       aria-pressed={selected}
                                     >
-                                      <div className="w-full h-24 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 relative">
+                                      <div className="w-full h-16 rounded-md overflow-hidden bg-gray-50 border border-gray-100 relative">
                                         <ImageWithFallback
                                           src={s.image || ""}
                                           alt={s.name}
@@ -1798,8 +2005,8 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                                           </div>
                                         ) : null}
                                       </div>
-                                      <div className="mt-2 text-xs font-semibold text-gray-900 truncate">{s.name}</div>
-                                      <div className="mt-0.5 text-xs text-gray-700">{formatKRW(s.price)}</div>
+                                      <div className="mt-1 text-[11px] font-semibold text-gray-900 truncate">{s.name}</div>
+                                      <div className="mt-0.5 text-[11px] text-gray-700">{formatKRW(s.price)}</div>
                                     </button>
                                   );
                                 })}
@@ -1973,6 +2180,7 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                               filteredItems.map((item) => (
                                 <div
                                   key={item.id}
+                                  data-menu-card-id={String(item.id)}
                                   role="button"
                                   tabIndex={0}
                                   onClick={(e) => {
@@ -2072,16 +2280,18 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                       <p className="text-xs text-gray-600">상품을 추가하거나 수량을 조절, 삭제할 수 있어요.</p>
                     </div>
 
-                    <div className="flex-1 flex items-center gap-2 overflow-hidden">
-                      <button
-                        onClick={() => scrollOrder("left")}
-                        className="flex-shrink-0 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-10"
-                        aria-label="이전"
-                      >
-                        <ChevronLeft className="w-8 h-8" />
-                      </button>
+                    <div className="flex-1 flex items-start gap-2 overflow-hidden pt-1">
+                      <div className="self-start mt-[120px]">
+                        <button
+                          onClick={() => scrollOrder("left")}
+                          className="flex-shrink-0 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-10"
+                          aria-label="이전"
+                        >
+                          <ChevronLeft className="w-8 h-8" />
+                        </button>
+                      </div>
 
-                      <div ref={orderScrollRef} className="flex-1 overflow-x-auto pb-2">
+                      <div ref={orderScrollRef} className="flex-1 overflow-x-auto pb-2 [scroll-behavior:auto]">
                         <div className="flex gap-3">
                           {cartItems.map((ci, idx) => (
                           <div
@@ -2185,13 +2395,15 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => scrollOrder("right")}
-                        className="flex-shrink-0 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-10"
-                        aria-label="다음"
-                      >
-                        <ChevronRight className="w-8 h-8" />
-                      </button>
+                      <div className="self-start mt-[120px]">
+                        <button
+                          onClick={() => scrollOrder("right")}
+                          className="flex-shrink-0 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-10"
+                          aria-label="다음"
+                        >
+                          <ChevronRight className="w-8 h-8" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2321,8 +2533,8 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
         diningType={diningType}
         selectedCategory={selectedCategory}
         categories={categories}
-        pageHint={{ selectedCategory, showOrderView, paymentStep }}
-        uiMode={{ setPickerActive: !!setSideTarget, setPickerStep }}
+        pageHint={{ selectedCategory, showOrderView, paymentStep, paidOrderNumber }}
+        uiMode={{ setPickerActive: !!setSideTarget, setPickerStep, setMenuName: setSideTarget?.name ?? null }}
         menuCatalog={voiceMenuCatalog}
         cartSnapshot={voiceCartSnapshot}
         onSetDining={(t) => {
@@ -2343,7 +2555,12 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
           setShowOrderView(false);
           if (diningType == null) setBrowseWithoutDining(true);
         }}
-        onCheckCart={() => setShowOrderView(true)}
+        onCheckCart={() => {
+          // Voice-first cart confirmation should not be blocked by payment overlay.
+          setPaymentStep("idle");
+          setPaymentPhase("idle");
+          setShowOrderView(true);
+        }}
         onCheckout={() => {
           setShowOrderView(true);
           openPayment();
@@ -2359,7 +2576,9 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
         }}
         onCallStaff={handleStaffCall}
         onSpeakingChange={setVoiceSpeaking}
+        onPreviewSetPickerSelection={voicePreviewSetPickerSelection}
         onPlayMotion={playMotion}
+        onPaymentCompleteSpoken={handleVoicePaymentCompleteSpoken}
         tracking={{
           videoElement: tracking.videoElement,
           hesitationScore: tracking.hesitationScore,

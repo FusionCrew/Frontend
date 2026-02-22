@@ -20,7 +20,7 @@ import {
 import { useMicStreamer } from "../hook/useMicStreamer";
 import { useAudioDevices } from "../hook/useAudioDevices";
 import { CategoryType } from "../types/kiosk";
-import { AI_BASE_URL } from "../api/config";
+import { AI_BASE_URL, AI_V2_CHAT_URL } from "../api/config";
 import { useCart } from "../hooks/useCart";
 import { KioskCharacter } from "../components/KioskComponents";
 import { useFaceTracking } from "../hook/useFaceTracking";
@@ -1152,9 +1152,12 @@ export default function KioskApp() {
                     price: m.price,
                 })),
             };
-            const res = await fetch(`${AI_BASE_URL}/llm/chat`, {
+            const res = await fetch(AI_V2_CHAT_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-AI-Client-Source": "frontend-v1-voice",
+                },
                 body: JSON.stringify({
                     messages,
                     sessionId: kioskSessionId,
@@ -1296,9 +1299,12 @@ export default function KioskApp() {
                 },
             ];
             addVoiceLog("LLM REQ: hesitation assist");
-            const res = await fetch(`${AI_BASE_URL}/llm/chat`, {
+            const res = await fetch(AI_V2_CHAT_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-AI-Client-Source": "frontend-v1-hesitation",
+                },
                 body: JSON.stringify({ messages, sessionId: kioskSessionId, orderType: diningType }),
             });
             const json = await res.json();

@@ -32,6 +32,7 @@ export function Live2DStage({
     const smoothRef = useRef({ x: 0, y: 0 });
     const biasRef = useRef({ x: 0, y: 0 });
     const biasReadyAtRef = useRef(0);
+    const mouthSmoothRef = useRef(0);
 
     const {
         hesitationScore,
@@ -50,6 +51,9 @@ export function Live2DStage({
     }, [hesitationScore, isHesitating, poseLandmarks, videoElement, onHesitationChange]);
 
     const motionList = Array.from({ length: 26 }, (_, i) => `m${String(i + 1).padStart(2, '0')}`);
+    const isSpeakingNow = () => {
+        return Boolean(speaking || (window as any).__AIKIOSK_TTS_SPEAKING);
+    };
 
     useEffect(() => {
         let destroyed = false;
@@ -118,7 +122,7 @@ export function Live2DStage({
     useEffect(() => {
         const model = modelRef.current;
         if (!model) return;
-        if (speaking) {
+        if (isSpeakingNow()) {
             if (!isPlayingMotionRef.current) {
                 isPlayingMotionRef.current = true;
                 model.motion("Speak", 0, (window as any).PIXI.live2d.MotionPriority.FORCE).finally(() => {
@@ -197,11 +201,18 @@ export function Live2DStage({
             core.setParameterValueById("ParamEyeBallX", clamp(smoothRef.current.x * 0.75, -1, 1));
             core.setParameterValueById("ParamEyeBallY", clamp(smoothRef.current.y * 0.75, -1, 1));
 
-            if (!speaking) {
-                core.setParameterValueById("ParamMouthOpenY", 0);
-            } else {
-                core.setParameterValueById("ParamMouthOpenY", Math.sin(Date.now() / 50) * 0.5 + 0.5);
+            const activeSpeaking = isSpeakingNow();
+            const audioLipActive = Boolean((window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE);
+            const audioMouth = Math.max(0, Math.min(1, Number((window as any).__AIKIOSK_TTS_MOUTH_OPEN || 0)));
+            let mouthTarget = 0;
+            if (audioLipActive) {
+                mouthTarget = audioMouth;
+            } else if (activeSpeaking) {
+                mouthTarget = Math.sin(Date.now() / 50) * 0.5 + 0.5;
             }
+            mouthSmoothRef.current = mouthSmoothRef.current * 0.7 + mouthTarget * 0.3;
+            if (mouthSmoothRef.current < 0.01) mouthSmoothRef.current = 0;
+            core.setParameterValueById("ParamMouthOpenY", mouthSmoothRef.current);
             animRef.current = requestAnimationFrame(tick);
         };
         animRef.current = requestAnimationFrame(tick);

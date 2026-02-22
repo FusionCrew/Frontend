@@ -4,6 +4,10 @@
 // 환경 변수 또는 설정에서 가져오기
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
 export const AI_BASE_URL = import.meta.env.VITE_AI_URL || "http://localhost:8000/api/v1";
+export const AI_V2_BASE_URL =
+  import.meta.env.VITE_AI_V2_URL ||
+  AI_BASE_URL.replace(/\/api\/v1\/?$/i, "/api/v2");
+export const AI_V2_CHAT_URL = `${AI_V2_BASE_URL.replace(/\/+$/, "")}/llm/chat`;
 
 // API 요청 기본 설정
 export const apiConfig = {

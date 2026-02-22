@@ -84,6 +84,7 @@ export function useFaceTracking(
   const poseSendErrorCountRef = useRef(0);
   const hesitationEndpointRef = useRef<string | null>(null);
   const hesitationRetryAtRef = useRef(0);
+  const hesitationLastSentAtRef = useRef(0);
 
   const smoothRef = useRef({ x: 0, y: 0 });
   const lastUpdateRef = useRef({ face: 0, pose: 0, hesitation: 0, log: 0 });
@@ -434,6 +435,10 @@ export function useFaceTracking(
 
         const postHesitation = async () => {
           if (!mounted || hesitationBusyRef.current || !videoRef.current || videoRef.current.readyState < 2) return;
+          const isSpeaking = Boolean((window as any).__AIKIOSK_TTS_SPEAKING);
+          if (isSpeaking) return;
+          const now = Date.now();
+          if (now - hesitationLastSentAtRef.current < 250) return;
           if (Date.now() < hesitationRetryAtRef.current) return;
           hesitationBusyRef.current = true;
           try {
@@ -467,6 +472,7 @@ export function useFaceTracking(
                 if (r.ok) {
                   hesitationEndpointRef.current = url;
                   res = r;
+                  hesitationLastSentAtRef.current = now;
                   break;
                 }
                 if (r.status !== 404) {

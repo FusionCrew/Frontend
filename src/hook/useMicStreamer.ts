@@ -255,10 +255,6 @@ export function useMicStreamer(opts: Opts) {
     const voicedMs = voicedMsRef.current;
 
     if (!frames.length) return;
-    if (durMs < minSpeechMs) {
-      onDebug?.(`segment dropped(short): dur=${Math.round(durMs)}ms`);
-      return;
-    }
 
     // ?⑹튂湲?
     const totalLen = frames.reduce((a, b) => a + b.length, 0);
@@ -274,6 +270,13 @@ export function useMicStreamer(opts: Opts) {
     }
     const rms = rmsEnergy(merged);
     const voicedFraction = voicedMs > 0 ? voicedMs / Math.max(1, durMs) : 0;
+    const dynamicMinSpeechMs =
+      voicedFraction >= 0.35 ? Math.max(500, minSpeechMs - 200) : Math.max(500, minSpeechMs);
+
+    if (durMs < dynamicMinSpeechMs) {
+      onDebug?.(`segment dropped(short): dur=${Math.round(durMs)}ms min=${Math.round(dynamicMinSpeechMs)}ms`);
+      return;
+    }
 
     // ?꾩＜ ?쏀븳 ?좎젣 ?꾪꽣 (臾댁꽦/?≪쓬留뚯씤 寃쎌슦)
     if (voicedFraction < 0.18 && durMs < 1200) {
