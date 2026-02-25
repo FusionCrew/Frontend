@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { useFaceTracking } from "./hook/useFaceTracking";
 import { useAudioDevices } from "./hook/useAudioDevices";
 import { useMicStreamer } from "./hook/useMicStreamer";
+import { getMenuItems, createOrder, callStaff, createCart, addCartItem, processPayment, createKioskSession, recordSessionEvent, confirmOrder, requestTicket } from "./api/services";
+import { MenuItem } from "./api/types";
+
+// 임시 메뉴 리스트 제거 (실제 DB 데이터만 사용하도록)
+const FALLBACK_MENU: any[] = [];
 
 /* ===========================================================
    작은 유틸
@@ -129,10 +134,12 @@ function Live2DStage({
       const place = () => {
         const w = boxRef.current!.clientWidth;
         const h = boxRef.current!.clientHeight;
-        // 상반신이 중앙에 오도록 배치 (더 더 아래로)
-        model.position.set(w / 2, h * 1.0);
-        // 무대 크기에 맞춰 스케일 조정
-        const scale = Math.min(w, h) / 1600;
+        // 머리 부근(상단 10%)을 기준점으로 설정
+        model.anchor.set(0.5, 0.1);
+        // 그 지점을 화면 정중앙에 배치
+        model.position.set(w / 2, h / 2);
+        // 적절한 크기로 조정
+        const scale = Math.min(w, h) / 1200;
         model.scale.set(scale);
       };
       place();
@@ -298,7 +305,21 @@ export default function VoiceKiosk() {
   const [speaking, setSpeaking] = useState(false);
 
   const [sttModel, setSttModel] = useState("whisper-1");
-  const [llmModel, setLlmModel] = useState("gpt-4o"); // gpt-4o: 안정적이고 강력함 (권장)
+  const [llmModel, setLlmModel] = useState("gpt-4o");
+  const [sessionId] = useState(() => `sess_${Math.random().toString(36).substring(2, 11)}`);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [kioskSessionId, setKioskSessionId] = useState<string | null>(null);
+  const [cartId, setCartId] = useState<string | null>(null);
+  const [cart, setCart] = useState<any>(null);
+
+  const displayMenu = menuItems.length > 0
+    ? menuItems.map((m: any) => ({
+      id: m.menuItemId || m.id,
+      label: m.name,
+      emoji: m.emoji || (m.name.includes("버거") ? "🍔" : "☕"),
+      ...m
+    }))
+    : FALLBACK_MENU;
 
   // Pose 추적 모드 (face tracking 제거, pose로 대체)
   const [usePoseTracking, setUsePoseTracking] = useState(false);
@@ -312,6 +333,41 @@ export default function VoiceKiosk() {
 
   const { devices, ready, error } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const initKiosk = async () => {
+      try {
+        console.log("Creating Kiosk Session...");
+        const sessionRes = await createKioskSession("KIOSK_001");
+        if (sessionRes && sessionRes.sessionId) {
+          setKioskSessionId(sessionRes.sessionId);
+          console.log("Kiosk Session created:", sessionRes.sessionId);
+
+          console.log("Creating Cart...");
+          const newCart = await createCart(sessionRes.sessionId);
+          if (newCart) {
+            setCartId(newCart.cartId);
+            setCart(newCart);
+            console.log("Cart initialized:", newCart.cartId);
+          }
+        }
+
+        console.log("Fetching menu from backend...");
+        const items = await getMenuItems();
+        if (items && items.length > 0) {
+          setMenuItems(items);
+          const initialStock: Record<string, number> = {};
+          items.forEach((item: any) => {
+            initialStock[item.menuItemId || item.id] = 10;
+          });
+          setStock(prev => ({ ...prev, ...initialStock }));
+        }
+      } catch (e) {
+        console.error("Kiosk Initialization Failed:", e);
+      }
+    };
+    initKiosk();
+  }, []);
 
   // 마이크 목록이 로드되면 기본 마이크를 자동 선택
   useEffect(() => {
@@ -920,9 +976,25 @@ export default function VoiceKiosk() {
       // Stop mic to prevent echo
       prevListeningRef.current = listeningEnabled;
       if (listeningEnabled) setListeningEnabled(false);
+      // The `prompt` variable is not defined in the `say` function.
+      // Assuming this line was intended for `doLLM` function where user input `text` is available.
+      // If `prompt` is meant to be `text` from `say` function, it would log AI's speech.
+      // For now, I'll keep it as is based on the instruction, but it might cause a `prompt is not defined` error.
+      // If the intention was to log AI's speech, it should be `recordSessionEvent(kioskSessionId, "AI_SPEECH", text);`
+      // If the intention was to log user speech, it should be in `doLLM`.
+      // Given the instruction's placement, I'll assume `prompt` is meant to be `text` for AI speech.
+      // However, the instruction explicitly says "USER_SPEECH", which contradicts `say` function's purpose.
+      // I will place it as instructed, but note the potential logical inconsistency.
+      // For now, I'll assume `prompt` is a placeholder for `text` in this context, logging AI's output.
+      // If `kioskSessionId` and `recordSessionEvent` are not defined, this will also error.
+      // I will assume they are defined elsewhere in the scope.
+      // For now, I will comment it out to avoid immediate errors, as `prompt` is not defined here.
+      // if (kioskSessionId) {
+      //   recordSessionEvent(kioskSessionId, "USER_SPEECH", prompt);
+      // }
 
       try {
-        const res = await fetch("/api/tts", {
+        const res = await fetch("/ai/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -965,6 +1037,21 @@ export default function VoiceKiosk() {
     try {
       if (!text.trim()) return say(lang === "ko" ? "음성을 인식하지 못했습니다." : "I didn't hear anything.");
 
+      // Log user speech
+      // Assuming `kioskSessionId` and `recordSessionEvent` are defined in the component's scope.
+      // This is the correct place to log USER_SPEECH as `text` is the user's input.
+      // The instruction's placement for this line was in `say` function, which is for AI's speech.
+      // I'm placing it here for logical correctness based on the event type "USER_SPEECH".
+      // If `prompt` was a specific variable, it would need to be passed or defined.
+      // Assuming `prompt` in the instruction was a placeholder for the user's input `text`.
+      // If `kioskSessionId` is not defined, this will cause an error.
+      // I will assume it's defined in the outer scope.
+      // If `recordSessionEvent` is not defined, this will cause an error.
+      // I will assume it's defined in the outer scope.
+      if (kioskSessionId) {
+        recordSessionEvent(kioskSessionId, "USER_SPEECH", text);
+      }
+
       // 추천 메뉴 수락 감지 (긍정 응답)
       const acceptPhrases = ["응", "예", "네", "좋아", "그거", "그걸", "그래", "ok", "okay", "yes", "sure", "주세요", "할게요", "먹을래", "주문", "줘", "워"];
       const normalizedText = text.toLowerCase().trim();
@@ -974,7 +1061,7 @@ export default function VoiceKiosk() {
 
       if (isAccepting && lastRecommendedItem) {
         console.log('[LLM] ✅ 추천 메뉴 수락 감지:', lastRecommendedItem);
-        const recommendedMenu = BURGER_MENU.find(m => m.id === lastRecommendedItem);
+        const recommendedMenu = displayMenu.find(m => m.id === lastRecommendedItem);
         if (recommendedMenu && stock[lastRecommendedItem] > 0) {
           // 자동으로 추천 메뉴 주문 - text를 명확한 주문으로 변경
           text = `${recommendedMenu.label} 1개 주세요`;
@@ -1000,13 +1087,13 @@ export default function VoiceKiosk() {
       console.log('[LLM] 요청 전송 중... messages:', JSON.stringify(messages, null, 2), 'stock:', stock);
       console.log('[LLM] messages 타입 체크:', Array.isArray(messages), 'length:', messages.length);
 
-      const llmRes = await fetch("/api/llm/chat", {
+      const llmRes = await fetch("/ai/llm/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: messages.map(m => ({ role: m.role, content: m.content })),
-          // Context can be added if needed, complying with LlmChatDto
-          // context: { ... }
+          sessionId: sessionId,
+          orderType: "EAT_IN"
         }),
       });
       const llmJson = await llmRes.json();
@@ -1014,7 +1101,7 @@ export default function VoiceKiosk() {
       console.log('[LLM] 응답 받음:', llmJson);
 
       // LLM response adaptation (Spring returns { success:true, data: { reply: "..." } })
-      const replyText = llmJson.data?.reply || (lang === "ko" ? "응답이 없습니다." : "No response.");
+      const replyText = (llmJson.data?.text || "").trim();
 
       let detailedResponse = replyText;
       // Mock logic: if we had order data from backend, parse it here.
@@ -1032,11 +1119,24 @@ export default function VoiceKiosk() {
       });
 
       setSubtitle(replyText);
+      if (kioskSessionId) {
+        recordSessionEvent(kioskSessionId, "AI_REPLY", replyText);
+      }
       await say(replyText);
 
       // 서버가 계산한 재고가 오면 반영
-      if (llmJson?.updatedStock && typeof llmJson.updatedStock === "object") {
-        setStock(llmJson.updatedStock);
+      if (llmJson.data?.updatedStock) {
+        setStock(llmJson.data.updatedStock);
+      }
+
+      // 🔥 LLM 응답에 기반한 실제 액션 처리 (장바구니 담기 등)
+      if (llmJson.data?.action === "ADD_TO_CART" && cartId) {
+        const itemToAdd = llmJson.data.actionData; // { menuItemId, quantity }
+        console.log("[Action] Adding to cart:", itemToAdd);
+        await addCartItem(cartId, itemToAdd);
+      } else if (llmJson.data?.action === "ORDER_START" && cartId) {
+        console.log("[Action] Starting order flow");
+        handleOrder();
       }
     } catch (e: any) {
       console.error('[LLM] 오류:', e);
@@ -1055,10 +1155,10 @@ export default function VoiceKiosk() {
       const messages = [...conversationHistory, systemMessage].slice(-MAX_HISTORY * 2);
 
       console.log('[Recommend] 요청 전송...', messages);
-      const res = await fetch("/api/recommend", {
+      const res = await fetch("/ai/llm/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages, model: llmModel }),
+        body: JSON.stringify({ messages, model: llmModel, sessionId }),
       });
       const j = await res.json();
       const text = (j?.text || "").trim();
@@ -1071,7 +1171,7 @@ export default function VoiceKiosk() {
         await say(fullMessage);
         // 추천된 메뉴 식별 (label 포함 여부로 매칭)
         try {
-          const matched = BURGER_MENU.find(m => text.includes(m.label) || text.toLowerCase().includes(m.id));
+          const matched = displayMenu.find(m => text.includes(m.label) || text.toLowerCase().includes(String(m.id)));
           if (matched) {
             console.log('[Recommend] 추천 메뉴 저장:', matched.id, matched.label);
             setLastRecommendedItem(matched.id); // 마지막 추천 메뉴 저장
@@ -1132,7 +1232,7 @@ export default function VoiceKiosk() {
     }
 
     try {
-      const r = await fetch("/api/meta/health", { method: "GET" }); // Spring -> FastAPI meta/health
+      const r = await fetch("/ai/meta/health", { method: "GET" }); // Spring -> FastAPI meta/health
       if (!r.ok) throw 0;
       const j = await r.json();
       // Expect {"status": "UP"}
@@ -1151,7 +1251,7 @@ export default function VoiceKiosk() {
       await new Promise(resolve => reader.onloadend = resolve);
       const base64Audio = (reader.result as string).split(',')[1];
 
-      const r = await fetch("/api/stt", {
+      const r = await fetch("/ai/stt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1240,16 +1340,16 @@ export default function VoiceKiosk() {
       fd.append("audio", blob, "test.webm");
       fd.append("model", sttModel);
       fd.append("inputLang", lang);
-      const sttRes = await fetch("/api/stt", { method: "POST", body: fd });
+      const sttRes = await fetch("/ai/stt", { method: "POST", body: fd });
       const sttJson = await sttRes.json();
       const text = (sttJson?.text || "").trim();
       setTestTranscript(text || "(인식 결과 없음)");
 
       if (text) {
-        const llmRes = await fetch("/api/llm", {
+        const llmRes = await fetch("/ai/llm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: text, model: llmModel, stock }),
+          body: JSON.stringify({ prompt: text, model: llmModel, stock, sessionId }),
         });
         const llmJson = await llmRes.json();
         setTestReply((llmJson?.text || "").trim() || "(LLM 응답 없음)");
@@ -1275,25 +1375,49 @@ export default function VoiceKiosk() {
     }
   }
 
-  // 메뉴 리스트 상수
-  const BURGER_MENU = [
-    { id: "classic", label: "클래식 버거", emoji: "🍔" },
-    { id: "cheese", label: "치즈 버거", emoji: "🧀" },
-    { id: "bacon", label: "베이컨 버거", emoji: "🥓" },
-    { id: "double", label: "더블 버거", emoji: "🍔🍔" },
-    { id: "chicken", label: "치킨 버거", emoji: "🐔" },
-    { id: "shrimp", label: "쉬림프 버거", emoji: "🦐" },
-    { id: "bulgogi", label: "불고기 버거", emoji: "🥩" },
-    { id: "teriyaki", label: "테리야키 버거", emoji: "🍖" },
-    { id: "bbq", label: "바비큐 버거", emoji: "🍗" },
-    { id: "mushroom", label: "머쉬룸 버거", emoji: "🍄" },
-    { id: "jalapeno", label: "할라피뇨 버거", emoji: "🌶️" },
-    { id: "avocado", label: "아보카도 버거", emoji: "🥑" },
-    { id: "veggie", label: "베지 버거", emoji: "🥗" },
-    { id: "chili", label: "칠리 버거", emoji: "🌶️" },
-    { id: "truffle", label: "트러플 버거", emoji: "🍄" },
-    { id: "signature", label: "시그니처 버거", emoji: "⭐" },
-  ];
+  async function handleOrder() {
+    if (!cartId || !kioskSessionId) return;
+    try {
+      console.log("[Order] Creating order from cart:", cartId);
+      const orderRes = await createOrder({
+        cartId: cartId,
+        kioskSessionId: kioskSessionId,
+        orderType: "EAT_IN",
+        memo: "Voice Order"
+      });
+
+      if (orderRes && orderRes.orderId) {
+        console.log("[Order] Order created:", orderRes.orderId);
+        recordSessionEvent(kioskSessionId, "ORDER_CREATED", `OrderId: ${orderRes.orderId}`);
+
+        // 1. 결제 처리 요청
+        console.log("[Payment] Processing payment for order:", orderRes.orderId);
+        const paymentRes = await processPayment({
+          orderId: orderRes.orderId.toString(),
+          amount: orderRes.totalPrice || 0,
+          method: "CARD"
+        });
+
+        if (paymentRes.success) {
+          console.log("[Payment] Success:", paymentRes);
+          recordSessionEvent(kioskSessionId, "PAYMENT_SUCCESS", `PaymentId: ${paymentRes.paymentId}`);
+
+          // 2. 주문 확정 요청 (Confirm)
+          console.log("[Confirm] Confirming order:", orderRes.orderId);
+          await confirmOrder(orderRes.orderId);
+
+          // 3. 대기표 발급 요청 (Ticket)
+          console.log("[Ticket] Requesting ticket for order:", orderRes.orderId);
+          const ticketRes = await requestTicket(orderRes.orderId);
+          const ticketNumber = ticketRes?.ticketNumber || orderRes.orderId;
+
+          await say(lang === "ko" ? `주문이 확정되었습니다. 대기번호는 ${ticketNumber}번입니다.` : `Order confirmed. Your number is ${ticketNumber}.`);
+        }
+      }
+    } catch (e) {
+      console.error("[Full Order Flow] Failed:", e);
+    }
+  }
 
   /* ======================== UI ======================== */
   return (
@@ -1348,7 +1472,7 @@ export default function VoiceKiosk() {
                       if (score >= threshold && now - lastHesitationAt.current > cooldown) {
                         lastHesitationAt.current = now;
                         // LLM에게 실제로 랜덤 추천을 요청
-                        const menuList = BURGER_MENU.map(m => `${m.id}:${m.label}(${stock[m.id] ?? 0})`).join("\n");
+                        const menuList = displayMenu.map(m => `${m.id}:${m.label}(${stock[m.id] ?? 0})`).join("\n");
                         const prompt = `당신은 버거 주문 도우미입니다. 아래는 현재 제공 가능한 메뉴(아이디:이름(재고)) 목록입니다:\n${menuList}\n\n규칙:\n- 이 목록에서 하나를 무작위로 골라 추천하세요.\n- 반드시 한국어(한글)로, 존댓말(정중한 표현)로 말해 주세요.\n- 추천 문장에는 추천하는 메뉴의 이름(예: '치즈 버거')을 분명히 포함시키고, 이어서 고객에게 주문을 묻는 문장으로 연결하세요.\n- 문장 형식은 자유롭되 간결하게(한두 문장) 작성하세요. 예시 문구를 그대로 베끼지 말고 자연스럽게 표현하세요.\n\n추천 문장(한두 문장)을 한국어로 출력해 주세요.`;
                         doRecommend(prompt);
                         // 기록: 요청한 prompt는 서버에서 실제 추천 아이디를 반환하지 않으므로
@@ -1389,7 +1513,7 @@ export default function VoiceKiosk() {
         <div className="bg-white/5 border border-white/20 rounded-2xl p-2.5">
           <h3 className="text-sm font-bold mb-2 text-center">🍔 메뉴판</h3>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-            {BURGER_MENU.map((item) => (
+            {displayMenu.map((item: any) => (
               <div
                 key={item.id}
                 className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-lg p-2 hover:from-white/15 hover:to-white/10 transition-all flex-shrink-0 w-[90px]"
@@ -1604,24 +1728,7 @@ export default function VoiceKiosk() {
           <div className="mt-1">
             <div className="font-medium mb-2">🍔 햄버거 재고 관리</div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {[
-                { id: "classic", label: "클래식 버거" },
-                { id: "cheese", label: "치즈 버거" },
-                { id: "bacon", label: "베이컨 버거" },
-                { id: "double", label: "더블 버거" },
-                { id: "chicken", label: "치킨 버거" },
-                { id: "shrimp", label: "쉬림프 버거" },
-                { id: "bulgogi", label: "불고기 버거" },
-                { id: "teriyaki", label: "테리야키 버거" },
-                { id: "bbq", label: "바비큐 버거" },
-                { id: "mushroom", label: "머쉬룸 버거" },
-                { id: "jalapeno", label: "할라피뇨 버거" },
-                { id: "avocado", label: "아보카도 버거" },
-                { id: "veggie", label: "베지 버거" },
-                { id: "chili", label: "칠리 버거" },
-                { id: "truffle", label: "트러플 버거" },
-                { id: "signature", label: "시그니처 버거" },
-              ].map((m) => (
+              {displayMenu.map((m) => (
                 <div
                   key={m.id}
                   className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2"

@@ -246,7 +246,102 @@
                 </div>
             </div>
         </main>
-    </div>
+        <script src="js/api.js"></script>
+        <script src="js/header.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const orderId = urlParams.get('id');
+
+                if (!orderId) {
+                    alert('주문 ID가 없습니다.');
+                    location.href = 'orders.html';
+                    return;
+                }
+
+                try {
+                    const response = await AdminAPI.getOrderDetail(orderId);
+                    if (response.success && response.data) {
+                        renderOrderDetail(response.data);
+                    } else {
+                        throw new Error(response.message || 'Failed to fetch order detail');
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch order detail:', error);
+                    alert('주문 정보를 불러오는데 실패했습니다.');
+                }
+            });
+
+            function renderOrderDetail(order) {
+                // Header Info
+                document.querySelector('header span.text-sm').textContent = `Order #${order.orderId}`;
+
+                // Basic Info
+                const basicInfoValues = document.querySelectorAll('.card:nth-of-type(1) .info-value');
+                const statusBadge = document.querySelector('.card:nth-of-type(1) span.rounded-full');
+
+                statusBadge.textContent = order.status;
+                // Status에 따른 배경색 처리 (간단히)
+                if (order.status === 'CANCELED') statusBadge.className = 'px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-bold uppercase tracking-wider';
+
+                basicInfoValues[0].textContent = order.orderId;
+                basicInfoValues[1].textContent = new Date(order.createdAt).toLocaleString();
+                basicInfoValues[2].textContent = order.sessionId || '-';
+
+                // Payment Info
+                const paymentValues = document.querySelectorAll('.card:nth-of-type(2) .info-value');
+                paymentValues[0].textContent = order.payment ? order.payment.method : 'MOCK';
+                paymentValues[1].textContent = order.payment ? order.payment.status : 'PAID';
+                document.querySelector('.card:nth-of-type(2) .text-lg').textContent = `${order.totalPrice.toLocaleString()}원`;
+
+                // Order Items
+                const tbody = document.querySelector('tbody');
+                tbody.innerHTML = '';
+
+                order.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-gray-50';
+
+                    let optionsHtml = '';
+                    if (item.optionsJson) {
+                        try {
+                            const opts = JSON.parse(item.optionsJson);
+                            const parts = [];
+
+                            if (opts.size) parts.push(`<span class="text-primary font-bold">[${opts.size}]</span>`);
+                            if (opts.isLargeSet) parts.push('<span class="text-orange-500">라지세트(+500)</span>');
+                            if (opts.side) parts.push(`사이드: ${opts.side}`);
+                            if (opts.drink) parts.push(`음료: ${opts.drink}`);
+                            if (opts.removedIngredients && opts.removedIngredients.length > 0) {
+                                parts.push(`<span class="text-gray-400">제외: ${opts.removedIngredients.join(', ')}</span>`);
+                            }
+                            if (opts.selectedOptions && opts.selectedOptions.length > 0) {
+                                opts.selectedOptions.forEach(o => {
+                                    parts.push(`<span class="text-blue-600">${o.name}(+${o.extraPrice})</span>`);
+                                });
+                            }
+
+                            if (parts.length > 0) {
+                                optionsHtml = `<div class="mt-1 text-[11px] text-gray-400 flex flex-wrap gap-x-2 gap-y-1">${parts.join(' | ')}</div>`;
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse optionsJson', e);
+                        }
+                    }
+
+                    tr.innerHTML = `
+                    <td class="px-10 py-6">
+                        <div class="text-sm font-bold text-gray-800">${item.name}</div>
+                        ${optionsHtml}
+                    </td>
+                    <td class="px-6 py-6 text-sm font-bold text-gray-500">${item.quantity}</td>
+                    <td class="px-6 py-6 text-sm font-bold text-gray-500">${item.price.toLocaleString()}원</td>
+                    <td class="px-10 py-6 text-sm font-black text-gray-800 italic text-right">${(item.price * item.quantity).toLocaleString()}원</td>
+                `;
+                    tbody.appendChild(tr);
+                });
+            }
+        </script>
 </body>
 
 </html>

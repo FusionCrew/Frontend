@@ -86,16 +86,29 @@ export default function MenuListView({
             }}
           >
             {/* 이미지 */}
-            <img
-              src={recommendedBurger}
-              alt={item.name}
+            <div
+              className="flex items-center justify-center overflow-hidden"
               style={{
-                width: "140px",
-                height: "auto",
-                objectFit: "contain",
-                marginBottom: "16px",
+                width: "195px",
+                height: "178px",
+                backgroundColor: "#FDEAEA",
+                borderRadius: "24px",
+                marginBottom: "16px"
               }}
-            />
+            >
+              <img
+                src={item.image || recommendedBurger}
+                alt={item.name}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = recommendedBurger;
+                }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
             {/* 메뉴 이름 */}
             <span
               style={{
