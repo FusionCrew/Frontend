@@ -21,6 +21,9 @@
   micDevices: MediaDeviceInfo[];
   selectedDeviceId?: string;
   onSelectDevice: (deviceId: string) => void;
+  speakerDevices?: MediaDeviceInfo[];
+  selectedOutputDeviceId?: string;
+  onSelectOutputDevice?: (deviceId: string) => void;
   voiceLogs: string[];
 }
 
@@ -46,6 +49,9 @@ export default function MediaPipeDebugPanel({
   micDevices,
   selectedDeviceId,
   onSelectDevice,
+  speakerDevices = [],
+  selectedOutputDeviceId,
+  onSelectOutputDevice,
   voiceLogs,
 }: Props) {
   const handHover = Number(poseFeatures?.hand_hover ?? 0);
@@ -155,6 +161,23 @@ export default function MediaPipeDebugPanel({
                 micDevices.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>
                     {d.label || `Mic ${d.deviceId.slice(0, 6)}`}
+                  </option>
+                ))
+              )}
+            </select>
+
+            <div className="text-white text-xs font-semibold">Output Device</div>
+            <select
+              value={selectedOutputDeviceId || ""}
+              onChange={(e) => onSelectOutputDevice?.(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-xs text-white"
+            >
+              {speakerDevices.length === 0 ? (
+                <option value="">Default output</option>
+              ) : (
+                speakerDevices.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Speaker ${d.deviceId.slice(0, 6)}`}
                   </option>
                 ))
               )}

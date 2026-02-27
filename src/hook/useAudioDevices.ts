@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
-/** 브라우저에서 오디오 입력 장치(audioinput) 목록을 가져오는 훅 */
+/** 브라우저에서 오디오 입출력 장치 목록을 가져오는 훅 */
 export function useAudioDevices() {
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [micDevices, setMicDevices] = useState<MediaDeviceInfo[]>([]);
+  const [speakerDevices, setSpeakerDevices] = useState<MediaDeviceInfo[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,8 +15,10 @@ export function useAudioDevices() {
         await navigator.mediaDevices.getUserMedia({ audio: true });
         const all = await navigator.mediaDevices.enumerateDevices();
         const mics = all.filter((d) => d.kind === "audioinput");
+        const speakers = all.filter((d) => d.kind === "audiooutput");
         if (mounted) {
-          setDevices(mics);
+          setMicDevices(mics);
+          setSpeakerDevices(speakers);
           setReady(true);
         }
       } catch (e: any) {
@@ -31,5 +34,6 @@ export function useAudioDevices() {
     };
   }, []);
 
-  return { devices, ready, error };
+  // Backward compatibility: `devices`는 기존 코드에서 마이크 목록으로 사용됨.
+  return { devices: micDevices, micDevices, speakerDevices, ready, error };
 }

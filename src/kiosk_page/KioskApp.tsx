@@ -91,6 +91,9 @@ function TrackingManager({
     micDevices,
     selectedDeviceId,
     onSelectDevice,
+    speakerDevices,
+    selectedOutputDeviceId,
+    onSelectOutputDevice,
     voiceLogs,
     onHesitationAssist,
     onDebugLog,
@@ -110,6 +113,9 @@ function TrackingManager({
     micDevices: MediaDeviceInfo[],
     selectedDeviceId?: string,
     onSelectDevice: (deviceId: string) => void,
+    speakerDevices: MediaDeviceInfo[],
+    selectedOutputDeviceId?: string,
+    onSelectOutputDevice: (deviceId: string) => void,
     voiceLogs: string[],
     onHesitationAssist?: (score: number) => void,
     onDebugLog?: (line: string) => void,
@@ -118,7 +124,7 @@ function TrackingManager({
     const [isDevPanelOpen, setIsDevPanelOpen] = useState(false);
     const hesitationTimerRef = useRef<number | null>(null);
     const lastAssistAtRef = useRef(0);
-    // Enable FaceMesh-only local tracking for Live2D mirror movement.
+    // Enable FaceMesh-only local tracking for Live2D natural-direction movement.
     // Pose local tracking stays off to avoid previous wasm collisions.
     const tracking = useFaceTracking(true, false, undefined, true, true);
 
@@ -201,6 +207,9 @@ function TrackingManager({
                 micDevices={micDevices}
                 selectedDeviceId={selectedDeviceId}
                 onSelectDevice={onSelectDevice}
+                speakerDevices={speakerDevices}
+                selectedOutputDeviceId={selectedOutputDeviceId}
+                onSelectOutputDevice={onSelectOutputDevice}
                 voiceLogs={voiceLogs}
             />
         </>
@@ -226,8 +235,9 @@ export default function KioskApp() {
     const [conversationHistory, setConversationHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
     const [diningType, setDiningType] = useState<"DINE_IN" | "TAKE_OUT">("DINE_IN");
 
-    const { devices } = useAudioDevices();
+    const { micDevices, speakerDevices } = useAudioDevices();
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
+    const [selectedOutputDeviceId, setSelectedOutputDeviceId] = useState<string | undefined>(undefined);
     const prevListeningRef = useRef(listeningEnabled);
     const shouldListenAfterSpeechRef = useRef(true);
     const lastVoiceLogRef = useRef<{ line: string; ts: number }>({ line: "", ts: 0 });
@@ -613,11 +623,18 @@ export default function KioskApp() {
     }, []);
 
     useEffect(() => {
-        if (devices.length > 0 && !selectedDeviceId) {
-            const def = devices.find(d => d.deviceId === "default") || devices[0];
+        if (micDevices.length > 0 && !selectedDeviceId) {
+            const def = micDevices.find(d => d.deviceId === "default") || micDevices[0];
             setSelectedDeviceId(def.deviceId);
         }
-    }, [devices, selectedDeviceId]);
+    }, [micDevices, selectedDeviceId]);
+
+    useEffect(() => {
+        if (speakerDevices.length > 0 && !selectedOutputDeviceId) {
+            const def = speakerDevices.find(d => d.deviceId === "default") || speakerDevices[0];
+            setSelectedOutputDeviceId(def.deviceId);
+        }
+    }, [speakerDevices, selectedOutputDeviceId]);
 
     useEffect(() => {
         addVoiceLog(`STATE: listening=${listeningEnabled} stt=${sttEnabled} tts=${ttsEnabled} llm=${llmEnabled}`);
@@ -645,6 +662,16 @@ export default function KioskApp() {
                 const audioB64 = json.data?.audioBase64;
                 if (audioB64) {
                     const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+                    audio.volume = 1;
+                    audio.muted = false;
+                    try {
+                        const maybeSetSinkId = (audio as any).setSinkId;
+                        if (selectedOutputDeviceId && typeof maybeSetSinkId === "function") {
+                            await maybeSetSinkId.call(audio, selectedOutputDeviceId);
+                        }
+                    } catch (e: any) {
+                        addVoiceLog(`AUDIO OUTPUT WARN: ${e?.message || String(e)}`);
+                    }
                     audio.onended = () => {
                         setSpeaking(false);
                         setListeningEnabled(shouldListenAfterSpeechRef.current);
@@ -1226,12 +1253,12 @@ export default function KioskApp() {
     }, [kioskSessionId]);
 
     const handleVoiceStart = useCallback(async () => {
-        addVoiceLog(`VOICE START: mic=${selectedDeviceId || "default"}`);
+        addVoiceLog(`VOICE START: mic=${selectedDeviceId || "default"} out=${selectedOutputDeviceId || "default"}`);
         shouldListenAfterSpeechRef.current = true;
         setListeningEnabled(true);
         await say("음성 주문을 시작합니다. 원하시는 메뉴를 말씀해 주세요.");
         setListeningEnabled(true);
-    }, [addVoiceLog, selectedDeviceId]);
+    }, [addVoiceLog, selectedDeviceId, selectedOutputDeviceId]);
 
     const handleVoiceStop = useCallback(() => {
         addVoiceLog("VOICE STOP");
@@ -1413,9 +1440,12 @@ export default function KioskApp() {
                     onToggleLlm={setLlmEnabled}
                     onStartVoice={handleVoiceStart}
                     onStopVoice={handleVoiceStop}
-                    micDevices={devices}
+                    micDevices={micDevices}
                     selectedDeviceId={selectedDeviceId}
                     onSelectDevice={setSelectedDeviceId}
+                    speakerDevices={speakerDevices}
+                    selectedOutputDeviceId={selectedOutputDeviceId}
+                    onSelectOutputDevice={(id) => setSelectedOutputDeviceId(id || undefined)}
                     voiceLogs={voiceLogs}
                     onHesitationAssist={handleHesitationAssist}
                     onDebugLog={addVoiceLog}

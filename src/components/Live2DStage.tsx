@@ -164,7 +164,7 @@ export function Live2DStage({
         const maxStep = 0.025; // limit per-frame movement to reduce shaking
 
         const tick = () => {
-            // Mirror-like head/eye follow from FaceMesh/Pose nose coordinates.
+            // Follow head/eye in non-mirrored (natural) direction.
             if (isDetecting && facePosition) {
                 if (!biasReadyAtRef.current) {
                     biasReadyAtRef.current = Date.now() + 1200;
@@ -173,7 +173,8 @@ export function Live2DStage({
                 biasRef.current.x = biasRef.current.x * 0.995 + facePosition.x * 0.005;
                 biasRef.current.y = biasRef.current.y * 0.995 + facePosition.y * 0.005;
 
-                const correctedX = facePosition.x - biasRef.current.x;
+                // Invert X so Live2D follows real-world direction (not mirror-like).
+                const correctedX = -(facePosition.x - biasRef.current.x);
                 const correctedY = facePosition.y - biasRef.current.y;
                 targetRef.current.x = clamp(correctedX * 1.35, -1, 1);
                 targetRef.current.y = clamp(correctedY * 1.2, -1, 1);
@@ -196,8 +197,8 @@ export function Live2DStage({
             if (Math.abs(smoothRef.current.x) < 0.03) smoothRef.current.x = 0;
             if (Math.abs(smoothRef.current.y) < 0.03) smoothRef.current.y = 0;
 
-            core.setParameterValueById("ParamAngleX", clamp(smoothRef.current.x * 20, -20, 20));
-            core.setParameterValueById("ParamAngleY", clamp(smoothRef.current.y * 14, -14, 14));
+            core.setParameterValueById("ParamAngleX", clamp(smoothRef.current.x * 5, -5, 5));
+            core.setParameterValueById("ParamAngleY", clamp(smoothRef.current.y * 3.5, -3.5, 3.5));
             core.setParameterValueById("ParamEyeBallX", clamp(smoothRef.current.x * 0.75, -1, 1));
             core.setParameterValueById("ParamEyeBallY", clamp(smoothRef.current.y * 0.75, -1, 1));
 

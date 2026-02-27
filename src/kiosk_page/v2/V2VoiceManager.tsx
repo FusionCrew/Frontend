@@ -41,6 +41,7 @@ type VoiceAction =
   | { type: "ACCEPT_SUGGESTION" }
   | { type: "ACCEPT_SUGGESTION_ITEM"; menuItemId: string }
   | { type: "ASK_SUGGESTION_CLARIFY" }
+  | { type: "RECOMMEND_MENU" }
   | { type: "CONTINUE_ORDER" }
   | { type: "CLEAR_CART" }
   | { type: "CHECK_CART" }
@@ -157,6 +158,7 @@ const ACTION_DEFAULT_MOTION: Partial<Record<VoiceAction["type"], MotionCode>> = 
   CALL_STAFF: "m09",
   ACCEPT_SUGGESTION: "m21",
   ACCEPT_SUGGESTION_ITEM: "m21",
+  RECOMMEND_MENU: "m25",
   ASK_SET_OR_SINGLE: "m06",
   ASK_CONFIRM_BOTH_OPTIONS: "m06",
   CONFIRM_PENDING_OPTION: "m01",
@@ -303,8 +305,9 @@ export default function V2VoiceManager({
     }
   }, [onSpeakingChange, speaking]);
 
-  const { devices: micDevices } = useAudioDevices();
+  const { micDevices, speakerDevices } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
+  const [selectedOutputDeviceId, setSelectedOutputDeviceId] = useState<string | undefined>(undefined);
 
   const shouldListenAfterSpeechRef = useRef(true);
   const autoVoiceStartedRef = useRef(false);
@@ -318,8 +321,11 @@ export default function V2VoiceManager({
   const lastPaymentCompleteSpokenKeyRef = useRef<string>("");
   const [conversationHistory, setConversationHistory] = useState<Msg[]>([]);
   const [hesitationAssistConsumed, setHesitationAssistConsumed] = useState(false);
+  const hesitationAssistLockedRef = useRef(false);
   const hesitationTimerRef = useRef<number | null>(null);
-  const lastAssistAtRef = useRef(0);
+  const hesitationAssistSessionIdRef = useRef<string | null>(null);
+  const recommendationCursorRef = useRef(0);
+  const recentRecommendedMenuIdsRef = useRef<string[]>([]);
 
   const [awaitingCheckoutConfirm, setAwaitingCheckoutConfirm] = useState(false);
   const [pendingCheckoutMethod, setPendingCheckoutMethod] = useState<"CARD" | "POINT" | "SIMPLE" | null>(null);
@@ -381,6 +387,13 @@ export default function V2VoiceManager({
     }
   }, [micDevices, selectedDeviceId]);
 
+  useEffect(() => {
+    if (speakerDevices.length > 0 && !selectedOutputDeviceId) {
+      const def = speakerDevices.find((d) => d.deviceId === "default") || speakerDevices[0];
+      setSelectedOutputDeviceId(def.deviceId);
+    }
+  }, [speakerDevices, selectedOutputDeviceId]);
+
   const normalizeTranscript = useCallback((raw: string): string => {
   let t = String(raw || "").trim();
   if (!t) return t;
@@ -417,8 +430,12 @@ export default function V2VoiceManager({
     const commaCount = (t.match(/[,，]/g) || []).length;
     const numberCount = (t.match(/\d+/g) || []).length;
     const tokenishCount = (t.match(/\b(주문하기|이전|뒤로|버거|사이드|음료|세트|단품|결제|매장|포장)\b/g) || []).length;
+    const hasTaskVerb = /(담아|추가|추천해|보여|알려|선택|결제해|주문해|취소해|삭제해)/.test(lower);
     if (t.length > 60 && commaCount >= 8 && numberCount >= 8) return true;
     if (t.length > 60 && tokenishCount >= 8) return true;
+    // ASR hallucination often returns token lists like
+    // "이전 뒤로 버거 세트 단품 결제 매장 포장 ...".
+    if (tokenishCount >= 6 && !hasTaskVerb) return true;
     return false;
   }, []);
 
@@ -804,9 +821,14 @@ export default function V2VoiceManager({
         .replace(/네\s*개|넷(?![가-힣])/gi, "4개");
       const compact = tt.toLowerCase().replace(/\s+/g, "");
       if (!tt) return [];
+      const hasAddIntent =
+        compact.includes("담아") ||
+        compact.includes("담아줘") ||
+        compact.includes("추가") ||
+        compact.includes("주문");
       if (
         compact.includes("결제") ||
-        compact.includes("장바구니") ||
+        (compact.includes("장바구니") && !hasAddIntent) ||
         compact.includes("삭제") ||
         compact.includes("빼") ||
         compact.includes("취소")
@@ -861,7 +883,7 @@ export default function V2VoiceManager({
     const isExplicitPositive =
       positiveRe.test(confirmUtterance) ||
       positiveRe.test(confirmCore) ||
-      /^(네맞아|네좋아요|응맞아|응맞아요|어맞아|어맞아요|음맞아|음맞아요|네그래|응그래|오케이좋아)$/.test(confirmUtterance);
+      /^(네맞아|네맞아요|네맞습니다|네좋아|네좋아요|응맞아|응맞아요|어맞아|어맞아요|음맞아|음맞아요|네그래|응그래|오케이좋아)$/.test(confirmUtterance);
     const isExplicitNegative =
       negativeRe.test(confirmUtterance) || negativeRe.test(confirmCore);
 
@@ -1161,6 +1183,14 @@ export default function V2VoiceManager({
       return { type: "SET_DINING", diningType: "DINE_IN" };
     }
 
+    const hasAddIntent =
+      compact.includes("담아") ||
+      compact.includes("담아줘") ||
+      compact.includes("추가") ||
+      compact.includes("주문") ||
+      compact.includes("넣어") ||
+      compact.includes("넣어줘");
+
     // Global intents.
     if (
       (compact.includes("장바구니") || compact.includes("주문내역")) &&
@@ -1178,12 +1208,18 @@ export default function V2VoiceManager({
       return { type: "SELECT_PAYMENT", method: "SIMPLE" };
     }
     if (compact.includes("결제")) return { type: "CHECKOUT" };
-    if (
-      compact.includes("장바구니") ||
-      compact.includes("상바구니") ||
-      compact.includes("청바구니") ||
-      ((compact.includes("담겨") || compact.includes("담긴")) && (compact.includes("뭐") || compact.includes("무엇")))
-    ) {
+    const hasCartNoun =
+      compact.includes("장바구니") || compact.includes("상바구니") || compact.includes("청바구니");
+    const hasCartQueryIntent =
+      compact.includes("보여") ||
+      compact.includes("확인") ||
+      compact.includes("열어") ||
+      compact.includes("봐") ||
+      compact.includes("뭐") ||
+      compact.includes("무엇") ||
+      compact.includes("담겨") ||
+      compact.includes("담긴");
+    if (hasCartNoun && hasCartQueryIntent && !hasAddIntent) {
       return { type: "CHECK_CART" };
     }
     if (compact.includes("직원") || compact.includes("도움")) return { type: "CALL_STAFF" };
@@ -1272,6 +1308,18 @@ export default function V2VoiceManager({
     }
 
     // Generic browsing queries (must be after specific category routing).
+    const isRecommendRequest =
+      compact.includes("추천") &&
+      (compact.includes("다른") ||
+        compact.includes("또") ||
+        compact.includes("더") ||
+        compact.includes("다시") ||
+        compact.includes("추천해") ||
+        compact.includes("추천해줘") ||
+        compact.includes("추천해줄래"));
+    if (isRecommendRequest) {
+      return { type: "RECOMMEND_MENU" };
+    }
     if (
       compact.includes("뭐있") ||
       compact.includes("뭐가있") ||
@@ -1284,8 +1332,6 @@ export default function V2VoiceManager({
     // Try menu matching.
     const q = normalizeForMatch(tt);
     const qSimple = simplifyForMenuMatch(tt);
-    const hasAddIntent =
-      compact.includes("담아") || compact.includes("추가") || compact.includes("주문") || compact.includes("줘");
     const bareCatalogKeyword = compact.match(/^(세트|단품|버거|치킨|사이드|음료|메뉴)(만|요|좀)?$/);
     if (bareCatalogKeyword && !hasAddIntent) {
       const key = bareCatalogKeyword[1];
@@ -1587,6 +1633,16 @@ const isSetOptionDomainUtterance = useCallback(
               continue;
             }
             const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+            audio.volume = 1;
+            audio.muted = false;
+            try {
+              const maybeSetSinkId = (audio as any).setSinkId;
+              if (selectedOutputDeviceId && typeof maybeSetSinkId === "function") {
+                await maybeSetSinkId.call(audio, selectedOutputDeviceId);
+              }
+            } catch (e: any) {
+              addVoiceLog(`AUDIO OUTPUT WARN: ${e?.message || String(e)}`);
+            }
             let lipCtx: AudioContext | null = null;
             let lipSrc: MediaElementAudioSourceNode | null = null;
             let lipAnalyser: AnalyserNode | null = null;
@@ -1628,20 +1684,25 @@ const isSetOptionDomainUtterance = useCallback(
               try {
                 const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
                 if (!Ctx) return;
-                lipCtx = new Ctx();
-                lipSrc = lipCtx.createMediaElementSource(audio);
-                lipAnalyser = lipCtx.createAnalyser();
+                const ctx: AudioContext = new Ctx();
+                lipCtx = ctx;
+                const maybeCtxSetSinkId = (ctx as any).setSinkId;
+                if (selectedOutputDeviceId && typeof maybeCtxSetSinkId === "function") {
+                  await maybeCtxSetSinkId.call(ctx, selectedOutputDeviceId);
+                }
+                lipSrc = ctx.createMediaElementSource(audio);
+                lipAnalyser = ctx.createAnalyser();
                 lipAnalyser.fftSize = 512;
                 lipAnalyser.smoothingTimeConstant = 0.65;
-                lipGain = lipCtx.createGain();
+                lipGain = ctx.createGain();
                 // MediaElementSource is routed through WebAudio graph; keep audible output.
                 lipGain.gain.value = 1;
                 lipData = new Uint8Array(lipAnalyser.fftSize);
                 lipSrc.connect(lipAnalyser);
                 lipAnalyser.connect(lipGain);
-                lipGain.connect(lipCtx.destination);
-                if (lipCtx.state === "suspended") {
-                  await lipCtx.resume();
+                lipGain.connect(ctx.destination);
+                if (ctx.state === "suspended") {
+                  await ctx.resume();
                 }
                 (window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE = true;
                 const tick = () => {
@@ -1680,7 +1741,7 @@ const isSetOptionDomainUtterance = useCallback(
         setListeningEnabled(shouldListenAfterSpeechRef.current && !holdListeningDuringLlmRef.current);
       }
     },
-    [addVoiceLog, listeningEnabled, onPlayMotion, sessionId, ttsEnabled]
+    [addVoiceLog, listeningEnabled, onPlayMotion, selectedOutputDeviceId, sessionId, ttsEnabled]
   );
 
   useEffect(() => {
@@ -1703,6 +1764,8 @@ const isSetOptionDomainUtterance = useCallback(
           ? "결제가 완료되었습니다."
           : `결제가 완료되었습니다. 주문 번호는 ${orderNo}번 입니다.`;
       await say(msg, "m08");
+      recentRecommendedMenuIdsRef.current = [];
+      recommendationCursorRef.current = 0;
       onPaymentCompleteSpoken?.();
     })();
   }, [onPaymentCompleteSpoken, pageHint?.paidOrderNumber, pageHint?.paymentStep, say]);
@@ -1745,6 +1808,33 @@ const isSetOptionDomainUtterance = useCallback(
         } else {
           await say("원하시는 메뉴를 말씀해 주세요.");
         }
+        return true;
+      }
+      if (action.type === "RECOMMEND_MENU") {
+        const candidates = menuCatalog.filter((m) => m.menuItemId && m.name);
+        if (!candidates.length) {
+          await say("지금 추천할 수 있는 메뉴를 찾지 못했어요. 원하시는 메뉴를 말씀해 주세요.");
+          return true;
+        }
+        const previous = new Set(recentRecommendedMenuIdsRef.current);
+        const preferred = candidates.filter((m) => !previous.has(m.menuItemId));
+        const source = preferred.length >= 3 ? preferred : candidates;
+        const count = Math.min(3, source.length);
+        const start = recommendationCursorRef.current % source.length;
+        const picks: typeof source = [];
+        for (let i = 0; i < count; i++) {
+          picks.push(source[(start + i) % source.length]);
+        }
+        recommendationCursorRef.current = (start + count) % source.length;
+        recentRecommendedMenuIdsRef.current = [
+          ...recentRecommendedMenuIdsRef.current,
+          ...picks.map((m) => m.menuItemId),
+        ].slice(-9);
+        setSuggestedMenuCandidates(picks.map((m) => ({ menuItemId: m.menuItemId, name: m.name })));
+        setSuggestedMenu({ menuItemId: picks[0].menuItemId, name: picks[0].name });
+        setAwaitingSuggestionAccept(true);
+        const spoken = picks.map((m) => m.name).join(", ");
+        await say(`좋아요. 다른 추천 메뉴는 ${spoken}예요. 원하시는 메뉴를 말씀해 주세요.`, "m25");
         return true;
       }
       if (action.type === "ADD_MENU_BULK") {
@@ -1981,7 +2071,7 @@ const isSetOptionDomainUtterance = useCallback(
         setAwaitingCheckoutConfirm(false);
         setPendingCheckoutMethod(null);
         const methodKo = action.method === "CARD" ? "카드" : action.method === "POINT" ? "포인트" : "간편";
-        await say("알겠습니다. 잠시만 기다려 주세요.");
+        await say("알겠습니다. 잠시만 기다려 주세요.", "m20");
         await new Promise<void>((resolve) => window.setTimeout(resolve, 1200));
         onSelectPayment(action.method);
         await say(`${methodKo} 결제를 진행합니다.`);
@@ -1996,7 +2086,7 @@ const isSetOptionDomainUtterance = useCallback(
         const method = pendingCheckoutMethod;
         setPendingCheckoutMethod(null);
         if (method) {
-          await say("알겠습니다. 잠시만 기다려 주세요.");
+          await say("알겠습니다. 잠시만 기다려 주세요.", "m20");
           await new Promise<void>((resolve) => window.setTimeout(resolve, 3000));
           onSelectPayment(method);
           if (method === "CARD") {
@@ -2021,7 +2111,7 @@ const isSetOptionDomainUtterance = useCallback(
       }
       if (action.type === "CALL_STAFF") {
         await onCallStaff();
-        await say("직원을 호출했습니다. 잠시만 기다려 주세요.");
+        await say("직원을 호출했습니다. 잠시만 기다려 주세요.", "m20");
         return true;
       }
       if (action.type === "ASK_REMOVE_TARGET") {
@@ -2398,6 +2488,8 @@ const isSetOptionDomainUtterance = useCallback(
 
       if (isAbusiveUtterance(normalizedText)) {
         addVoiceLog(`STT ABUSE DETECTED: ${normalizedText}`);
+        onPlayMotion?.("m24");
+        addVoiceLog("MOTION: m24");
         await say("불편을 드려 죄송합니다. 주문 관련 말씀을 해주시면 바로 도와드릴게요.", "m24");
         return;
       }
@@ -2562,23 +2654,21 @@ const isSetOptionDomainUtterance = useCallback(
         addVoiceLog(`LLM REQ: ${messages.length} messages`);
         holdListeningDuringLlmRef.current = true;
         llmRequestInFlightRef.current = true;
-        llmWaitPromptTriggeredRef.current = true;
+        llmWaitPromptTriggeredRef.current = false;
         llmWaitPromptPromiseRef.current = null;
         if (llmWaitPromptTimerRef.current != null) {
           window.clearTimeout(llmWaitPromptTimerRef.current);
           llmWaitPromptTimerRef.current = null;
         }
-        addVoiceLog("LLM WAIT: immediate");
-        llmWaitPromptPromiseRef.current = say("잠시만 기다려 주세요. 확인해보고 있어요.")
-          .then(() => {
-            // Speak first, then hold thinking pose silently while waiting.
-            if (llmRequestInFlightRef.current) {
-              onPlayMotion?.("m20");
-              addVoiceLog("MOTION: m20");
-            }
-          })
-          .catch(() => undefined)
-          .then(() => undefined);
+        addVoiceLog("LLM WAIT: scheduled (1200ms)");
+        llmWaitPromptTimerRef.current = window.setTimeout(() => {
+          llmWaitPromptTimerRef.current = null;
+          if (!llmRequestInFlightRef.current || llmWaitPromptPromiseRef.current) return;
+          llmWaitPromptTriggeredRef.current = true;
+          llmWaitPromptPromiseRef.current = say("잠시만 기다려 주세요. 확인해보고 있어요.", "m20")
+            .catch(() => undefined)
+            .then(() => undefined);
+        }, 1200);
 
         const stateMenuCatalog = getContextualCandidateCatalog();
         const stateForLlm = {
@@ -2773,7 +2863,13 @@ const isSetOptionDomainUtterance = useCallback(
   });
 
   const handleVoiceStart = useCallback(async () => {
-    addVoiceLog(`VOICE START: mic=${selectedDeviceId || "default"}`);
+    if (hesitationTimerRef.current != null) {
+      window.clearTimeout(hesitationTimerRef.current);
+      hesitationTimerRef.current = null;
+    }
+    recentRecommendedMenuIdsRef.current = [];
+    recommendationCursorRef.current = 0;
+    addVoiceLog(`VOICE START: mic=${selectedDeviceId || "default"} out=${selectedOutputDeviceId || "default"}`);
     shouldListenAfterSpeechRef.current = true;
     // Prevent the "auto voice start on diningType set" effect from firing again after a manual start.
     autoVoiceStartedRef.current = true;
@@ -2791,7 +2887,7 @@ const isSetOptionDomainUtterance = useCallback(
       await say("음성 주문을 시작합니다. 원하시는 메뉴를 말씀해 주세요.");
     }
     setListeningEnabled(true);
-  }, [addVoiceLog, diningType, pingAiServer, say, selectedDeviceId]);
+  }, [addVoiceLog, diningType, pingAiServer, say, selectedDeviceId, selectedOutputDeviceId]);
 
   const handleVoiceStop = useCallback(() => {
     addVoiceLog("VOICE STOP");
@@ -2802,10 +2898,11 @@ const isSetOptionDomainUtterance = useCallback(
   useEffect(() => {
     if (!sessionId) return;
     if (!diningType) return;
+    if (speaking || listeningEnabled) return;
     if (autoVoiceStartedRef.current) return;
     autoVoiceStartedRef.current = true;
     void handleVoiceStart();
-  }, [diningType, handleVoiceStart, sessionId]);
+  }, [diningType, handleVoiceStart, listeningEnabled, sessionId, speaking]);
 
   // After dining type is chosen, resume a pending action (e.g., user already said a menu name).
   useEffect(() => {
@@ -2816,32 +2913,73 @@ const isSetOptionDomainUtterance = useCallback(
     void applyVoiceAction(act);
   }, [applyVoiceAction, diningType, pendingActionAfterDining]);
 
-  useEffect(() => {
-    if (hesitationAssistConsumed) return;
-    const score = Number(tracking.hesitationScore || 0);
-    const shouldWatch = Boolean(tracking.isHesitating) || score >= 0.6;
-    if (!shouldWatch) {
-      if (hesitationTimerRef.current != null) {
-        window.clearTimeout(hesitationTimerRef.current);
-        hesitationTimerRef.current = null;
-      }
-      return;
-    }
-    if (hesitationTimerRef.current != null) return;
-
-    const now = Date.now();
-    if (now - lastAssistAtRef.current < 12_000) return;
-    lastAssistAtRef.current = now;
-
-    hesitationTimerRef.current = window.setTimeout(() => {
-      hesitationTimerRef.current = null;
-      if (hesitationAssistConsumed) return;
-      setHesitationAssistConsumed(true);
+  const triggerHesitationAssist = useCallback(
+    async (score: number) => {
+      const inSetOptionFlow = Boolean(uiMode?.setPickerActive || pendingSetChoice || pendingOptionConfirm);
+      if (inSetOptionFlow) return;
+    if (hesitationAssistConsumed || hesitationAssistLockedRef.current) return;
+      hesitationAssistLockedRef.current = true;
 
       const pickMenus = menuCatalog.slice(0, 3).filter((m) => m.menuItemId && m.name);
       const picks = pickMenus.map((m) => m.name).filter(Boolean);
-      const list = picks.join(", ") || "추천 메뉴";
-      const msg = `추천 메뉴로 ${list} 어때요?`;
+      const fallback = `뭘 고를지 고민되시나요? 오늘의 추천 메뉴는 ${picks.join(", ") || "대표 메뉴"}예요.`;
+
+      let speech = fallback;
+      if (llmEnabled && sessionId) {
+        try {
+          // LangGraph should decide proactive speech from hesitation state.
+          const messages = [...conversationHistory, { role: "user" as const, content: "" }].slice(-10);
+          const stateForLlm = {
+            diningType,
+            selectedCategory,
+            pageHint,
+            cartItems: cartSnapshot,
+            menuCatalog: menuCatalog.slice(0, 120),
+            reason: "hesitation_assist",
+            isHesitating: true,
+            hesitationScore: Number(score || 0),
+            hesitationDurationMs: 2000,
+          };
+          const res = await fetch(AI_V2_CHAT_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-AI-Client-Source": "frontend-v2-hesitation",
+            },
+            body: JSON.stringify({
+              messages,
+              sessionId,
+              orderType: diningType,
+              context: {
+                sessionId,
+                kioskState: selectedCategory,
+                state: stateForLlm,
+              },
+            }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            const reply = String(json?.data?.text || json?.data?.reply || "").trim();
+            if (reply) {
+              speech = reply;
+              setConversationHistory([...messages, { role: "assistant", content: reply }]);
+            }
+          } else {
+            addVoiceLog(`HESITATION LLM WARN: ${res.status} ${res.statusText}`);
+          }
+        } catch (e: any) {
+          addVoiceLog(`HESITATION LLM WARN: ${e?.message || String(e)}`);
+        }
+      }
+
+      setHesitationAssistConsumed(true);
+      recentRecommendedMenuIdsRef.current = [
+        ...recentRecommendedMenuIdsRef.current,
+        ...pickMenus.map((m) => m.menuItemId),
+      ].slice(-9);
+      if (pickMenus.length > 0) {
+        recommendationCursorRef.current = pickMenus.length % Math.max(1, menuCatalog.length);
+      }
       addVoiceLog(`HESITATION: assist fired (score=${Math.round(score * 100)}%)`);
       setSuggestedMenuCandidates(pickMenus.map((m) => ({ menuItemId: m.menuItemId, name: m.name })));
       if (pickMenus[0]) {
@@ -2856,16 +2994,90 @@ const isSetOptionDomainUtterance = useCallback(
           // ignore
         }
       }
-      void say(msg, "m25");
-    }, 2500);
+      await say(speech, "m25");
+    },
+    [
+      addVoiceLog,
+      cartSnapshot,
+      conversationHistory,
+      diningType,
+      hesitationAssistConsumed,
+      llmEnabled,
+      menuCatalog,
+      pendingOptionConfirm,
+      pendingSetChoice,
+      pageHint,
+      say,
+      selectedCategory,
+      sessionId,
+      uiMode?.setPickerActive,
+    ]
+  );
 
+  useEffect(() => {
+    const inSetOptionFlow = Boolean(uiMode?.setPickerActive || pendingSetChoice || pendingOptionConfirm);
+    if (inSetOptionFlow) {
+      if (hesitationTimerRef.current != null) {
+        window.clearTimeout(hesitationTimerRef.current);
+        hesitationTimerRef.current = null;
+      }
+      return;
+    }
+    if (hesitationAssistConsumed) return;
+    const score = Number(tracking.hesitationScore || 0);
+    const shouldWatch = Boolean(tracking.isHesitating) || score >= 0.6;
+    if (!shouldWatch) {
+      if (hesitationTimerRef.current != null) {
+        window.clearTimeout(hesitationTimerRef.current);
+        hesitationTimerRef.current = null;
+      }
+      return;
+    }
+    if (hesitationTimerRef.current != null) return;
+    if (speaking || llmRequestInFlightRef.current) return;
+
+    hesitationTimerRef.current = window.setTimeout(() => {
+      hesitationTimerRef.current = null;
+      void triggerHesitationAssist(score);
+    }, 2000);
+  }, [
+    hesitationAssistConsumed,
+    pendingOptionConfirm,
+    pendingSetChoice,
+    speaking,
+    tracking.hesitationScore,
+    tracking.isHesitating,
+    triggerHesitationAssist,
+    uiMode?.setPickerActive,
+  ]);
+
+  useEffect(() => {
+    if (!hesitationAssistConsumed) {
+      hesitationAssistLockedRef.current = false;
+    }
+  }, [hesitationAssistConsumed]);
+
+  useEffect(() => {
+    const sid = String(sessionId || "").trim() || null;
+    if (hesitationAssistSessionIdRef.current === sid) return;
+    hesitationAssistSessionIdRef.current = sid;
+    setHesitationAssistConsumed(false);
+    hesitationAssistLockedRef.current = false;
+    if (hesitationTimerRef.current != null) {
+      window.clearTimeout(hesitationTimerRef.current);
+      hesitationTimerRef.current = null;
+    }
+    if (sid) addVoiceLog(`HESITATION: one-shot re-armed for session ${sid}`);
+  }, [addVoiceLog, sessionId]);
+
+  useEffect(() => {
     return () => {
       if (hesitationTimerRef.current != null) {
         window.clearTimeout(hesitationTimerRef.current);
         hesitationTimerRef.current = null;
       }
     };
-  }, [addVoiceLog, hesitationAssistConsumed, menuCatalog, say, sessionId, tracking.hesitationScore, tracking.isHesitating]);
+  }, []);
 
   const trimmedSubtitle = useMemo(() => subtitle.trim(), [subtitle]);
 
@@ -2914,17 +3126,11 @@ const isSetOptionDomainUtterance = useCallback(
         micDevices={micDevices}
         selectedDeviceId={selectedDeviceId}
         onSelectDevice={(id) => setSelectedDeviceId(id || undefined)}
+        speakerDevices={speakerDevices}
+        selectedOutputDeviceId={selectedOutputDeviceId}
+        onSelectOutputDevice={(id) => setSelectedOutputDeviceId(id || undefined)}
         voiceLogs={voiceLogs}
       />
     </>
   );
 }
-
-
-
-
-
-
-
-
-
