@@ -3,6 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_API_URL=/api/v1
+ARG VITE_AI_URL=/ai/api/v1
+ARG VITE_AI_V2_URL=/ai/api/v2
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_AI_URL=${VITE_AI_URL}
+ENV VITE_AI_V2_URL=${VITE_AI_V2_URL}
+
 # Copy package files
 COPY package*.json ./
 COPY tsconfig*.json ./
@@ -45,4 +52,3 @@ EXPOSE 3000
 
 # Start the server directly with tsx
 CMD ["npx", "tsx", "server/index.ts"]
-

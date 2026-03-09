@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>주문 확인 화면 - 버거샵 대시보드</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B91C1C",
+                        "bg-main": "#F3F4F6",
+                        "bg-card": "#FFFFFF",
+                        "text-dark": "#111827",
+                        "text-muted": "#6B7280",
+                        "text-light": "#9CA3AF",
+                    },
+                    fontFamily: { "sans": ["Pretendard", "Inter", "sans-serif"] },
+                    boxShadow: { "premium": "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.05)" }
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        html, body { margin: 0; width: 100%; height: 100%; }
+        body { font-family: 'Pretendard', sans-serif; background-color: theme('colors.bg-main'); color: theme('colors.text-dark'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        .sidebar-item-active { @apply text-text-dark relative font-bold; }
+        .sidebar-item-active::after { content: ''; @apply absolute right-0 top-0 bottom-0 w-[3px] bg-primary; }
+        .sidebar-item-inactive { @apply text-text-light hover:text-text-dark transition-colors font-medium; }
+        .board-stage {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .board-shell {
+            width: 100%;
+            height: 100%;
+        }
+        .board-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .order-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(7, minmax(0, 1fr));
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+        .order-card { @apply rounded-2xl border border-gray-100 bg-white/80 backdrop-blur-sm flex items-center justify-center font-black text-gray-800; }
+        .order-card { height: 100%; min-height: 0; }
+        .order-no {
+            line-height: 1;
+            letter-spacing: -0.03em;
+            font-size: var(--order-font-size, 56px);
+        }
+        .empty-card { @apply text-gray-300 bg-gray-50/70; }
+        body.fullscreen-active aside,
+        body.fullscreen-active .admin-topbar,
+        body.fullscreen-active .board-toolbar { display: none; }
+        body.fullscreen-active main { padding: 0 !important; }
+        body.fullscreen-active { background: #0b1220; }
+        body.fullscreen-active .board-stage { padding: 0 !important; height: 100vh; }
+    </style>
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/darkmode.css">
+    <script>if (localStorage.getItem('admin-dark-mode') === 'true') document.documentElement.classList.add('dark');</script>
+</head>
+
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-[280px] bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <div class="h-24"></div>
+            <nav class="flex-1 px-4 space-y-1">
+                <a href="index.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">dashboard</span>
+                    <span class="text-base">대시 보드</span>
+                </a>
+                <a href="menu.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">lunch_dining</span>
+                    <span class="text-base">메뉴 관리</span>
+                </a>
+                <a href="inventory.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">inventory_2</span>
+                    <span class="text-base">재고 관리</span>
+                </a>
+                <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
+                    <span class="text-base">주문 내역</span>
+                </a>
+                <a href="order-board.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
+                    <span class="material-symbols-outlined fill transition-all text-2xl">tv</span>
+                    <span class="text-base">주문 확인 화면</span>
+                </a>
+                <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
+                    <span class="text-base">결제 관리</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">analytics</span>
+                    <span class="text-base">매출 분석</span>
+                </a>
+                <a href="staff.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">notifications_active</span>
+                    <span class="text-base">직원 호출</span>
+                </a>
+                <div class="pt-10 pb-4 px-8">
+                    <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Settings</p>
+                </div>
+                <a href="account.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">manage_accounts</span>
+                    <span class="text-base">계정 설정</span>
+                </a>
+                <a href="ai-logs.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">smart_toy</span>
+                    <span class="text-base">AI 로그 관리</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="admin-topbar h-20 px-10 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <span class="material-symbols-outlined fill text-primary">tv</span>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-800">주문 확인 화면</h1>
+                </div>
+                <div class="text-xs text-gray-500 font-semibold" id="last-updated">업데이트: -</div>
+            </header>
+
+            <div class="board-toolbar px-10 pb-4 flex items-center justify-end gap-3">
+                <button id="refresh-btn"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors">
+                    <span class="material-symbols-outlined text-base">refresh</span>
+                    새로고침
+                </button>
+                <button id="fullscreen-btn"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity">
+                    <span class="material-symbols-outlined text-base">fullscreen</span>
+                    전체화면
+                </button>
+            </div>
+
+            <div class="board-stage flex-1 overflow-hidden px-10 pb-10">
+                <div class="board-shell">
+                    <section class="board-canvas rounded-3xl bg-gradient-to-b from-slate-50 to-slate-100 border border-slate-200 shadow-premium p-10">
+                        <div class="h-full min-h-0 grid grid-cols-[3fr_2fr] gap-5">
+                            <div class="rounded-2xl bg-rose-50/80 border border-rose-100 p-6 flex flex-col min-h-0">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-[1.65rem] font-black text-red-700 leading-none">준비완료</h2>
+                                    <span class="text-sm font-bold text-red-500 uppercase tracking-wider">PLEASE PICK-UP</span>
+                                </div>
+                                <div id="ready-grid" class="order-grid"></div>
+                            </div>
+
+                            <div class="rounded-2xl bg-white/70 border border-white p-6 flex flex-col min-h-0">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-[1.65rem] font-black text-slate-800 leading-none">준비중</h2>
+                                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">PREPARING</span>
+                                </div>
+                                <div id="preparing-grid" class="order-grid"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        const READY_STATUSES = new Set(["READY"]);
+        const PREPARING_STATUSES = new Set(["CREATED", "PENDING", "PAID", "CONFIRMED", "MAKING"]);
+        const ROWS_PER_SECTION = 5;
+        const READY_COLS = 3;
+        const PREPARING_COLS = 2;
+        const READY_MAX_CARDS = ROWS_PER_SECTION * READY_COLS;
+        const PREPARING_MAX_CARDS = ROWS_PER_SECTION * PREPARING_COLS;
+        let refreshTimer = null;
+
+        function extractDisplayOrderNo(order) {
+            if (order?.orderNumber) return order.orderNumber;
+            const match = String(order?.orderId || "").match(/_(\d+)$/);
+            return match ? Number(match[1]) : null;
+        }
+
+        function toComparableTime(value) {
+            const raw = String(value || "");
+            const hasZone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(raw);
+            const parsed = new Date(hasZone ? raw : `${raw}Z`);
+            return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            const formatted = new Intl.DateTimeFormat("ko-KR", {
+                timeZone: "Asia/Seoul",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: true,
+            }).format(now);
+            document.getElementById("last-updated").textContent = `업데이트: ${formatted}`;
+        }
+
+        function toKstDateKey(value) {
+            const raw = String(value || "");
+            const hasZone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(raw);
+            const parsed = new Date(hasZone ? raw : `${raw}Z`);
+            if (Number.isNaN(parsed.getTime())) return "";
+            return new Intl.DateTimeFormat("en-CA", {
+                timeZone: "Asia/Seoul",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+            }).format(parsed);
+        }
+
+        function renderSection(elementId, orders, maxCards, rows, cols) {
+            const root = document.getElementById(elementId);
+            const cards = [];
+            root.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+            root.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+            for (let i = 0; i < maxCards; i += 1) {
+                const order = orders[i];
+                if (order) {
+                    const displayNo = extractDisplayOrderNo(order);
+                    if (!displayNo) {
+                        cards.push(`
+                            <div class="order-card empty-card min-h-[74px] md:min-h-[95px]">
+                                <span class="material-symbols-outlined text-3xl md:text-4xl">lunch_dining</span>
+                            </div>
+                        `);
+                        continue;
+                    }
+                    cards.push(`
+                        <div class="order-card">
+                            <span class="order-no">${displayNo}</span>
+                        </div>
+                    `);
+                } else {
+                    cards.push(`
+                        <div class="order-card empty-card">
+                            <span class="material-symbols-outlined text-[42px]">lunch_dining</span>
+                        </div>
+                    `);
+                }
+            }
+
+            root.innerHTML = cards.join("");
+        }
+
+        function adjustCardTypography() {
+            const cards = document.querySelectorAll(".order-card .order-no");
+            cards.forEach((node) => {
+                const card = node.closest(".order-card");
+                if (!card) return;
+                const h = card.clientHeight;
+                const w = card.clientWidth;
+                if (!h || !w) return;
+                const size = Math.max(18, Math.min(h * 0.58, w * 0.52));
+                node.style.setProperty("--order-font-size", `${size}px`);
+            });
+        }
+
+        async function loadBoard() {
+            try {
+                const response = await AdminAPI.getOrders();
+                const items = Array.isArray(response?.data?.items)
+                    ? response.data.items
+                    : (Array.isArray(response?.data) ? response.data : []);
+
+                const todayKst = toKstDateKey(new Date().toISOString());
+                const todayItems = items.filter((o) => toKstDateKey(o.createdAt) === todayKst);
+                const withDisplayNo = todayItems.filter((o) => extractDisplayOrderNo(o));
+                const sorted = [...withDisplayNo].sort((a, b) => toComparableTime(b.createdAt) - toComparableTime(a.createdAt));
+                const ready = sorted.filter((o) => READY_STATUSES.has(o.status));
+                const preparing = sorted.filter((o) => PREPARING_STATUSES.has(o.status));
+
+                renderSection("ready-grid", ready, READY_MAX_CARDS, ROWS_PER_SECTION, READY_COLS);
+                renderSection("preparing-grid", preparing, PREPARING_MAX_CARDS, ROWS_PER_SECTION, PREPARING_COLS);
+                requestAnimationFrame(adjustCardTypography);
+                updateLastUpdated();
+            } catch (err) {
+                console.error("Failed to load order board:", err);
+            }
+        }
+
+        async function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+        }
+
+        function handleFullscreenChange() {
+            const active = Boolean(document.fullscreenElement);
+            document.body.classList.toggle("fullscreen-active", active);
+            document.getElementById("fullscreen-btn").innerHTML = active
+                ? `<span class="material-symbols-outlined text-base">fullscreen_exit</span>전체화면 종료`
+                : `<span class="material-symbols-outlined text-base">fullscreen</span>전체화면`;
+        }
+
+        document.getElementById("refresh-btn").addEventListener("click", loadBoard);
+        document.getElementById("fullscreen-btn").addEventListener("click", toggleFullscreen);
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        window.addEventListener("resize", () => requestAnimationFrame(adjustCardTypography));
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadBoard();
+            refreshTimer = window.setInterval(loadBoard, 5000);
+        });
+
+        window.addEventListener("beforeunload", () => {
+            if (refreshTimer) clearInterval(refreshTimer);
+        });
+    </script>
+</body>
+
+</html>

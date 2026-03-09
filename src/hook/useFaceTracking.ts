@@ -438,7 +438,7 @@ export function useFaceTracking(
           const isSpeaking = Boolean((window as any).__AIKIOSK_TTS_SPEAKING);
           if (isSpeaking) return;
           const now = Date.now();
-          if (now - hesitationLastSentAtRef.current < 250) return;
+          if (now - hesitationLastSentAtRef.current < 650) return;
           if (Date.now() < hesitationRetryAtRef.current) return;
           hesitationBusyRef.current = true;
           try {
@@ -447,7 +447,7 @@ export function useFaceTracking(
             const cctx = c.getContext("2d");
             if (!cctx) return;
             cctx.drawImage(videoRef.current, 0, 0, c.width, c.height);
-            const image = c.toDataURL("image/jpeg", 0.62).split(",")[1];
+            const image = c.toDataURL("image/jpeg", 0.55).split(",")[1];
 
             const payload = JSON.stringify({ image, binary: false });
             const aiBase = AI_BASE_URL.replace(/\/+$/, "");
@@ -510,7 +510,7 @@ export function useFaceTracking(
           }
         };
 
-        hesitationTimerRef.current = window.setInterval(postHesitation, 280);
+        hesitationTimerRef.current = window.setInterval(postHesitation, 700);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message || "face tracking init failed");

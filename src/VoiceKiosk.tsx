@@ -590,9 +590,9 @@ export default function VoiceKiosk() {
     };
     loadVideoDevices();
 
-    navigator.mediaDevices.addEventListener?.('devicechange', loadVideoDevices);
+    navigator.mediaDevices?.addEventListener?.('devicechange', loadVideoDevices);
     return () => {
-      navigator.mediaDevices.removeEventListener?.('devicechange', loadVideoDevices);
+      navigator.mediaDevices?.removeEventListener?.('devicechange', loadVideoDevices);
     };
   }, [poseDeviceId]);
   // 망설임 트리거 방지용 timestamp

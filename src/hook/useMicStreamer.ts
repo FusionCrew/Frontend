@@ -296,27 +296,41 @@ export function useMicStreamer(opts: Opts) {
 
     try {
       onDebug?.(`stt request: dur=${Math.round(durMs)}ms`);
-      /** 1) STT (Updated for Spring Boot: JSON with Base64) */
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      await new Promise(resolve => reader.onloadend = resolve);
-      const base64Audio = (reader.result as string).split(',')[1];
-
-      const sttRes = await fetchWithRetry(
-        `${AI_BASE_URL}/stt`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            audioBase64: base64Audio,
-            language: inputLang,
-            model: sttModel,
-            mimeType: "audio/wav"
-          }),
-          signal: ac.signal
-        },
-        2, 250
-      );
+      /** 1) STT (multipart first, base64 JSON fallback) */
+      let sttRes: Response;
+      try {
+        const form = new FormData();
+        form.append("audio", blob, "speech.wav");
+        form.append("language", inputLang);
+        form.append("model", sttModel);
+        form.append("mimeType", "audio/wav");
+        sttRes = await fetchWithRetry(
+          `${AI_BASE_URL}/stt/upload`,
+          { method: "POST", body: form, signal: ac.signal },
+          1,
+          0
+        );
+      } catch {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        await new Promise(resolve => reader.onloadend = resolve);
+        const base64Audio = (reader.result as string).split(',')[1];
+        sttRes = await fetchWithRetry(
+          `${AI_BASE_URL}/stt`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              audioBase64: base64Audio,
+              language: inputLang,
+              model: sttModel,
+              mimeType: "audio/wav"
+            }),
+            signal: ac.signal
+          },
+          2, 250
+        );
+      }
 
       // Spring returns AiCommonResponse<SttDto.Result>
       // { success: true, data: { text: "..." } }

@@ -73,6 +73,10 @@
                     <span class="material-symbols-outlined fill transition-all text-2xl">receipt_long</span>
                     <span class="text-base">주문 내역</span>
                 </a>
+                <a href="order-board.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">tv</span>
+                    <span class="text-base">주문 확인 화면</span>
+                </a>
                 <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
                     <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
                     <span class="text-base">결제 관리</span>
@@ -283,6 +287,29 @@
         <script src="js/api.js"></script>
         <script src="js/header.js"></script>
         <script>
+            function getKstDateKey(date = new Date()) {
+                return new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Seoul',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(date);
+            }
+
+            function parseAsDate(raw) {
+                if (!raw) return null;
+                const value = String(raw);
+                const hasZone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(value);
+                const parsed = new Date(hasZone ? value : `${value}Z`);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+
+            function isTodayOrder(raw) {
+                const parsed = parseAsDate(raw);
+                if (!parsed) return false;
+                return getKstDateKey(parsed) === getKstDateKey();
+            }
+
             document.addEventListener('DOMContentLoaded', async () => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const orderId = urlParams.get('id');
@@ -297,6 +324,8 @@
                     const response = await AdminAPI.getOrderDetail(orderId);
                     if (response.success && response.data) {
                         renderOrderDetail(response.data);
+                        // Setup Buttons after loading order (date-aware lock)
+                        setupButtons(orderId, response.data);
                     } else {
                         throw new Error(response.message || 'Failed to fetch order detail');
                     }
@@ -305,35 +334,39 @@
                     alert('주문 정보를 불러오는데 실패했습니다.');
                 }
 
-                // Setup Buttons
-                setupButtons(orderId);
             });
 
-            function setupButtons(orderId) {
+            function setupButtons(orderId, order) {
                 const btnCancel = document.getElementById('btn-cancel-order');
+                if (!btnCancel) return;
+
+                if (!isTodayOrder(order?.createdAt)) {
+                    btnCancel.disabled = true;
+                    btnCancel.textContent = '오늘 주문만 취소 가능';
+                    btnCancel.className = 'px-5 py-2.5 bg-gray-100 text-gray-300 text-[11px] font-bold rounded-xl cursor-not-allowed';
+                    return;
+                }
 
                 // Cancel Button Handler
-                if (btnCancel) {
-                    btnCancel.onclick = async () => {
-                        if (!confirm('정말 주문을 취소하시겠습니까?\n취소 시 결제는 전액 환불 처리됩니다.')) return;
+                btnCancel.onclick = async () => {
+                    if (!confirm('정말 주문을 취소하시겠습니까?\n취소 시 결제는 전액 환불 처리됩니다.')) return;
 
-                        try {
-                            btnCancel.disabled = true;
-                            // Note: We use 'CANCELED' (backend enum)
-                            const response = await AdminAPI.updateOrderStatus(orderId, 'CANCELED', 'Cancelled by Admin');
-                            if (response.success) {
-                                alert('주문이 취소되었습니다.');
-                                location.reload();
-                            } else {
-                                throw new Error(response.message || 'Failed to cancel order');
-                            }
-                        } catch (error) {
-                            console.error('Failed to cancel order:', error);
-                            alert('주문 취소 실패: ' + error.message);
-                            btnCancel.disabled = false;
+                    try {
+                        btnCancel.disabled = true;
+                        // Note: We use 'CANCELED' (backend enum)
+                        const response = await AdminAPI.updateOrderStatus(orderId, 'CANCELED', 'Cancelled by Admin');
+                        if (response.success) {
+                            alert('주문이 취소되었습니다.');
+                            location.reload();
+                        } else {
+                            throw new Error(response.message || 'Failed to cancel order');
                         }
-                    };
-                }
+                    } catch (error) {
+                        console.error('Failed to cancel order:', error);
+                        alert('주문 취소 실패: ' + error.message);
+                        btnCancel.disabled = false;
+                    }
+                };
             }
 
             function renderOrderDetail(order) {
@@ -386,6 +419,7 @@
                 const btnCancel = document.getElementById('btn-cancel-order');
 
                 if (!btnMain || !btnCancel) return;
+                const isToday = isTodayOrder(order.createdAt);
 
                 // Reset display
                 btnMain.style.display = 'block';
@@ -395,6 +429,18 @@
 
                 // Reset classes
                 btnMain.className = 'px-5 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all';
+
+                // Only today's orders are mutable
+                if (!isToday) {
+                    btnMain.textContent = '오늘 주문만 변경 가능';
+                    btnMain.disabled = true;
+                    btnCancel.textContent = '오늘 주문만 취소 가능';
+                    btnCancel.disabled = true;
+                    btnCancel.className = 'px-5 py-2.5 bg-gray-100 text-gray-300 text-[11px] font-bold rounded-xl cursor-not-allowed';
+                    btnMain.onclick = null;
+                    btnCancel.onclick = null;
+                    return;
+                }
 
                 // Configure Main Button Action Helper
                 const setMainAction = (text, nextStatus, confirmMsg) => {

@@ -73,6 +73,10 @@
                     <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">receipt_long</span>
                     <span class="text-base">주문 내역</span>
                 </a>
+                <a href="order-board.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">tv</span>
+                    <span class="text-base">주문 확인 화면</span>
+                </a>
                 <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
                     <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
                     <span class="text-base">결제 관리</span>
@@ -258,7 +262,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:8080';
+        const API_BASE_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)) ? 'http://localhost:8080' : '';
         let allIngredients = [];
         let selectedIds = JSON.parse(localStorage.getItem('menuRegisterIngredients') || '[]');
 

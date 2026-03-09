@@ -52,6 +52,10 @@
         .status-completed { @apply bg-gray-100 text-gray-500; }
         .status-cancelled { @apply bg-gray-100 text-gray-400; }
         .status-pending { @apply bg-orange-50 text-orange-600; }
+        .order-action-btn { @apply px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors; }
+        .action-main { @apply bg-primary text-white hover:bg-red-700; }
+        .action-cancel { @apply bg-gray-100 text-gray-500 hover:bg-gray-200; }
+        .action-disabled { @apply bg-gray-100 text-gray-300 cursor-not-allowed; }
     </style>
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/darkmode.css">
@@ -80,6 +84,10 @@
                 <a href="orders.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-active group">
                     <span class="material-symbols-outlined fill transition-all text-2xl">receipt_long</span>
                     <span class="text-base">주문 내역</span>
+                </a>
+                <a href="order-board.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
+                    <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">tv</span>
+                    <span class="text-base">주문 확인 화면</span>
                 </a>
                 <a href="payment.html" class="flex items-center gap-4 px-8 py-5 sidebar-item-inactive group">
                     <span class="material-symbols-outlined group-hover:fill transition-all text-2xl">payments</span>
@@ -275,7 +283,12 @@
 
             <div class="flex-1 overflow-y-auto px-10 pb-10 space-y-8">
                 <!-- Filter Section -->
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <button id="btn-prev-day" onclick="moveDay(-1)"
+                        class="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-bold rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-base">chevron_left</span>
+                        이전 날
+                    </button>
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
                         <span class="text-[10px] font-bold text-gray-300 uppercase">From</span>
                         <input type="date" id="date-from"
@@ -289,7 +302,12 @@
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
-                    <button onclick="loadOrders()"
+                    <button id="btn-next-day" onclick="moveDay(1)"
+                        class="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-bold rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        다음 날
+                        <span class="material-symbols-outlined text-base">chevron_right</span>
+                    </button>
+                    <button id="btn-search" onclick="loadOrders()"
                         class="px-6 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조회</button>
                 </div>
 
@@ -302,12 +320,13 @@
                                 <th class="table-header">주문 시간</th>
                                 <th class="table-header">총 금액</th>
                                 <th class="table-header">주문 상태</th>
+                                <th class="table-header">상태 변경</th>
                             </tr>
                         </thead>
                         <tbody id="order-table-body">
                             <!-- Data Rows will be injected here -->
                             <tr>
-                                <td colspan="4" class="table-cell text-center py-20 text-gray-400">주문 내역을 불러오는 중입니다...
+                                <td colspan="5" class="table-cell text-center py-20 text-gray-400">주문 내역을 불러오는 중입니다...
                                 </td>
                             </tr>
                         </tbody>
@@ -336,37 +355,178 @@
             'MAKING': { label: '조리중', class: 'status-preparing' },
             'READY': { label: '준비완료', class: 'status-ready' },
             'COMPLETED': { label: '완료', class: 'status-completed' },
-            'CANCELLED': { label: '취소', class: 'status-cancelled' }
+            'CANCELLED': { label: '취소', class: 'status-cancelled' },
+            'CANCELED': { label: '취소', class: 'status-cancelled' }
         };
+
+        function getKstDateKey(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('ko-KR', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date);
+            const year = parts.find(p => p.type === 'year')?.value;
+            const month = parts.find(p => p.type === 'month')?.value;
+            const day = parts.find(p => p.type === 'day')?.value;
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseAsDate(raw) {
+            if (!raw) return null;
+            const value = String(raw);
+            const hasZone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(value);
+            const parsed = new Date(hasZone ? value : `${value}Z`);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function getOrderKstDateKey(raw) {
+            const parsed = parseAsDate(raw);
+            if (!parsed) return '';
+            return getKstDateKey(parsed);
+        }
+
+        function isTodayOrder(raw) {
+            return getOrderKstDateKey(raw) === getKstDateKey();
+        }
+
+        function getSelectedDateRange() {
+            const from = document.getElementById('date-from').value;
+            const to = document.getElementById('date-to').value;
+            return { from, to };
+        }
+
+        function addDays(dateStr, diffDays) {
+            const [y, m, d] = String(dateStr).split('-').map(Number);
+            const utcDate = new Date(Date.UTC(y, m - 1, d + diffDays));
+            return utcDate.toISOString().slice(0, 10);
+        }
+
+        function updateNextDayButtonVisibility() {
+            const btn = document.getElementById('btn-next-day');
+            if (!btn) return;
+            const { to } = getSelectedDateRange();
+            const today = getKstDateKey();
+            const show = Boolean(to && to < today);
+            btn.style.visibility = show ? 'visible' : 'hidden';
+            btn.disabled = !show;
+            btn.style.pointerEvents = show ? 'auto' : 'none';
+        }
+
+        function moveDay(diffDays) {
+            const fromInput = document.getElementById('date-from');
+            const toInput = document.getElementById('date-to');
+            const baseDate = fromInput.value || getKstDateKey();
+            let nextDate = addDays(baseDate, diffDays);
+            const today = getKstDateKey();
+            if (nextDate > today) nextDate = today;
+            fromInput.value = nextDate;
+            toInput.value = nextDate;
+            updateNextDayButtonVisibility();
+            loadOrders();
+        }
+
+        function filterOrdersByDateRange(orders, from, to) {
+            if (!from && !to) return orders;
+            return orders.filter(order => {
+                const dateKey = getOrderKstDateKey(order.createdAt);
+                if (!dateKey) return false;
+                if (from && dateKey < from) return false;
+                if (to && dateKey > to) return false;
+                return true;
+            });
+        }
 
         async function loadOrders() {
             try {
                 const response = await AdminAPI.getOrders();
                 const orders = response.data.items || response.data; // Handle different formats
-                renderOrders(orders);
+                const { from, to } = getSelectedDateRange();
+                const filtered = filterOrdersByDateRange(orders || [], from, to);
+                renderOrders(filtered);
             } catch (err) {
                 console.error('Failed to load orders:', err);
                 document.getElementById('order-table-body').innerHTML = `
                     <tr>
-                        <td colspan="4" class="table-cell text-center py-20 text-red-500">주문 내역을 불러오는데 실패했습니다.</td>
+                        <td colspan="5" class="table-cell text-center py-20 text-red-500">주문 내역을 불러오는데 실패했습니다.</td>
                     </tr>
                 `;
+            }
+        }
+
+        function formatOrderDateKst(raw) {
+            if (!raw) return '-';
+            const value = String(raw);
+            const hasZone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(value);
+            const parsed = new Date(hasZone ? value : `${value}Z`);
+            if (Number.isNaN(parsed.getTime())) return value;
+
+            return new Intl.DateTimeFormat('ko-KR', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            }).format(parsed);
+        }
+
+        function getActionConfig(status) {
+            switch (status) {
+                case 'CREATED':
+                case 'PENDING':
+                case 'PAID':
+                case 'CONFIRMED':
+                    return { label: '조리 시작', nextStatus: 'MAKING' };
+                case 'MAKING':
+                    return { label: '조리 완료', nextStatus: 'READY' };
+                case 'READY':
+                    return { label: '수령 완료', nextStatus: 'COMPLETED', confirmMsg: '고객이 메뉴를 수령하였나요?' };
+                default:
+                    return null;
+            }
+        }
+
+        async function changeOrderStatus(orderId, nextStatus, confirmMsg) {
+            if (confirmMsg && !confirm(confirmMsg)) return;
+            try {
+                const response = await AdminAPI.updateOrderStatus(orderId, nextStatus, `Changed to ${nextStatus} by Admin`);
+                if (!response.success) throw new Error(response.message || '상태 변경 실패');
+                await loadOrders();
+            } catch (error) {
+                alert('상태 변경 실패: ' + error.message);
+            }
+        }
+
+        async function cancelOrder(orderId) {
+            if (!confirm('정말 주문을 취소하시겠습니까?')) return;
+            try {
+                const response = await AdminAPI.updateOrderStatus(orderId, 'CANCELED', 'Cancelled by Admin');
+                if (!response.success) throw new Error(response.message || '주문 취소 실패');
+                await loadOrders();
+            } catch (error) {
+                alert('주문 취소 실패: ' + error.message);
             }
         }
 
         function renderOrders(orders) {
             const tbody = document.getElementById('order-table-body');
             if (!orders || orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="table-cell text-center py-20 text-gray-400">주문 내역이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="table-cell text-center py-20 text-gray-400">주문 내역이 없습니다.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = orders.map(order => {
                 const statusInfo = STATUS_MAP[order.status] || { label: order.status, class: 'status-completed' };
-                const date = new Date(order.createdAt).toLocaleString('ko-KR');
+                const date = formatOrderDateKst(order.createdAt);
                 const suffixMatch = String(order.orderId || '').match(/_(\d+)$/);
                 const suffixNo = suffixMatch ? Number(suffixMatch[1]) : null;
                 const displayNo = order.orderNumber || suffixNo || order.orderId;
+                const isToday = isTodayOrder(order.createdAt);
+                const action = getActionConfig(order.status);
+                const canCancel = isToday && !['COMPLETED', 'CANCELLED', 'CANCELED'].includes(order.status);
 
                 return `
                     <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer"
@@ -377,17 +537,50 @@
                         <td class="table-cell">
                             <span class="status-badge ${statusInfo.class}">${statusInfo.label}</span>
                         </td>
+                        <td class="table-cell">
+                            <div class="flex items-center gap-2" onclick="event.stopPropagation()">
+                                ${action && isToday ? `
+                                    <button class="order-action-btn action-main"
+                                        onclick="changeOrderStatus('${order.orderId}', '${action.nextStatus}'${action.confirmMsg ? `, '${action.confirmMsg}'` : ''})">
+                                        ${action.label}
+                                    </button>
+                                ` : `
+                                    <button class="order-action-btn action-disabled" disabled>
+                                        ${isToday ? '변경 불가' : '오늘만 변경 가능'}
+                                    </button>
+                                `}
+                                ${canCancel ? `
+                                    <button class="order-action-btn action-cancel"
+                                        onclick="cancelOrder('${order.orderId}')">
+                                        취소
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('');
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Set default dates
-            const today = new Date().toISOString().split('T')[0];
+            // Default: only today's orders (KST)
+            const today = getKstDateKey();
             document.getElementById('date-to').value = today;
-            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            document.getElementById('date-from').value = weekAgo;
+            document.getElementById('date-from').value = today;
+            document.getElementById('date-from').max = today;
+            document.getElementById('date-to').max = today;
+            updateNextDayButtonVisibility();
+
+            document.getElementById('date-from').addEventListener('change', () => {
+                const from = document.getElementById('date-from').value;
+                document.getElementById('date-to').value = from;
+                updateNextDayButtonVisibility();
+            });
+            document.getElementById('date-to').addEventListener('change', () => {
+                const to = document.getElementById('date-to').value;
+                document.getElementById('date-from').value = to;
+                updateNextDayButtonVisibility();
+            });
 
             loadOrders();
         });

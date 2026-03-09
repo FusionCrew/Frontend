@@ -1308,17 +1308,10 @@ export default function V2VoiceManager({
     }
 
     // Generic browsing queries (must be after specific category routing).
-    const isRecommendRequest =
-      compact.includes("추천") &&
-      (compact.includes("다른") ||
-        compact.includes("또") ||
-        compact.includes("더") ||
-        compact.includes("다시") ||
-        compact.includes("추천해") ||
-        compact.includes("추천해줘") ||
-        compact.includes("추천해줄래"));
-    if (isRecommendRequest) {
-      return { type: "RECOMMEND_MENU" };
+    // Let recommendation requests flow to LLM policy instead of local fast-path.
+    // This avoids premature CONTINUE_ORDER -> dining gate responses.
+    if (compact.includes("추천")) {
+      return { type: "NONE" };
     }
     if (
       compact.includes("뭐있") ||
@@ -1594,7 +1587,45 @@ const isSetOptionDomainUtterance = useCallback(
       setListeningEnabled(false);
 
       try {
-        for (const seg of inlineSegments) {
+        const fetchTtsBlob = async (segText: string): Promise<Blob | null> => {
+          const ac = new AbortController();
+          const timer = window.setTimeout(() => ac.abort(), 8000);
+          try {
+            const streamRes = await fetch(`${AI_BASE_URL}/tts/stream`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: segText, language: "ko", voice: "nova", speed: 1.0 }),
+              signal: ac.signal,
+            });
+            if (streamRes.ok) {
+              return await streamRes.blob();
+            }
+
+            // fallback: legacy base64 endpoint
+            const legacyRes = await fetch(`${AI_BASE_URL}/tts`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: segText, language: "ko", voice: "nova", speed: 1.0 }),
+              signal: ac.signal,
+            });
+            if (!legacyRes.ok) return null;
+            const legacyJson = await legacyRes.json();
+            const audioB64 = legacyJson.data?.audioBase64;
+            if (!audioB64) return null;
+            const bytes = Uint8Array.from(atob(audioB64), (c) => c.charCodeAt(0));
+            return new Blob([bytes], { type: "audio/mpeg" });
+          } catch {
+            return null;
+          } finally {
+            window.clearTimeout(timer);
+          }
+        };
+
+        // Pre-generate TTS for all segments in parallel.
+        const preGenerated = inlineSegments.map((seg) => fetchTtsBlob(seg.text));
+
+        for (let idx = 0; idx < inlineSegments.length; idx++) {
+          const seg = inlineSegments[idx];
           setSubtitle(seg.text);
           addVoiceLog(`TTS OUT: ${seg.text}`);
           if (seg.motion) {
@@ -1613,26 +1644,14 @@ const isSetOptionDomainUtterance = useCallback(
             }
           }
 
-          const ac = new AbortController();
-          const t = window.setTimeout(() => ac.abort(), 8000);
           try {
-            const res = await fetch(`${AI_BASE_URL}/tts`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: seg.text, language: "ko", voice: "nova", speed: 1.0 }),
-              signal: ac.signal,
-            });
-            if (!res.ok) {
-              addVoiceLog(`TTS ERROR: ${res.status} ${res.statusText}`);
-              continue;
-            }
-            const json = await res.json();
-            const audioB64 = json.data?.audioBase64;
-            if (!audioB64) {
+            const audioBlob = await preGenerated[idx];
+            if (!audioBlob) {
               addVoiceLog("TTS ERROR: empty audio");
               continue;
             }
-            const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
             audio.volume = 1;
             audio.muted = false;
             try {
@@ -1730,10 +1749,9 @@ const isSetOptionDomainUtterance = useCallback(
               void audio.play().catch(() => resolve());
             });
             await stopLipSync();
+            URL.revokeObjectURL(audioUrl);
           } catch (e: any) {
             addVoiceLog(`TTS ERROR: ${e?.message || String(e)}`);
-          } finally {
-            window.clearTimeout(t);
           }
         }
       } finally {
@@ -2660,7 +2678,7 @@ const isSetOptionDomainUtterance = useCallback(
           window.clearTimeout(llmWaitPromptTimerRef.current);
           llmWaitPromptTimerRef.current = null;
         }
-        addVoiceLog("LLM WAIT: scheduled (1200ms)");
+        addVoiceLog("LLM WAIT: scheduled (2200ms)");
         llmWaitPromptTimerRef.current = window.setTimeout(() => {
           llmWaitPromptTimerRef.current = null;
           if (!llmRequestInFlightRef.current || llmWaitPromptPromiseRef.current) return;
@@ -2668,7 +2686,7 @@ const isSetOptionDomainUtterance = useCallback(
           llmWaitPromptPromiseRef.current = say("잠시만 기다려 주세요. 확인해보고 있어요.", "m20")
             .catch(() => undefined)
             .then(() => undefined);
-        }, 1200);
+        }, 2200);
 
         const stateMenuCatalog = getContextualCandidateCatalog();
         const stateForLlm = {

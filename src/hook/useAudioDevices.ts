@@ -27,10 +27,10 @@ export function useAudioDevices() {
     }
     refresh();
     const onChange = () => refresh();
-    navigator.mediaDevices.addEventListener?.("devicechange", onChange);
+    navigator.mediaDevices?.addEventListener?.("devicechange", onChange);
     return () => {
       mounted = false;
-      navigator.mediaDevices.removeEventListener?.("devicechange", onChange);
+      navigator.mediaDevices?.removeEventListener?.("devicechange", onChange);
     };
   }, []);
 
