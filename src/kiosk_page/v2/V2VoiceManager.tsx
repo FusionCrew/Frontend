@@ -84,7 +84,18 @@ const NOISE_TRANSCRIPT_PATTERNS = [
   "주문하기 이전 뒤로",
   "mbc 뉴스",
   "뉴스",
+  "워싱턴에서",
+  "통합뉴스룸",
+  "전해드렸습니다",
+  "이덕영입니다",
+  "김지경입니다",
+  "시청자 여러분",
+  "지금까지",
+  "유료광고를 포함하고 있습니다",
+  "유료 광고를 포함하고 있습니다",
 ];
+
+const LISTEN_RESUME_DELAY_MS = 450;
 
 const CONTROL_TRANSCRIPT_TOKENS = [
   // High-signal tokens that indicate this utterance is about kiosk ordering.
@@ -142,8 +153,6 @@ const LIVE2D_MOTION_CATALOG: Array<{ id: MotionCode; description: string }> = [
 const MOTION_ID_SET = new Set<string>(LIVE2D_MOTION_CATALOG.map((m) => m.id));
 const ACTION_DEFAULT_MOTION: Partial<Record<VoiceAction["type"], MotionCode>> = {
   SET_DINING: "m01",
-  NAVIGATE: "m06",
-  NAVIGATE_CATEGORY: "m06",
   CONTINUE_ORDER: "m01",
   CLEAR_CART: "m11",
   ADD_MENU: "m01",
@@ -305,6 +314,15 @@ export default function V2VoiceManager({
     }
   }, [onSpeakingChange, speaking]);
 
+  useEffect(() => {
+    return () => {
+      if (listenResumeTimerRef.current != null) {
+        window.clearTimeout(listenResumeTimerRef.current);
+        listenResumeTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const { micDevices, speakerDevices } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [selectedOutputDeviceId, setSelectedOutputDeviceId] = useState<string | undefined>(undefined);
@@ -317,6 +335,7 @@ export default function V2VoiceManager({
   const llmWaitPromptTriggeredRef = useRef(false);
   const llmWaitPromptTimerRef = useRef<number | null>(null);
   const llmWaitPromptPromiseRef = useRef<Promise<void> | null>(null);
+  const listenResumeTimerRef = useRef<number | null>(null);
   const holdListeningDuringLlmRef = useRef(false);
   const lastPaymentCompleteSpokenKeyRef = useRef<string>("");
   const [conversationHistory, setConversationHistory] = useState<Msg[]>([]);
@@ -422,20 +441,25 @@ export default function V2VoiceManager({
   const shouldIgnoreTranscript = useCallback((t: string) => {
     if (!t) return true;
     const lower = t.toLowerCase();
+    const compact = lower.replace(/\s+/g, "");
     for (const p of NOISE_TRANSCRIPT_PATTERNS) {
-      if (lower.includes(p.toLowerCase())) return true;
+      const pattern = p.toLowerCase();
+      if (lower.includes(pattern) || compact.includes(pattern.replace(/\s+/g, ""))) return true;
     }
     // Ignore known noisy meta utterances and token-dump style ASR hallucinations.
     if (lower.includes("주요 단어는")) return true;
     const commaCount = (t.match(/[,，]/g) || []).length;
     const numberCount = (t.match(/\d+/g) || []).length;
     const tokenishCount = (t.match(/\b(주문하기|이전|뒤로|버거|사이드|음료|세트|단품|결제|매장|포장)\b/g) || []).length;
+    const controlTokens = ["주문하기", "이전", "뒤로", "버거", "사이드", "음료", "세트", "단품", "결제", "매장", "포장"];
+    const compactTokenHits = controlTokens.filter((tok) => compact.includes(tok)).length;
     const hasTaskVerb = /(담아|추가|추천해|보여|알려|선택|결제해|주문해|취소해|삭제해)/.test(lower);
     if (t.length > 60 && commaCount >= 8 && numberCount >= 8) return true;
     if (t.length > 60 && tokenishCount >= 8) return true;
     // ASR hallucination often returns token lists like
     // "이전 뒤로 버거 세트 단품 결제 매장 포장 ...".
     if (tokenishCount >= 6 && !hasTaskVerb) return true;
+    if (compactTokenHits >= 6 && !hasTaskVerb) return true;
     return false;
   }, []);
 
@@ -815,6 +839,10 @@ export default function V2VoiceManager({
       let tt = normalizeTranscript(text);
       // Normalize spoken counts for robust multi-item parsing.
       tt = tt
+        .replace(/한\s*개씩|하나씩/gi, "1개")
+        .replace(/두\s*개씩|둘씩/gi, "2개")
+        .replace(/세\s*개씩|셋씩/gi, "3개")
+        .replace(/네\s*개씩|넷씩/gi, "4개")
         .replace(/한\s*개|하나(?![가-힣])/gi, "1개")
         .replace(/두\s*개|둘(?![가-힣])/gi, "2개")
         .replace(/세\s*개|셋(?![가-힣])/gi, "3개")
@@ -841,16 +869,39 @@ export default function V2VoiceManager({
 
       const cleanBulkPhrase = (src: string) =>
         String(src || "")
-          .replace(/^(그리고|하고|랑|와|과)\s*/g, "")
-          .replace(/\s*(그리고|하고|랑|와|과)$/g, "")
+          .replace(/^(그리고|하고|이랑|랑|와|과|및)\s*/g, "")
+          .replace(/\s*(그리고|하고|이랑|랑|와|과|및)$/g, "")
           .replace(/(도)?\s*(추가해줘|추가해|추가|담아줘|담아|주문해줘|주문할게|주문)$/g, "")
           .replace(/^(일단|그럼|그러면)\s*/g, "")
           .replace(/\s*(좀|주세요|부탁해요|부탁해)\s*$/g, "")
           .trim();
-      const parts = tt
-        .split(/\s*,\s*|\s*(?:그리고|하고|랑|와|과)\s*/g)
+      const splitSequentialQuantityChunks = (src: string) => {
+        const qtyRegex = /(\d+)\s*(개|잔|병|캔|조각|세트)/g;
+        const matches = Array.from(src.matchAll(qtyRegex));
+        if (matches.length < 2) return [];
+        const chunks: string[] = [];
+        let start = 0;
+        for (const match of matches) {
+          const idx = match.index ?? -1;
+          if (idx < 0) continue;
+          const end = idx + match[0].length;
+          const chunk = cleanBulkPhrase(src.slice(start, end).trim());
+          if (chunk) chunks.push(chunk);
+          start = end;
+        }
+        const tail = cleanBulkPhrase(src.slice(start).trim());
+        if (tail && chunks.length > 0) {
+          chunks[chunks.length - 1] = cleanBulkPhrase(`${chunks[chunks.length - 1]} ${tail}`);
+        }
+        return chunks.filter(Boolean);
+      };
+      let parts = tt
+        .split(/\s*,\s*|\s*(?:그리고|하고|이랑|랑|와|과|및)\s*/g)
         .map((x) => cleanBulkPhrase(x))
         .filter(Boolean);
+      if (parts.length < 2) {
+        parts = splitSequentialQuantityChunks(tt);
+      }
       if (parts.length < 2) return [];
 
       const byId = new Map<string, number>();
@@ -875,17 +926,108 @@ export default function V2VoiceManager({
     const compact = lower.replace(/\s+/g, "");
     const qty = inferQty(tt);
     const confirmUtterance = compact.replace(/[^\p{L}\p{N}]/gu, "");
-    const confirmCore = confirmUtterance.replace(/^(음+|어+|아+|음흠+|흠+)+/, "");
-    const positiveRe =
-      /^(응|어|네|예|넵|ㅇㅇ|맞아|맞아요|맞습니다|그래|그럼|그렇지|그렇게|좋아|좋아요|좋습니다|오케이|ok|yes|진행|진행해|진행해줘|결제해|결제진행|확인|확인해|확정)$/;
-    const negativeRe =
-      /^(아니|아니요|아냐|ㄴㄴ|노|no|틀렸어|틀렸어요|아닌데|다른거|다르게|바꿔|바꿔줘|다시|별로|싫어|취소|그만|멈춰|하지마|안해)$/;
-    const isExplicitPositive =
-      positiveRe.test(confirmUtterance) ||
-      positiveRe.test(confirmCore) ||
-      /^(네맞아|네맞아요|네맞습니다|네좋아|네좋아요|응맞아|응맞아요|어맞아|어맞아요|음맞아|음맞아요|네그래|응그래|오케이좋아)$/.test(confirmUtterance);
-    const isExplicitNegative =
-      negativeRe.test(confirmUtterance) || negativeRe.test(confirmCore);
+    const confirmCore = confirmUtterance.replace(/^(음+|어+|아+|음흠+|흠+|어어+|음음+)+/, "");
+    const positiveTokens = [
+      "응",
+      "네",
+      "예",
+      "넵",
+      "넹",
+      "ㅇㅇ",
+      "맞아",
+      "맞아요",
+      "맞습니다",
+      "맞지",
+      "맞네",
+      "그래",
+      "그럼",
+      "그렇지",
+      "좋아",
+      "좋아요",
+      "좋습니다",
+      "오케이",
+      "오키",
+      "콜",
+      "yes",
+      "ok",
+      "okay",
+      "진행",
+      "진행해",
+      "진행해줘",
+      "확인",
+      "확인해",
+      "확정",
+      "맞는것같아",
+      "그걸로",
+      "그걸로해",
+      "그걸로할게",
+    ];
+    const negativeTokens = [
+      "아니",
+      "아니요",
+      "아냐",
+      "아닌데",
+      "아닌것같아",
+      "ㄴㄴ",
+      "노",
+      "no",
+      "틀렸어",
+      "틀렸어요",
+      "별로",
+      "싫어",
+      "싫어요",
+      "취소",
+      "그만",
+      "멈춰",
+      "하지마",
+      "안해",
+      "안할래",
+      "바꿔",
+      "바꿔줘",
+      "바꾸자",
+      "바꾸고싶어",
+      "다시",
+      "다르게",
+    ];
+    const suggestionNextTokens = [
+      "다른거",
+      "다른건",
+      "다른게",
+      "다른메뉴",
+      "다른추천메뉴",
+      "또다른",
+      "또추천",
+      "다른추천",
+      "더추천",
+      "더없어",
+      "다른거없어",
+      "다른건없어",
+      "또없어",
+      "또뭐있어",
+      "이거말고",
+      "그거말고",
+      "말고다른거",
+    ];
+    const hasPositiveCue = positiveTokens.some((tok) => confirmUtterance.includes(tok) || confirmCore.includes(tok));
+    const hasNegativeCue = negativeTokens.some((tok) => confirmUtterance.includes(tok) || confirmCore.includes(tok));
+    const isExplicitPositive = hasPositiveCue && !hasNegativeCue;
+    const isExplicitNegative = hasNegativeCue && !hasPositiveCue;
+
+    if (awaitingSuggestionAccept) {
+      if (suggestionNextTokens.some((tok) => confirmUtterance.includes(tok) || confirmCore.includes(tok))) {
+        return { type: "RECOMMEND_MENU" };
+      }
+      if (isExplicitPositive) return { type: "ACCEPT_SUGGESTION" };
+      if (isExplicitNegative) return { type: "ASK_SUGGESTION_CLARIFY" };
+      const pickedSuggestion = findBestMenuCatalogMatch(
+        tt,
+        suggestedMenuCandidates.map((c) => ({ menuItemId: c.menuItemId, name: c.name, category: "", price: 0 })),
+        { allowLoose: true, looseThreshold: 4 }
+      );
+      if (pickedSuggestion?.menuItemId) {
+        return { type: "ACCEPT_SUGGESTION_ITEM", menuItemId: pickedSuggestion.menuItemId };
+      }
+    }
 
     if (awaitingCheckoutConfirm) {
       if (isExplicitPositive) return { type: "CONFIRM_CHECKOUT" };
@@ -1431,6 +1573,7 @@ export default function V2VoiceManager({
   },
   [
     awaitingCheckoutConfirm,
+    awaitingSuggestionAccept,
     cartSnapshot,
     findBestCartMatch,
     findBestMenuCatalogMatch,
@@ -1442,6 +1585,7 @@ export default function V2VoiceManager({
     pendingOptionConfirm,
     pendingSetChoice,
     simplifyForMenuMatch,
+    suggestedMenuCandidates,
     selectedCategory,
     isMenuInfoUtterance,
     uiMode?.setPickerActive,
@@ -1500,12 +1644,16 @@ const isOrderDomainUtterance = useCallback(
     ];
     if (infoTokens.some((x) => compact.includes(x))) return true;
 
+    // Multi-item utterances like "징거버거 하나 타워버거 하나" should stay in-domain
+    // even when separators are omitted by STT normalization.
+    if (parseBulkAddRequest(tt).length >= 2) return true;
+
     // Direct menu mention (catalog-based fuzzy matcher shared with action parser).
     if (findBestMenuCatalogMatch(tt, menuCatalog, { allowLoose: true })) return true;
 
     return false;
   },
-  [findBestMenuCatalogMatch, menuCatalog, normalizeTranscript, pendingSetChoice, uiMode?.setPickerActive]
+  [findBestMenuCatalogMatch, menuCatalog, normalizeTranscript, parseBulkAddRequest, pendingSetChoice, uiMode?.setPickerActive]
 );
 
 const isSetOptionDomainUtterance = useCallback(
@@ -1756,7 +1904,18 @@ const isSetOptionDomainUtterance = useCallback(
         }
       } finally {
         setSpeaking(false);
-        setListeningEnabled(shouldListenAfterSpeechRef.current && !holdListeningDuringLlmRef.current);
+        if (listenResumeTimerRef.current != null) {
+          window.clearTimeout(listenResumeTimerRef.current);
+          listenResumeTimerRef.current = null;
+        }
+        if (shouldListenAfterSpeechRef.current && !holdListeningDuringLlmRef.current) {
+          listenResumeTimerRef.current = window.setTimeout(() => {
+            setListeningEnabled(true);
+            listenResumeTimerRef.current = null;
+          }, LISTEN_RESUME_DELAY_MS);
+        } else {
+          setListeningEnabled(false);
+        }
       }
     },
     [addVoiceLog, listeningEnabled, onPlayMotion, selectedOutputDeviceId, sessionId, ttsEnabled]
@@ -2171,28 +2330,29 @@ const isSetOptionDomainUtterance = useCallback(
         return true;
       }
       if (action.type === "ACCEPT_SUGGESTION" && suggestedMenu?.menuItemId) {
-        const ok = await onAddMenu(suggestedMenu.menuItemId, 1);
         setAwaitingSuggestionAccept(false);
-        if (ok) {
-          await say(`${suggestedMenu.name}을(를) 장바구니에 담았습니다. 결제하시겠어요?`);
-          setAwaitingCheckoutConfirm(true);
-        } else {
-          await say("장바구니에 담지 못했어요. 다른 메뉴를 말씀해 주세요.");
-        }
-        return true;
+        setSuggestedMenu(null);
+        setSuggestedMenuCandidates([]);
+        setAwaitingCheckoutConfirm(false);
+        setPendingCheckoutMethod(null);
+        return applyVoiceAction({
+          type: "ADD_MENU",
+          menuItemId: suggestedMenu.menuItemId,
+          quantity: 1,
+        });
       }
       if (action.type === "ACCEPT_SUGGESTION_ITEM") {
-  const cand = suggestedMenuCandidates.find((c) => c.menuItemId === action.menuItemId);
-  const ok = await onAddMenu(action.menuItemId, 1);
-  setAwaitingSuggestionAccept(false);
-  if (ok) {
-    await say(`${cand?.name || "해당 메뉴"}을(를) 장바구니에 담았습니다. 결제하시겠어요?`);
-    setAwaitingCheckoutConfirm(true);
-  } else {
-    await say("장바구니에 담지 못했어요. 다른 메뉴를 말씀해 주세요.");
-  }
-  return true;
-}
+        setAwaitingSuggestionAccept(false);
+        setSuggestedMenu(null);
+        setSuggestedMenuCandidates([]);
+        setAwaitingCheckoutConfirm(false);
+        setPendingCheckoutMethod(null);
+        return applyVoiceAction({
+          type: "ADD_MENU",
+          menuItemId: action.menuItemId,
+          quantity: 1,
+        });
+      }
       if (action.type === "REMOVE_MENU_AT") {
         if (!cartSnapshot.length) {
           await say("장바구니에 담은 메뉴가 없어요.");
@@ -2503,6 +2663,9 @@ const isSetOptionDomainUtterance = useCallback(
         }
       }
       addVoiceLog(`STT IN: ${normalizedText}`);
+      // Once a real utterance is in flight, never re-run the "voice order starts now" greeting
+      // just because dining type changed mid-conversation.
+      autoVoiceStartedRef.current = true;
 
       if (isAbusiveUtterance(normalizedText)) {
         addVoiceLog(`STT ABUSE DETECTED: ${normalizedText}`);
@@ -2794,6 +2957,28 @@ const isSetOptionDomainUtterance = useCallback(
         }
         setConversationHistory([...messages, { role: "assistant", content: reply }]);
 
+        const recommendationCandidates = Array.isArray(structuredActionData?.recommendationCandidates)
+          ? (structuredActionData.recommendationCandidates as any[])
+              .map((c) => ({
+                menuItemId: String(c?.menuItemId || "").trim(),
+                name: String(c?.name || "").trim(),
+              }))
+              .filter((c) => c.menuItemId && c.name)
+          : [];
+        const intentUpper = String(json.data?.intent || "").toUpperCase();
+        const stageUpper = String(json.data?.stage || structuredActionData?.stage || "").toUpperCase();
+        const isRecommendationReply =
+          recommendationCandidates.length > 0 ||
+          intentUpper === "MENU_RECOMMEND" ||
+          stageUpper === "RECOMMENDATION";
+        if (isRecommendationReply) {
+          setAwaitingCheckoutConfirm(false);
+          setPendingCheckoutMethod(null);
+          setAwaitingSuggestionAccept(recommendationCandidates.length > 0);
+          setSuggestedMenuCandidates(recommendationCandidates);
+          setSuggestedMenu(recommendationCandidates[0] ?? null);
+        }
+
         const actionHandled = await applyLlmAction(structuredAction, structuredActionData);
         if (!actionHandled) {
           if (llmSegments.length > 0) {
@@ -2885,6 +3070,10 @@ const isSetOptionDomainUtterance = useCallback(
       window.clearTimeout(hesitationTimerRef.current);
       hesitationTimerRef.current = null;
     }
+    if (listenResumeTimerRef.current != null) {
+      window.clearTimeout(listenResumeTimerRef.current);
+      listenResumeTimerRef.current = null;
+    }
     recentRecommendedMenuIdsRef.current = [];
     recommendationCursorRef.current = 0;
     addVoiceLog(`VOICE START: mic=${selectedDeviceId || "default"} out=${selectedOutputDeviceId || "default"}`);
@@ -2910,6 +3099,10 @@ const isSetOptionDomainUtterance = useCallback(
   const handleVoiceStop = useCallback(() => {
     addVoiceLog("VOICE STOP");
     shouldListenAfterSpeechRef.current = false;
+    if (listenResumeTimerRef.current != null) {
+      window.clearTimeout(listenResumeTimerRef.current);
+      listenResumeTimerRef.current = null;
+    }
     setListeningEnabled(false);
   }, [addVoiceLog]);
 
@@ -3012,7 +3205,11 @@ const isSetOptionDomainUtterance = useCallback(
           // ignore
         }
       }
-      await say(speech, "m25");
+      // Proactive hesitation help is already an active voice turn, so don't auto-greet again
+      // when dining type gets chosen later in the same conversation.
+      autoVoiceStartedRef.current = true;
+      // Proactive hesitation help should keep the character calm rather than triggering a recommendation gesture.
+      await say(speech, "idle");
     },
     [
       addVoiceLog,
