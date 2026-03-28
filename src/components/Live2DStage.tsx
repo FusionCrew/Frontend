@@ -63,7 +63,6 @@ export function Live2DStage({
                 console.error("[Live2D] Missing dependencies");
                 return;
             }
-
             const app = new PIXI.Application({
                 resizeTo: boxRef.current!,
                 backgroundAlpha: 0,
