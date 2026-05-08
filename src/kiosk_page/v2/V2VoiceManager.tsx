@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMicStreamer } from "../../hook/useMicStreamer";
 import { useAudioDevices } from "../../hook/useAudioDevices";
 import { AI_BASE_URL, AI_V2_CHAT_URL } from "../../api/config";
@@ -1874,13 +1874,15 @@ const isSetOptionDomainUtterance = useCallback(
                 (window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE = true;
                 const tick = () => {
                   if (!lipAnalyser || !lipData) return;
-                  lipAnalyser.getByteTimeDomainData(lipData);
+                  const analyser = lipAnalyser!;
+                  const data = lipData!;
+                  analyser.getByteTimeDomainData(data as any);
                   let sum = 0;
-                  for (let i = 0; i < lipData.length; i++) {
-                    const v = (lipData[i] - 128) / 128;
+                  for (let i = 0; i < data.length; i++) {
+                    const v = (data[i] - 128) / 128;
                     sum += v * v;
                   }
-                  const rms = Math.sqrt(sum / lipData.length);
+                  const rms = Math.sqrt(sum / data.length);
                   const mouth = Math.max(0, Math.min(1, (rms - 0.008) * 22));
                   (window as any).__AIKIOSK_TTS_MOUTH_OPEN = mouth;
                   lipRaf = window.requestAnimationFrame(tick);

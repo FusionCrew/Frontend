@@ -287,6 +287,26 @@
             </header>
 
             <div class="flex-1 overflow-y-auto px-10 pb-10 space-y-8">
+                <!-- Filter Section -->
+                <div class="flex items-center gap-4 flex-wrap pt-6">
+                    <button id="btn-prev-day" onclick="moveDay(-1)"
+                        class="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-bold rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-base">chevron_left</span>
+                        이전 날
+                    </button>
+                    <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
+                        <span class="text-[10px] font-bold text-gray-300 uppercase">Date</span>
+                        <input type="date" id="dashboard-date"
+                            class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
+                        <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
+                    </div>
+                    <button id="btn-next-day" onclick="moveDay(1)"
+                        class="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-bold rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        다음 날
+                        <span class="material-symbols-outlined text-base">chevron_right</span>
+                    </button>
+                </div>
+
                 <!-- Top Section -->
                 <div class="grid grid-cols-12 gap-8">
                     <!-- Sales Chart -->
@@ -299,7 +319,7 @@
                             </div>
                         </div>
                         <div id="sales-chart"
-                            class="flex items-end justify-between h-48 px-4 gap-6 animate-shimmer rounded-xl">
+                            class="flex items-end justify-between h-48 px-4 gap-1 animate-shimmer rounded-xl">
                             <!-- Bars will be injected here -->
                         </div>
                     </div>
@@ -398,9 +418,54 @@
     <script>
         const API_BASE_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)) ? 'http://localhost:8080' : '';
 
+        function getKstDateKey(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('ko-KR', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date);
+            const year = parts.find(p => p.type === 'year')?.value;
+            const month = parts.find(p => p.type === 'month')?.value;
+            const day = parts.find(p => p.type === 'day')?.value;
+            return `${year}-${month}-${day}`;
+        }
+
+        function addDays(dateStr, diffDays) {
+            const [y, m, d] = String(dateStr).split('-').map(Number);
+            const utcDate = new Date(Date.UTC(y, m - 1, d + diffDays));
+            return utcDate.toISOString().slice(0, 10);
+        }
+
+        function updateNextDayButtonVisibility() {
+            const btn = document.getElementById('btn-next-day');
+            if (!btn) return;
+            const dateStr = document.getElementById('dashboard-date').value;
+            const today = getKstDateKey();
+            const show = Boolean(dateStr && dateStr < today);
+            btn.style.visibility = show ? 'visible' : 'hidden';
+            btn.disabled = !show;
+            btn.style.pointerEvents = show ? 'auto' : 'none';
+        }
+
+        function moveDay(diffDays) {
+            const input = document.getElementById('dashboard-date');
+            const baseDate = input.value || getKstDateKey();
+            let nextDate = addDays(baseDate, diffDays);
+            const today = getKstDateKey();
+            if (nextDate > today) nextDate = today;
+            input.value = nextDate;
+            updateNextDayButtonVisibility();
+            loadDashboard();
+        }
+
         async function loadDashboard() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/admin/dashboard/summary`);
+                const dateStr = document.getElementById('dashboard-date').value;
+                const url = dateStr
+                    ? `${API_BASE_URL}/api/v1/admin/dashboard/summary?date=${dateStr}`
+                    : `${API_BASE_URL}/api/v1/admin/dashboard/summary`;
+                const response = await fetch(url);
                 if (!response.ok) throw new Error('API Failed');
 
                 const result = await response.json();
@@ -439,21 +504,30 @@
             document.getElementById('active-orders').textContent = `${data.activeOrders || 0}건`;
             document.getElementById('stock-alerts').textContent = `${(data.lowStockIngredients || []).length}건`;
 
-            // Chart
+            // Chart - now shows real hourly revenue data (24 hours)
             const chartEl = document.getElementById('sales-chart');
-            const hourlySales = data.hourlySales || [30, 45, 60, 55, 40, 80, 100];
-            const labels = ['08시', '10시', '12시', '14시', '16시', '18시', '20시'];
-            chartEl.innerHTML = hourlySales.map((val, i) => `
-                <div class="flex-1 h-full flex flex-col items-center justify-end gap-3 group relative">
+            const hourlySales = data.hourlySales || Array(24).fill(0);
+            const maxVal = Math.max(...hourlySales, 1);
+            
+            // Show all 24 hours
+            const displayHours = hourlySales.map((v, i) => ({ hour: i, val: v }));
+
+            chartEl.innerHTML = displayHours.map((h, i) => {
+                const isActive = h.val > 0;
+                const barColor = isActive ? (h.val === maxVal ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-primary/60') : 'bg-gray-200';
+                const labelShow = h.hour % 2 === 0;
+                
+                return `
+                <div class="flex-1 h-full flex flex-col items-center justify-end gap-1 group relative">
                     <!-- Tooltip -->
-                    <div class="absolute -top-10 bg-gray-800 text-white text-[10px] px-2 py-1 rounded shadow-xl chart-tooltip z-20 pointer-events-none">
-                        ₩${(val * 10).toLocaleString()}k
+                    <div class="absolute -top-10 bg-gray-800 text-white text-[10px] px-2 py-1 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
+                        ₩${h.val.toLocaleString()}
                     </div>
-                    <div class="w-full ${i === hourlySales.length - 1 ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-gray-200'} rounded-lg transition-all animate-grow-up hover:brightness-110 cursor-pointer"
-                        style="height: ${val}%; animation-delay: ${i * 0.1}s"></div>
-                    <span class="text-[10px] font-bold text-gray-300 uppercase">${labels[i] || ''}</span>
+                    <div class="w-full ${barColor} rounded-md transition-all animate-grow-up hover:brightness-110 cursor-pointer"
+                        style="height: ${Math.max(2, (h.val / maxVal) * 100)}%; animation-delay: ${i * 0.02}s"></div>
+                    ${labelShow ? `<span class="text-[8px] font-bold text-gray-400 uppercase">${String(h.hour).padStart(2, '0')}</span>` : '<span class="text-[8px]"> </span>'}
                 </div>
-            `).join('');
+            `}).join('');
 
             // Inventory Mini List
             const invEl = document.getElementById('inventory-mini-list');
@@ -496,7 +570,20 @@
             logsEl.classList.remove('animate-shimmer');
         }
 
-        document.addEventListener('DOMContentLoaded', loadDashboard);
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = getKstDateKey();
+            const dateInput = document.getElementById('dashboard-date');
+            dateInput.value = today;
+            dateInput.max = today;
+            updateNextDayButtonVisibility();
+
+            dateInput.addEventListener('change', () => {
+                updateNextDayButtonVisibility();
+                loadDashboard();
+            });
+
+            loadDashboard();
+        });
     </script>
 </body>
 

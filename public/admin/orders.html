@@ -311,6 +311,25 @@
                         class="px-6 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조회</button>
                 </div>
 
+                <!-- Hourly Sales Chart Section -->
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="size-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                                <span class="material-symbols-outlined fill text-primary text-lg">bar_chart</span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 tracking-tight">시간대별 매출 현황</h3>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="sales-date-label" class="text-xs font-bold text-gray-400"></span>
+                            <span id="sales-total-label" class="px-3 py-1.5 bg-primary/10 rounded-lg text-[11px] font-bold text-primary">총 매출: ₩0</span>
+                        </div>
+                    </div>
+                    <div id="hourly-sales-chart" class="flex items-end justify-between h-52 px-2 gap-1 animate-shimmer rounded-xl">
+                        <!-- Bars will be injected here -->
+                    </div>
+                </div>
+
                 <!-- Content Table Section -->
                 <div class="card">
                     <table class="w-full text-left">
@@ -376,7 +395,8 @@
             if (!raw) return null;
             const value = String(raw);
             const hasZone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(value);
-            const parsed = new Date(hasZone ? value : `${value}Z`);
+            // Backend returns LocalDateTime (KST) without timezone. Explicitly mark as KST (+09:00) instead of UTC (Z).
+            const parsed = new Date(hasZone ? value : `${value}+09:00`);
             return Number.isNaN(parsed.getTime()) ? null : parsed;
         }
 
@@ -424,6 +444,8 @@
             toInput.value = nextDate;
             updateNextDayButtonVisibility();
             loadOrders();
+            const { from } = getSelectedDateRange();
+            loadHourlySales(from);
         }
 
         function filterOrdersByDateRange(orders, from, to) {
@@ -444,6 +466,11 @@
                 const { from, to } = getSelectedDateRange();
                 const filtered = filterOrdersByDateRange(orders || [], from, to);
                 renderOrders(filtered);
+                
+                // If 'from' date is set, sync the chart to it when search is clicked
+                if (from) {
+                    loadHourlySales(from);
+                }
             } catch (err) {
                 console.error('Failed to load orders:', err);
                 document.getElementById('order-table-body').innerHTML = `
@@ -562,6 +589,62 @@
             }).join('');
         }
 
+        const SALES_API_BASE = (['localhost','127.0.0.1'].includes(window.location.hostname)) ? 'http://localhost:8080' : '';
+
+        async function loadHourlySales(dateStr) {
+            const chartEl = document.getElementById('hourly-sales-chart');
+            const dateLabel = document.getElementById('sales-date-label');
+            const totalLabel = document.getElementById('sales-total-label');
+            try {
+                const url = dateStr
+                    ? `${SALES_API_BASE}/api/v1/admin/dashboard/summary?date=${dateStr}`
+                    : `${SALES_API_BASE}/api/v1/admin/dashboard/summary`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('API Failed');
+                const result = await res.json();
+                if (!result.success || !result.data) throw new Error('Invalid response');
+
+                const hourlyData = result.data.hourlySales || [];
+                const dayRevenue = result.data.todayRevenue || 0;
+                const revenueChange = result.data.revenueChange || 0;
+
+                // Set labels
+                if (dateLabel) dateLabel.textContent = dateStr || getKstDateKey();
+                if (totalLabel) {
+                    const changeIcon = revenueChange >= 0 ? 'trending_up' : 'trending_down';
+                    const changeColor = revenueChange >= 0 ? 'text-emerald-600' : 'text-red-600';
+                    const changeSign = revenueChange >= 0 ? '+' : '';
+                    totalLabel.innerHTML = `총 매출: ₩${dayRevenue.toLocaleString()} <span class="${changeColor} ml-2"><span class="material-symbols-outlined text-[12px] align-middle">${changeIcon}</span> ${changeSign}${revenueChange}%</span>`;
+                }
+
+                // Render chart (24 hours)
+                const maxVal = Math.max(...hourlyData, 1);
+                const hours = Array.from({ length: 24 }, (_, i) => i);
+                chartEl.innerHTML = hours.map((h, i) => {
+                    const val = hourlyData[h] || 0;
+                    const pct = Math.max(2, (val / maxVal) * 100);
+                    const isActive = val > 0;
+                    const barColor = isActive ? (val === maxVal ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-primary/60') : 'bg-gray-100';
+                    const labelShow = h % 2 === 0;
+                    return `
+                        <div class="flex-1 h-full flex flex-col items-center justify-end gap-1.5 group relative">
+                            <div class="absolute -top-8 bg-gray-800 text-white text-[9px] px-2 py-1 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
+                                ₩${val.toLocaleString()}
+                            </div>
+                            <div class="w-full ${barColor} rounded-md transition-all hover:brightness-110 cursor-pointer"
+                                style="height: ${pct}%; animation: growUp 0.5s ease-out both; animation-delay: ${i * 0.02}s"></div>
+                            ${labelShow ? `<span class="text-[8px] font-bold text-gray-300">${String(h).padStart(2,'0')}</span>` : '<span class="text-[8px]"> </span>'}
+                        </div>
+                    `;
+                }).join('');
+                chartEl.classList.remove('animate-shimmer');
+            } catch (err) {
+                console.error('Failed to load hourly sales:', err);
+                chartEl.innerHTML = '<div class="w-full text-center text-gray-400 text-sm py-10">매출 데이터를 불러올 수 없습니다.</div>';
+                chartEl.classList.remove('animate-shimmer');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Default: only today's orders (KST)
             const today = getKstDateKey();
@@ -583,6 +666,7 @@
             });
 
             loadOrders();
+            loadHourlySales(today);
         });
     </script>
 </body>

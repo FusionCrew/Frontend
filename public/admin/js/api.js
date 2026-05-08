@@ -19,7 +19,10 @@ async function request(url, options = {}) {
 
 const AdminAPI = {
     // Dashboard
-    getDashboardSummary: () => request('/admin/dashboard'),
+    getDashboardSummary: (dateStr) => {
+        const query = dateStr ? `?date=${dateStr}` : '';
+        return request(`/admin/dashboard/summary${query}`);
+    },
 
     // Orders
     getOrders: () => request('/admin/orders'),

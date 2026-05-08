@@ -272,24 +272,36 @@
 
             <div class="flex-1 overflow-y-auto px-10 pb-10 space-y-8">
                 <!-- Filter Section -->
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-wrap pt-2">
+                    <button id="btn-prev-day" onclick="moveDay(-1)"
+                        class="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-bold rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-base">chevron_left</span>
+                        이전 날
+                    </button>
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
+                        <span class="text-[10px] font-bold text-gray-300 uppercase">From</span>
                         <input type="date" id="date-start"
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
                     <span class="text-gray-300">~</span>
                     <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-50 shadow-sm">
+                        <span class="text-[10px] font-bold text-gray-300 uppercase">To</span>
                         <input type="date" id="date-end"
                             class="text-xs font-bold text-gray-600 border-none p-0 focus:ring-0 outline-none">
                         <span class="material-symbols-outlined text-sm text-gray-300">calendar_today</span>
                     </div>
+                    <button id="btn-next-day" onclick="moveDay(1)"
+                        class="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-bold rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
+                        다음 날
+                        <span class="material-symbols-outlined text-base">chevron_right</span>
+                    </button>
                     <button id="btn-search"
                         class="px-6 py-2.5 bg-primary text-white text-[11px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">조회</button>
                 </div>
 
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-4 gap-8">
+                <div class="grid grid-cols-3 gap-8">
                     <div class="card flex flex-col justify-between stagger-item hover-scale-premium stat-card-accent">
                         <div>
                             <p class="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-2">기간 순 매출</p>
@@ -309,13 +321,6 @@
                             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">총 방문자 수</p>
                             <h2 id="stat-visitors" class="text-2xl font-black text-gray-800 italic tracking-tight mb-1">
                                 0명</h2>
-                        </div>
-                    </div>
-                    <div class="card flex flex-col justify-between stagger-item hover-scale-premium">
-                        <div>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">재방문율</p>
-                            <h2 id="stat-return-rate"
-                                class="text-2xl font-black text-gray-800 italic tracking-tight mb-1">0%</h2>
                         </div>
                     </div>
                 </div>
@@ -347,13 +352,65 @@
                 <script src="js/api.js"></script>
                 <script src="js/header.js"></script>
                 <script>
+                    function getKstDateKey(date = new Date()) {
+                        const parts = new Intl.DateTimeFormat('ko-KR', {
+                            timeZone: 'Asia/Seoul',
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        }).formatToParts(date);
+                        const year = parts.find(p => p.type === 'year')?.value;
+                        const month = parts.find(p => p.type === 'month')?.value;
+                        const day = parts.find(p => p.type === 'day')?.value;
+                        return `${year}-${month}-${day}`;
+                    }
+
+                    function addDays(dateStr, diffDays) {
+                        const [y, m, d] = String(dateStr).split('-').map(Number);
+                        const utcDate = new Date(Date.UTC(y, m - 1, d + diffDays));
+                        return utcDate.toISOString().slice(0, 10);
+                    }
+
+                    function updateNextDayButtonVisibility() {
+                        const btn = document.getElementById('btn-next-day');
+                        if (!btn) return;
+                        const toInput = document.getElementById('date-end').value;
+                        const today = getKstDateKey();
+                        const show = Boolean(toInput && toInput < today);
+                        btn.style.visibility = show ? 'visible' : 'hidden';
+                        btn.disabled = !show;
+                        btn.style.pointerEvents = show ? 'auto' : 'none';
+                    }
+
+                    function moveDay(diffDays) {
+                        const startInput = document.getElementById('date-start');
+                        const endInput = document.getElementById('date-end');
+                        
+                        const baseStart = startInput.value || getKstDateKey();
+                        let nextStart = addDays(baseStart, diffDays);
+                        const baseEnd = endInput.value || getKstDateKey();
+                        let nextEnd = addDays(baseEnd, diffDays);
+                        
+                        const today = getKstDateKey();
+                        if (nextEnd > today) {
+                            nextEnd = today;
+                            nextStart = addDays(nextEnd, diffDays < 0 ? diffDays : 0);
+                        }
+                        
+                        startInput.value = nextStart;
+                        endInput.value = nextEnd;
+                        
+                        updateNextDayButtonVisibility();
+                        loadAnalytics();
+                    }
+
                     async function loadAnalytics() {
                         const startDateInput = document.getElementById('date-start');
                         const endDateInput = document.getElementById('date-end');
 
                         // Set defaults if empty
-                        if (!startDateInput.value) startDateInput.valueAsDate = new Date();
-                        if (!endDateInput.value) endDateInput.valueAsDate = new Date();
+                        if (!startDateInput.value) startDateInput.value = getKstDateKey();
+                        if (!endDateInput.value) endDateInput.value = getKstDateKey();
 
                         const startDate = startDateInput.value;
                         const endDate = endDateInput.value;
@@ -370,11 +427,33 @@
                     }
 
                     document.addEventListener('DOMContentLoaded', () => {
-                        // Initial Load
-                        loadAnalytics();
+                        const today = getKstDateKey();
+                        const startInput = document.getElementById('date-start');
+                        const endInput = document.getElementById('date-end');
+                        
+                        startInput.value = today;
+                        endInput.value = today;
+                        startInput.max = today;
+                        endInput.max = today;
+                        updateNextDayButtonVisibility();
+
+                        startInput.addEventListener('change', () => {
+                            endInput.value = startInput.value;
+                            updateNextDayButtonVisibility();
+                            loadAnalytics();
+                        });
+                        
+                        endInput.addEventListener('change', () => {
+                            startInput.value = endInput.value;
+                            updateNextDayButtonVisibility();
+                            loadAnalytics();
+                        });
 
                         // Button Event
                         document.getElementById('btn-search')?.addEventListener('click', loadAnalytics);
+                        
+                        // Initial Load
+                        loadAnalytics();
                     });
 
                     function updateUI(data) {
@@ -382,12 +461,11 @@
                         document.getElementById('stat-refund').textContent = `환불 금액: ₩${(data.refundAmount || 0).toLocaleString()}`;
                         document.getElementById('stat-avg-order').textContent = `₩${(data.avgOrderValue || 0).toLocaleString()}`;
                         document.getElementById('stat-visitors').textContent = `${(data.totalVisitors || 0)}명`;
-                        document.getElementById('stat-return-rate').textContent = `${(data.returnRate || 0)}%`;
 
                         // Update Top 5 List (simplification: only textual list for now)
                         const topMenus = data.topMenus || [];
                         const rankingContainer = document.querySelector('.space-y-4.border-t');
-                        if (rankingContainer && topMenus.length >= 5) {
+                        if (rankingContainer && topMenus.length > 0) {
                             rankingContainer.innerHTML = topMenus.map((menu, i) => `
                     <div class="flex items-center justify-between px-4">
                         <div class="flex items-center gap-4">
@@ -397,6 +475,8 @@
                         <span class="text-xs font-bold text-gray-400 italic">${menu.count}개</span>
                     </div>
                 `).join('');
+                        } else if (rankingContainer) {
+                            rankingContainer.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">데이터가 없습니다.</p>';
                         }
 
                         // AI Insights
