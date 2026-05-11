@@ -420,6 +420,8 @@ export default function V2VoiceManager({
   const realtimeMicProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const realtimeAssistantTranscriptRef = useRef("");
   const realtimePlannedSpeechRef = useRef("");
+  const realtimeLastUserTranscriptRef = useRef("");
+  const realtimeLastUserTranscriptAtRef = useRef(0);
   const realtimeSetPickerPendingRef = useRef(false);
   const realtimeEventHandlerRef = useRef<(event: Record<string, any>) => void>(() => undefined);
   const activeTtsAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -438,6 +440,7 @@ export default function V2VoiceManager({
   const realtimeConnectedRef = useRef(false);
   const realtimeConnectingRef = useRef(false);
   const realtimeConnectInFlightRef = useRef(false);
+  const realtimeLastHandledTranscriptAtRef = useRef(0);
   const connectRealtimeRef = useRef<(() => Promise<void>) | null>(null);
   const lastPaymentCompleteSpokenKeyRef = useRef<string>("");
   const [conversationHistory, setConversationHistory] = useState<Msg[]>([]);
@@ -1271,7 +1274,8 @@ export default function V2VoiceManager({
       };
       const simplifyOptionPhrase = (s: string) =>
         norm(s)
-          .replace(/(사이드는|사이드를|사이드|음료는|음료를|음료|그리고|하고|랑|와|과|라지|미디엄|레귤러|스몰|사이즈|으로|로|은|는|이|가|을|를|요|해줘|해주세요|주고|해주고|바꾸고|바꿔|바꿔서|바꿔줘|바꿔주고|변경|변경하고|변경해줘)+/g, "")
+          .replace(/(사이드는|사이드를|사이드|음료는|음료를|음료|그리고|하고|랑|와|과|라지|미디엄|레귤러|스몰|사이즈|으로|로|은|는|이|가|을|를|요|해줘|해주세요|주고|해주고|바꾸고|바꿔|바꿔서|바꿔줘|바꿔주고|변경|변경하고|변경해줘|부탁드립니다|부탁드려요|부탁드려|부탁해요|부탁해)+/g, "")
+          .replace(/감자튀김/g, "케이준후라이")
           .trim();
       const toOptionComparable = (s: string) =>
         simplifyOptionPhrase(s)
@@ -3747,7 +3751,18 @@ const isSetOptionDomainUtterance = useCallback(
 
   const executeRealtimeToolCall = useCallback(
     async (callId: string, userText: string) => {
-      const normalizedText = normalizeTranscript(userText);
+      const transcriptAgeMs = Date.now() - realtimeLastUserTranscriptAtRef.current;
+      const recentTranscript =
+        realtimeLastUserTranscriptRef.current && transcriptAgeMs >= 0 && transcriptAgeMs <= 8000
+          ? realtimeLastUserTranscriptRef.current
+          : "";
+      const parsedNormalized = normalizeTranscript(userText);
+      const transcriptNormalized = normalizeTranscript(recentTranscript);
+      const shouldPreferTranscript =
+        Boolean(transcriptNormalized) &&
+        (!parsedNormalized || parsedNormalized !== transcriptNormalized);
+      const effectiveUserText = shouldPreferTranscript ? recentTranscript : userText;
+      const normalizedText = normalizeTranscript(effectiveUserText);
       const fallbackSpeech = "죄송해요. 주문 내용을 다시 한 번 말씀해 주세요.";
 
       if (!normalizedText) {
@@ -3763,6 +3778,11 @@ const isSetOptionDomainUtterance = useCallback(
         return;
       }
 
+      realtimeLastHandledTranscriptAtRef.current = realtimeLastUserTranscriptAtRef.current || Date.now();
+
+      if (shouldPreferTranscript) {
+        addVoiceLog(`RT TOOL TEXT OVERRIDE: args=${parsedNormalized || "(empty)"} -> transcript=${transcriptNormalized}`);
+      }
       addVoiceLog(`RT TOOL REQ: ${normalizedText}`);
       addVoiceLog(
         `RT TOOL STATE: uiSet=${uiMode?.setPickerActive ? "1" : "0"} pendingSet=${realtimeSetPickerPendingRef.current ? "1" : "0"} dining=${diningType || "-"} cart=${cartSnapshot.length}`
@@ -3970,6 +3990,60 @@ const isSetOptionDomainUtterance = useCallback(
     ]
   );
 
+  const maybeHandleRealtimeStructuredFallback = useCallback(async () => {
+    const transcript = String(realtimeLastUserTranscriptRef.current || "").trim();
+    const transcriptAt = realtimeLastUserTranscriptAtRef.current;
+    if (!transcript || !transcriptAt) return false;
+    if (realtimeLastHandledTranscriptAtRef.current >= transcriptAt) return false;
+    if (!(uiMode?.setPickerActive || pendingOptionConfirm || awaitingCheckoutConfirm || pendingCheckoutMethod || pageHint?.showOrderView)) {
+      return false;
+    }
+
+    const normalizedText = normalizeTranscript(transcript);
+    if (!normalizedText) return false;
+
+    const setOptionTurn = parseRealtimeSetOptionAction(normalizedText);
+    if (setOptionTurn) {
+      realtimeLastHandledTranscriptAtRef.current = transcriptAt;
+      await applyVoiceAction(setOptionTurn.action, { skipSpeech: true });
+      setPlanSubtitle(setOptionTurn.speech);
+      addVoiceLog(`RT FALLBACK TRANSCRIPT: ${normalizedText}`);
+      addVoiceLog(`RT FALLBACK ACTION: ${setOptionTurn.action.type}`);
+      addVoiceLog(`RT TOOL OUT: ${setOptionTurn.speech}`);
+      requestRealtimeSpeech(setOptionTurn.speech);
+      return true;
+    }
+
+    const fastAction = parseFastAction(normalizedText);
+    if (fastAction.type !== "NONE") {
+      realtimeLastHandledTranscriptAtRef.current = transcriptAt;
+      const fastReply = fastAction.type === "RECOMMEND_MENU" ? prepareRecommendationReply() : buildRealtimeFastReply(fastAction);
+      await applyVoiceAction(fastAction, { skipSpeech: true });
+      setPlanSubtitle(fastReply);
+      addVoiceLog(`RT FALLBACK TRANSCRIPT: ${normalizedText}`);
+      addVoiceLog(`RT FALLBACK ACTION: ${fastAction.type}`);
+      addVoiceLog(`RT TOOL OUT: ${fastReply}`);
+      requestRealtimeSpeech(fastReply, fastAction.type === "RECOMMEND_MENU" ? "m02" : undefined);
+      return true;
+    }
+
+    return false;
+  }, [
+    addVoiceLog,
+    applyVoiceAction,
+    awaitingCheckoutConfirm,
+    buildRealtimeFastReply,
+    normalizeTranscript,
+    pageHint?.showOrderView,
+    parseFastAction,
+    parseRealtimeSetOptionAction,
+    pendingCheckoutMethod,
+    pendingOptionConfirm,
+    prepareRecommendationReply,
+    requestRealtimeSpeech,
+    uiMode?.setPickerActive,
+  ]);
+
   const handleRealtimeEventPayload = useCallback(
     async (event: Record<string, any>) => {
       const type = String(event?.type || "");
@@ -4012,6 +4086,8 @@ const isSetOptionDomainUtterance = useCallback(
       if (type === "conversation.item.input_audio_transcription.completed") {
         const transcript = String(event?.transcript || "").trim();
         if (transcript) {
+          realtimeLastUserTranscriptRef.current = transcript;
+          realtimeLastUserTranscriptAtRef.current = Date.now();
           addVoiceLog(`RT USER: ${transcript}`);
         }
         return;
@@ -4144,6 +4220,7 @@ const isSetOptionDomainUtterance = useCallback(
           addVoiceLog(`RT ASSISTANT(FALLBACK): ${realtimePlannedSpeechRef.current}`);
           realtimePlannedSpeechRef.current = "";
         }
+        void maybeHandleRealtimeStructuredFallback();
         setRealtimeStatusText("idle");
         return;
       }
@@ -4157,7 +4234,19 @@ const isSetOptionDomainUtterance = useCallback(
         setRealtimeStatusText(message);
       }
     },
-    [addVoiceLog, applyLlmAction, cartSnapshot.length, clearRealtimePlaybackQueue, diningType, enqueueRealtimeAudioDelta, executeRealtimeToolCall, onPlayMotion, sendRealtimeEvent, uiMode?.setPickerActive]
+    [
+      addVoiceLog,
+      applyLlmAction,
+      cartSnapshot.length,
+      clearRealtimePlaybackQueue,
+      diningType,
+      enqueueRealtimeAudioDelta,
+      executeRealtimeToolCall,
+      maybeHandleRealtimeStructuredFallback,
+      onPlayMotion,
+      sendRealtimeEvent,
+      uiMode?.setPickerActive,
+    ]
   );
 
   useEffect(() => {
@@ -4170,6 +4259,9 @@ const isSetOptionDomainUtterance = useCallback(
     async (reason?: string) => {
       realtimeAssistantTranscriptRef.current = "";
       realtimePlannedSpeechRef.current = "";
+      realtimeLastUserTranscriptRef.current = "";
+      realtimeLastUserTranscriptAtRef.current = 0;
+      realtimeLastHandledTranscriptAtRef.current = 0;
       setPlanSubtitle("");
       realtimeHandledCallIdsRef.current.clear();
       realtimeSetPickerPendingRef.current = false;
