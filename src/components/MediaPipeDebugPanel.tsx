@@ -16,6 +16,10 @@
   onToggleStt: (next: boolean) => void;
   onToggleTts: (next: boolean) => void;
   onToggleLlm: (next: boolean) => void;
+  realtimeEnabled?: boolean;
+  realtimeConnected?: boolean;
+  realtimeStatusText?: string;
+  onToggleRealtime?: (next: boolean) => void;
   onStartVoice: () => void;
   onStopVoice: () => void;
   micDevices: MediaDeviceInfo[];
@@ -44,6 +48,10 @@ export default function MediaPipeDebugPanel({
   onToggleStt,
   onToggleTts,
   onToggleLlm,
+  realtimeEnabled = false,
+  realtimeConnected = false,
+  realtimeStatusText,
+  onToggleRealtime,
   onStartVoice,
   onStopVoice,
   micDevices,
@@ -107,7 +115,7 @@ export default function MediaPipeDebugPanel({
             </div>
 
             <div className="text-white text-xs font-semibold">Voice AI Controls</div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-4 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => onToggleStt(!sttEnabled)}
@@ -129,6 +137,17 @@ export default function MediaPipeDebugPanel({
               >
                 LLM {llmEnabled ? "ON" : "OFF"}
               </button>
+              <button
+                type="button"
+                onClick={() => onToggleRealtime?.(!realtimeEnabled)}
+                className={`px-2 py-1 rounded-lg border ${realtimeEnabled ? "bg-cyan-500/70 text-white border-cyan-300/60" : "bg-white/10 text-white/80 border-white/20"}`}
+              >
+                RT {realtimeEnabled ? "ON" : "OFF"}
+              </button>
+            </div>
+            <div className="text-[11px] text-white/80">
+              Realtime: <b>{realtimeConnected ? "CONNECTED" : realtimeEnabled ? "READY" : "OFF"}</b>
+              {realtimeStatusText ? <span className="ml-1 text-white/60">({realtimeStatusText})</span> : null}
             </div>
 
             <div className="flex gap-2 text-xs">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMicStreamer } from "../../hook/useMicStreamer";
 import { useAudioDevices } from "../../hook/useAudioDevices";
-import { AI_BASE_URL, AI_V2_CHAT_URL } from "../../api/config";
+import { AI_BASE_URL, AI_V2_CHAT_URL, AI_V2_REALTIME_CONFIG_URL, AI_V2_REALTIME_SESSION_URL } from "../../api/config";
 import MediaPipeDebugPanel from "../../components/MediaPipeDebugPanel";
 import { recordSessionEvent } from "../../api/services";
 import { getKfcAllergensForMenuName } from "./kfcAllergenData";
@@ -63,11 +63,18 @@ type VoiceAction =
   | { type: "NONE" };
 
 type Msg = { role: "user" | "assistant"; content: string };
+type VoiceActionExecOptions = { skipSpeech?: boolean };
 type MotionCode =
   | "idle"
   | "m01" | "m02" | "m03" | "m04" | "m05" | "m06" | "m07" | "m08" | "m09" | "m10"
   | "m11" | "m12" | "m13" | "m14" | "m15" | "m16" | "m17" | "m18" | "m19" | "m20"
   | "m21" | "m22" | "m23" | "m24" | "m25" | "m26";
+
+declare global {
+  interface Window {
+    __AIKIOSK_RT_AUTO_CONNECT_SESSION__?: string;
+  }
+}
 
 const NOISE_TRANSCRIPT_PATTERNS = [
   // Common filler/noise that should not trigger ordering logic.
@@ -122,61 +129,37 @@ const CONTROL_TRANSCRIPT_TOKENS = [
 
 const LIVE2D_MOTION_CATALOG: Array<{ id: MotionCode; description: string }> = [
   { id: "idle", description: "기본 대기 모션." },
-  { id: "m01", description: "가볍게 끄덕거림." },
   { id: "m02", description: "손을 모으며 강하게 끄덕거림." },
-  { id: "m03", description: "팔짱끼며 마지못하게 못마땅하며 끄덕거림." },
-  { id: "m04", description: "살짝 놀라지만 이내 인정하고 끄덕거림." },
-  { id: "m05", description: "양팔을 벌리며 조금 놀라며 가볍게 끄덕거림." },
-  { id: "m06", description: "양손을 접어 오른쪽(사용자 기준)으로 옮기며 설명함." },
-  { id: "m07", description: "양손을 접어 왼쪽(사용자 기준)으로 옮기며 설명함." },
-  { id: "m08", description: "팔을 벌렸다 모으며 공손하게 고개 숙여 인사하고 미소." },
-  { id: "m09", description: "중간 정도로 고개 숙여 인사." },
-  { id: "m10", description: "앞으로 나왔다가 뒤로 가며 당황, 홍조 후 복귀." },
-  { id: "m11", description: "팔짱을 끼고 고개를 좌우로 저어 부정 표현." },
-  { id: "m12", description: "기겁하며 두 손을 들고 놀람, 고개를 저어 부정 표현." },
-  { id: "m13", description: "팔을 뒤로 벌리고 다가와 의심하는 표정." },
-  { id: "m14", description: "팔을 뒤로 벌리고 다가와 황당/한심한 표정." },
-  { id: "m15", description: "눈을 게슴츠레 뜨고 고개를 좌우로 살짝 움직임." },
-  { id: "m16", description: "손을 모았다 벌리며 홍조, 슬픈 표정과 눈물." },
-  { id: "m17", description: "홍조를 띄우고 다가와 옆으로 바라보며 게슴츠레한 표정." },
-  { id: "m18", description: "홍조를 띄우고 눈 감고 웃으며 고개를 젖혔다 복귀." },
-  { id: "m19", description: "홍조와 수줍음, 고개 숙여 좌우로 비틀다 게슴츠레한 눈." },
-  { id: "m20", description: "팔짱, 얼굴에 손을 대고 고민하는 표정." },
-  { id: "m21", description: "홍조를 살짝 띄우고 좌우로 살짝 뛰며 기뻐함." },
-  { id: "m22", description: "다가오며 홍조, 눈 감고 기쁜 표정으로 웃음." },
-  { id: "m23", description: "고개를 왼쪽으로 기울이며 살짝 놀랐다 평온해짐." },
-  { id: "m24", description: "살짝 놀라며 홍조, 귀엽게 화난 표정." },
-  { id: "m25", description: "살짝 놀라는 표정 후 자연스러운 표정으로 복귀." },
-  { id: "m26", description: "조금 크게 놀라는 표정 후 자연스러운 포즈로 복귀." },
 ];
 
 const MOTION_ID_SET = new Set<string>(LIVE2D_MOTION_CATALOG.map((m) => m.id));
+const UNIFIED_MOTION_ID: MotionCode = "m02";
 const ACTION_DEFAULT_MOTION: Partial<Record<VoiceAction["type"], MotionCode>> = {
-  SET_DINING: "m01",
-  CONTINUE_ORDER: "m01",
-  CLEAR_CART: "m11",
-  ADD_MENU: "m01",
-  ADD_MENU_BULK: "m01",
-  CHANGE_QTY: "m01",
-  CHANGE_QTY_AT: "m01",
-  REMOVE_MENU: "m11",
-  REMOVE_MENU_AT: "m11",
-  CHECK_CART: "m06",
-  CHECKOUT: "m08",
-  SELECT_PAYMENT: "m08",
-  CALL_STAFF: "m09",
-  ACCEPT_SUGGESTION: "m21",
-  ACCEPT_SUGGESTION_ITEM: "m21",
-  RECOMMEND_MENU: "m25",
-  ASK_SET_OR_SINGLE: "m06",
-  ASK_CONFIRM_BOTH_OPTIONS: "m06",
-  CONFIRM_PENDING_OPTION: "m01",
-  REJECT_PENDING_OPTION: "m06",
-  ASK_REMOVE_TARGET: "m06",
-  ASK_SLOT_CLARIFY: "m06",
-  ASK_SUGGESTION_CLARIFY: "m06",
-  START_REPLACE_LAST: "m20",
-  REPLACE_LAST: "m06",
+  SET_DINING: UNIFIED_MOTION_ID,
+  CONTINUE_ORDER: UNIFIED_MOTION_ID,
+  CLEAR_CART: UNIFIED_MOTION_ID,
+  ADD_MENU: UNIFIED_MOTION_ID,
+  ADD_MENU_BULK: UNIFIED_MOTION_ID,
+  CHANGE_QTY: UNIFIED_MOTION_ID,
+  CHANGE_QTY_AT: UNIFIED_MOTION_ID,
+  REMOVE_MENU: UNIFIED_MOTION_ID,
+  REMOVE_MENU_AT: UNIFIED_MOTION_ID,
+  CHECK_CART: UNIFIED_MOTION_ID,
+  CHECKOUT: UNIFIED_MOTION_ID,
+  SELECT_PAYMENT: UNIFIED_MOTION_ID,
+  CALL_STAFF: UNIFIED_MOTION_ID,
+  ACCEPT_SUGGESTION: UNIFIED_MOTION_ID,
+  ACCEPT_SUGGESTION_ITEM: UNIFIED_MOTION_ID,
+  RECOMMEND_MENU: UNIFIED_MOTION_ID,
+  ASK_SET_OR_SINGLE: UNIFIED_MOTION_ID,
+  ASK_CONFIRM_BOTH_OPTIONS: UNIFIED_MOTION_ID,
+  CONFIRM_PENDING_OPTION: UNIFIED_MOTION_ID,
+  REJECT_PENDING_OPTION: UNIFIED_MOTION_ID,
+  ASK_REMOVE_TARGET: UNIFIED_MOTION_ID,
+  ASK_SLOT_CLARIFY: UNIFIED_MOTION_ID,
+  ASK_SUGGESTION_CLARIFY: UNIFIED_MOTION_ID,
+  START_REPLACE_LAST: UNIFIED_MOTION_ID,
+  REPLACE_LAST: UNIFIED_MOTION_ID,
 };
 
 function normalizeMotionId(input: unknown): MotionCode | null {
@@ -229,6 +212,70 @@ function formatMenuNameForTts(raw: string): string {
   return t.replace(/\s+/g, " ").trim();
 }
 
+function downsampleTo16k(float32: Float32Array, inRate: number): Float32Array {
+  const outRate = 24000;
+  if (inRate === outRate) return float32;
+  const ratio = inRate / outRate;
+  const outLen = Math.floor(float32.length / ratio);
+  const out = new Float32Array(outLen);
+  let pos = 0;
+  let idx = 0;
+  while (idx < outLen) {
+    const nextPos = (idx + 1) * ratio;
+    let sum = 0;
+    let count = 0;
+    for (; pos < nextPos && pos < float32.length; pos++) {
+      sum += float32[pos];
+      count += 1;
+    }
+    out[idx++] = count ? sum / count : 0;
+  }
+  return out;
+}
+
+function floatTo16BitPCM(src: Float32Array): Int16Array {
+  const out = new Int16Array(src.length);
+  for (let i = 0; i < src.length; i++) {
+    const sample = Math.max(-1, Math.min(1, src[i]));
+    out[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  }
+  return out;
+}
+
+function int16ToBase64(int16: Int16Array): string {
+  const bytes = new Uint8Array(int16.byteLength);
+  for (let i = 0; i < int16.length; i++) {
+    const sample = int16[i];
+    bytes[i * 2] = sample & 0xff;
+    bytes[i * 2 + 1] = (sample >> 8) & 0xff;
+  }
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function base64ToInt16(base64: string): Int16Array {
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const sampleCount = Math.floor(bytes.length / 2);
+  const out = new Int16Array(sampleCount);
+  for (let i = 0; i < sampleCount; i++) {
+    const lo = bytes[i * 2] ?? 0;
+    const hi = bytes[i * 2 + 1] ?? 0;
+    let value = (hi << 8) | lo;
+    if (value >= 0x8000) value -= 0x10000;
+    out[i] = value;
+  }
+  return out;
+}
+
 export default function V2VoiceManager({
   uiScale = 1,
   sessionId,
@@ -248,6 +295,7 @@ export default function V2VoiceManager({
   onRemoveAt,
   onReplaceLast,
   onContinueOrder,
+  onCancelSetPicker,
   onCheckCart,
   onCheckout,
   onSelectPayment,
@@ -264,7 +312,13 @@ export default function V2VoiceManager({
   selectedCategory: string;
   categories: Array<{ key: string; label: string }>;
   pageHint: PageHint;
-  uiMode?: { setPickerActive: boolean; setPickerStep: "side" | "drink"; setMenuName?: string | null };
+  uiMode?: {
+    setPickerActive: boolean;
+    setPickerStep: "side" | "drink";
+    setMenuName?: string | null;
+    setSideMenuItemId?: string | null;
+    setDrinkMenuItemId?: string | null;
+  };
   menuCatalog: VoiceMenuCatalogItem[];
   cartSnapshot: VoiceCartSnapshotItem[];
   onSetDining: (t: "DINE_IN" | "TAKE_OUT") => void;
@@ -276,6 +330,7 @@ export default function V2VoiceManager({
   onRemoveAt: (cartIndex: number) => Promise<boolean>;
   onReplaceLast: (menuItemId: string, quantity: number) => Promise<boolean>;
   onContinueOrder: () => void;
+  onCancelSetPicker?: () => void;
   onClearCart?: () => void | Promise<void>;
   onCheckCart: () => void;
   onCheckout: () => void;
@@ -300,19 +355,34 @@ export default function V2VoiceManager({
   const [sttEnabled, setSttEnabled] = useState(true);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [llmEnabled, setLlmEnabled] = useState(true);
+  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [realtimeConnecting, setRealtimeConnecting] = useState(false);
+  const [realtimeStatusText, setRealtimeStatusText] = useState<string>("idle");
   const [listeningEnabled, setListeningEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [voiceLogs, setVoiceLogs] = useState<string[]>([]);
   const [subtitle, setSubtitle] = useState<string>("");
+  const [planSubtitle, setPlanSubtitle] = useState<string>("");
 
   useEffect(() => {
     onSpeakingChange?.(speaking);
     (window as any).__AIKIOSK_TTS_SPEAKING = speaking;
-    if (!speaking) {
+    const lipSyncStillActive = Boolean((window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE);
+    const forceMouthStillActive = Boolean((window as any).__AIKIOSK_RT_FORCE_MOUTH);
+    if (!speaking && !lipSyncStillActive && !forceMouthStillActive) {
       (window as any).__AIKIOSK_TTS_MOUTH_OPEN = 0;
-      (window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE = false;
+      (window as any).__AIKIOSK_RT_FORCE_MOUTH = false;
     }
   }, [onSpeakingChange, speaking]);
+
+  useEffect(() => {
+    realtimeConnectedRef.current = realtimeConnected;
+  }, [realtimeConnected]);
+
+  useEffect(() => {
+    realtimeConnectingRef.current = realtimeConnecting;
+  }, [realtimeConnecting]);
 
   useEffect(() => {
     return () => {
@@ -321,7 +391,7 @@ export default function V2VoiceManager({
         listenResumeTimerRef.current = null;
       }
     };
-  }, []);
+  }, [menuCatalog]);
 
   const { micDevices, speakerDevices } = useAudioDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
@@ -337,6 +407,38 @@ export default function V2VoiceManager({
   const llmWaitPromptPromiseRef = useRef<Promise<void> | null>(null);
   const listenResumeTimerRef = useRef<number | null>(null);
   const holdListeningDuringLlmRef = useRef(false);
+  const suppressActionSpeechRef = useRef(false);
+  const realtimePcRef = useRef<RTCPeerConnection | null>(null);
+  const realtimeDcRef = useRef<RTCDataChannel | null>(null);
+  const realtimeStreamRef = useRef<MediaStream | null>(null);
+  const realtimeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const realtimeHandledCallIdsRef = useRef<Set<string>>(new Set());
+  const realtimeWsRef = useRef<WebSocket | null>(null);
+  const realtimeMicStreamRef = useRef<MediaStream | null>(null);
+  const realtimeMicContextRef = useRef<AudioContext | null>(null);
+  const realtimeMicSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const realtimeMicProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const realtimeAssistantTranscriptRef = useRef("");
+  const realtimePlannedSpeechRef = useRef("");
+  const realtimeSetPickerPendingRef = useRef(false);
+  const realtimeEventHandlerRef = useRef<(event: Record<string, any>) => void>(() => undefined);
+  const activeTtsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const realtimePlaybackCtxRef = useRef<AudioContext | null>(null);
+  const realtimePlaybackNextTimeRef = useRef(0);
+  const realtimePlaybackSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  const realtimeLipSyncCtxRef = useRef<AudioContext | null>(null);
+  const realtimeLipSyncSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const realtimeLipSyncStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const realtimeLipSyncAnalyserRef = useRef<AnalyserNode | null>(null);
+  const realtimeLipSyncGainRef = useRef<GainNode | null>(null);
+  const realtimeLipSyncRafRef = useRef<number | null>(null);
+  const realtimeForcedMouthTimerRef = useRef<number | null>(null);
+  const realtimeResponseActiveRef = useRef(false);
+  const realtimeSentChunkCountRef = useRef(0);
+  const realtimeConnectedRef = useRef(false);
+  const realtimeConnectingRef = useRef(false);
+  const realtimeConnectInFlightRef = useRef(false);
+  const connectRealtimeRef = useRef<(() => Promise<void>) | null>(null);
   const lastPaymentCompleteSpokenKeyRef = useRef<string>("");
   const [conversationHistory, setConversationHistory] = useState<Msg[]>([]);
   const [hesitationAssistConsumed, setHesitationAssistConsumed] = useState(false);
@@ -375,6 +477,15 @@ export default function V2VoiceManager({
     drinkMenuItemId?: string;
     drinkName?: string;
   } | null>(null);
+  const explicitSetSelectionRef = useRef<{
+    menuName: string;
+    sideConfirmed: boolean;
+    drinkConfirmed: boolean;
+  }>({
+    menuName: "",
+    sideConfirmed: false,
+    drinkConfirmed: false,
+  });
 
   const addVoiceLog = useCallback((line: string) => {
     setVoiceLogs((prev) => {
@@ -422,6 +533,8 @@ export default function V2VoiceManager({
   t = t
     .replace(/고울슬로|홀슬로|콜슬로우|콜슬로|콜\s*슬로우|콜\s*슬로/gi, "코울슬로")
     .replace(/싱고버거|징거 버거|증거버거|증거\s*버거/gi, "징거버거")
+    .replace(/클래식\s*더블\s*세트|클래식더블세트/gi, "더블치즈버거세트")
+    .replace(/더블\s*세트/gi, "더블치즈버거세트")
     .replace(/다워버거|타오버거|탕후버거|타후버거|타월버거/gi, "타워버거")
     .replace(/캡셀버거|캡세버거|캡새\s*버거/gi, "캡새버거")
     .replace(/핫\s*크리스피\s*치킨\s*버거/gi, "핫크리스피버거")
@@ -834,6 +947,47 @@ export default function V2VoiceManager({
     return menuCatalog;
   }, [menuCatalog, selectedCategory, uiMode?.setPickerActive]);
 
+  const isSetLikeMenu = useCallback((item?: VoiceMenuCatalogItem | null) => {
+    if (!item) return false;
+    const name = String(item.name || "").toLowerCase();
+    const category = String(item.category || "").toLowerCase();
+    return name.includes("세트") || name.includes("set") || category.includes("세트") || category.includes("set");
+  }, []);
+
+  const toSetChoiceBaseName = useCallback(
+    (name: string) =>
+      normalizeForMatch(name)
+        .replace(/세트/g, "")
+        .replace(/set/g, "")
+        .trim(),
+    [normalizeForMatch]
+  );
+
+  const findSetSingleVariantPair = useCallback(
+    (matched: VoiceMenuCatalogItem | null) => {
+      if (!matched) return null;
+      const baseName = toSetChoiceBaseName(String(matched.name || ""));
+      if (!baseName) return null;
+
+      const siblings = menuCatalog.filter((item) => {
+        const itemBase = toSetChoiceBaseName(String(item.name || ""));
+        return itemBase && itemBase === baseName;
+      });
+      if (siblings.length < 2) return null;
+
+      const setVariant = siblings.find((item) => isSetLikeMenu(item)) ?? null;
+      const singleVariant = siblings.find((item) => !isSetLikeMenu(item)) ?? null;
+      if (!setVariant?.menuItemId || !singleVariant?.menuItemId) return null;
+      if (setVariant.menuItemId === singleVariant.menuItemId) return null;
+
+      return {
+        setMenuItemId: setVariant.menuItemId,
+        singleMenuItemId: singleVariant.menuItemId,
+      };
+    },
+    [isSetLikeMenu, menuCatalog, toSetChoiceBaseName]
+  );
+
   const parseBulkAddRequest = useCallback(
     (text: string): Array<{ menuItemId: string; quantity: number }> => {
       let tt = normalizeTranscript(text);
@@ -925,6 +1079,7 @@ export default function V2VoiceManager({
     const lower = tt.toLowerCase();
     const compact = lower.replace(/\s+/g, "");
     const qty = inferQty(tt);
+    const setPickerActive = Boolean(uiMode?.setPickerActive || realtimeSetPickerPendingRef.current);
     const confirmUtterance = compact.replace(/[^\p{L}\p{N}]/gu, "");
     const confirmCore = confirmUtterance.replace(/^(음+|어+|아+|음흠+|흠+|어어+|음음+)+/, "");
     const positiveTokens = [
@@ -947,7 +1102,6 @@ export default function V2VoiceManager({
       "좋습니다",
       "오케이",
       "오키",
-      "콜",
       "yes",
       "ok",
       "okay",
@@ -1014,6 +1168,10 @@ export default function V2VoiceManager({
     const isExplicitNegative = hasNegativeCue && !hasPositiveCue;
 
     if (awaitingSuggestionAccept) {
+      const directMenuMatch = findBestMenuCatalogMatch(tt, menuCatalog, { allowLoose: true });
+      if (directMenuMatch?.menuItemId) {
+        return { type: "ADD_MENU", menuItemId: directMenuMatch.menuItemId, quantity: qty };
+      }
       if (suggestionNextTokens.some((tok) => confirmUtterance.includes(tok) || confirmCore.includes(tok))) {
         return { type: "RECOMMEND_MENU" };
       }
@@ -1039,8 +1197,24 @@ export default function V2VoiceManager({
       if (isExplicitNegative) return { type: "REJECT_PENDING_OPTION" };
     }
 
+    if (setPickerActive) {
+      const wantsExitSetPicker =
+        compact.includes("이거아닌데") ||
+        compact.includes("이거아니야") ||
+        compact.includes("아니야") ||
+        compact.includes("아닌데") ||
+        compact.includes("취소할게") ||
+        compact.includes("주문취소") ||
+        compact.includes("세트취소") ||
+        compact.includes("뒤로") ||
+        compact.includes("이전");
+      if (wantsExitSetPicker) {
+        return { type: "CONTINUE_ORDER" };
+      }
+    }
+
     // In set picker flow, if side+drink are spoken together, capture both and ask one confirmation.
-    if (uiMode?.setPickerActive) {
+    if (setPickerActive) {
       const norm = (s: string) => normalizeTranscript(s).toLowerCase().replace(/\s+/g, "");
       const q = norm(tt);
       const sideCatalog = menuCatalog.filter((m) => {
@@ -1099,13 +1273,33 @@ export default function V2VoiceManager({
         norm(s)
           .replace(/(사이드는|사이드를|사이드|음료는|음료를|음료|그리고|하고|랑|와|과|라지|미디엄|레귤러|스몰|사이즈|으로|로|은|는|이|가|을|를|요|해줘|해주세요|주고|해주고|바꾸고|바꿔|바꿔서|바꿔줘|바꿔주고|변경|변경하고|변경해줘)+/g, "")
           .trim();
+      const toOptionComparable = (s: string) =>
+        simplifyOptionPhrase(s)
+          .replace(/[()]/g, "")
+          .replace(/&/g, "")
+          .replace(/(라지|미디엄|레귤러|스몰|사이즈|\d+|조각|m|l|r)+/g, "")
+          .trim();
+      const pickByComparable = (items: VoiceMenuCatalogItem[], phrase: string): VoiceMenuCatalogItem | null => {
+        const p = toOptionComparable(phrase);
+        if (!p || p.length < 2) return null;
+        let best: { item: VoiceMenuCatalogItem; score: number } | null = null;
+        for (const it of items) {
+          const n = toOptionComparable(String(it.name || ""));
+          if (!n) continue;
+          let score = -1;
+          if (p === n) score = 100;
+          else if (p.includes(n) || n.includes(p)) score = Math.min(p.length, n.length);
+          if (score > -1 && (!best || score > best.score)) {
+            best = { item: it, score };
+          }
+        }
+        return best?.item ?? null;
+      };
       const pickByStem = (items: VoiceMenuCatalogItem[], phrase: string): VoiceMenuCatalogItem | null => {
         const p = simplifyOptionPhrase(phrase);
         if (!p || p.length < 2) return null;
         for (const it of items) {
-          const nameStem = norm(it.name || "")
-            .replace(/[()]/g, "")
-            .replace(/(라지|미디엄|레귤러|스몰|사이즈|\d+|조각)+/g, "");
+          const nameStem = toOptionComparable(String(it.name || ""));
           if (!nameStem) continue;
           if (p.includes(nameStem) || nameStem.includes(p)) return it;
         }
@@ -1162,6 +1356,8 @@ export default function V2VoiceManager({
           p.includes("커피") ||
           p.includes("아메리카노") ||
           p.includes("주스");
+        const wantsIced = p.includes("아이스") || p.includes("ice");
+        const wantsHot = p.includes("핫") || p.includes("hot");
         let pool = fallbackDrinkCatalog;
         if (p.includes("제로") && p.includes("콜라")) {
           pool = fallbackDrinkCatalog.filter((d) => {
@@ -1172,6 +1368,19 @@ export default function V2VoiceManager({
           pool = fallbackDrinkCatalog.filter((d) => norm(d.name || "").includes("콜라"));
         } else if (p.includes("사이다")) {
           pool = fallbackDrinkCatalog.filter((d) => norm(d.name || "").includes("사이다"));
+        }
+        if (wantsIced) {
+          const icedPool = pool.filter((d) => {
+            const n = norm(d.name || "");
+            return n.includes("아이스") || n.includes("ice");
+          });
+          if (icedPool.length) pool = icedPool;
+        } else if (wantsHot) {
+          const hotPool = pool.filter((d) => {
+            const n = norm(d.name || "");
+            return n.includes("핫") || n.includes("hot");
+          });
+          if (hotPool.length) pool = hotPool;
         }
         if (!pool.length) pool = fallbackDrinkCatalog;
         if (!hasSpecificDrinkWord && !wantsLarge && !wantsMedium) return null;
@@ -1191,7 +1400,9 @@ export default function V2VoiceManager({
         const sidePart = sideIdx >= 0 && drinkIdx > sideIdx ? q.slice(sideIdx, drinkIdx) : q;
         const drinkPart = drinkIdx >= 0 ? q.slice(drinkIdx) : q;
         let sidePicked: VoiceMenuCatalogItem | null =
-          pickByContains(fallbackSideCatalog, sidePart) ?? pickByFuzzy(fallbackSideCatalog, sidePart);
+          pickByComparable(fallbackSideCatalog, sidePart) ??
+          pickByContains(fallbackSideCatalog, sidePart) ??
+          pickByFuzzy(fallbackSideCatalog, sidePart);
         if (!sidePicked) sidePicked = pickByStem(fallbackSideCatalog, sidePart);
         if (!sidePicked) {
           sidePicked = findBestMenuCatalogMatch(sidePart, fallbackSideCatalog, {
@@ -1220,6 +1431,9 @@ export default function V2VoiceManager({
               const n = norm(d.name || "");
               return n.includes("밀크") && n.includes("쉐이크");
             }) ?? null;
+        }
+        if (!drinkPicked) {
+          drinkPicked = pickByComparable(fallbackDrinkCatalog, drinkPart);
         }
         if (!drinkPicked) {
           drinkPicked = pickByFuzzy(fallbackDrinkCatalog, drinkPart);
@@ -1275,6 +1489,7 @@ export default function V2VoiceManager({
       }
       if (hasSideHint && !hasDrinkHint) {
         const sidePicked =
+          pickByComparable(fallbackSideCatalog, q) ??
           pickByContains(fallbackSideCatalog, q) ??
           pickByFuzzy(fallbackSideCatalog, q) ??
           pickByStem(fallbackSideCatalog, q) ??
@@ -1313,11 +1528,11 @@ export default function V2VoiceManager({
       !compact.includes("메뉴") &&
       !compact.includes("추천") &&
       !compact.includes("장바구니");
-    if (!uiMode?.setPickerActive && !pendingOptionConfirm && focusedDiningUtterance && compact.includes("포장")) {
+    if (!setPickerActive && !pendingOptionConfirm && focusedDiningUtterance && compact.includes("포장")) {
       return { type: "SET_DINING", diningType: "TAKE_OUT" };
     }
     if (
-      !uiMode?.setPickerActive &&
+      !setPickerActive &&
       !pendingOptionConfirm &&
       focusedDiningUtterance &&
       (compact.includes("매장") || compact.includes("매장식사") || compact.includes("여기서") || compact.includes("먹고"))
@@ -1361,7 +1576,7 @@ export default function V2VoiceManager({
       compact.includes("무엇") ||
       compact.includes("담겨") ||
       compact.includes("담긴");
-    if (hasCartNoun && hasCartQueryIntent && !hasAddIntent) {
+    if (hasCartNoun && hasCartQueryIntent && !hasAddIntent && !compact.includes("말고")) {
       return { type: "CHECK_CART" };
     }
     if (compact.includes("직원") || compact.includes("도움")) return { type: "CALL_STAFF" };
@@ -1415,27 +1630,34 @@ export default function V2VoiceManager({
     }
 
     // Category navigation.
-    if (compact.includes("세트") && (compact.includes("보여") || compact.includes("메뉴"))) {
+    const hasCategoryNavCue =
+      compact.includes("보여") ||
+      compact.includes("메뉴") ||
+      compact.includes("카테고리") ||
+      compact.includes("화면") ||
+      compact.includes("안내") ||
+      compact.includes("이동");
+    if (compact.includes("세트") && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("set") ?? findCategoryKeyByToken("세트") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
-    if ((compact.includes("단품") || compact.includes("버거")) && (compact.includes("보여") || compact.includes("메뉴") || compact.includes("카테고리"))) {
+    if ((compact.includes("단품") || compact.includes("버거")) && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("single") ?? findCategoryKeyByToken("burger") ?? findCategoryKeyByToken("단품") ?? findCategoryKeyByToken("버거") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
-    if (compact.includes("치킨") && (compact.includes("보여") || compact.includes("메뉴") || compact.includes("카테고리"))) {
+    if (compact.includes("치킨") && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("chicken") ?? findCategoryKeyByToken("치킨") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
-    if (compact.includes("버거") && (compact.includes("보여") || compact.includes("메뉴"))) {
+    if (compact.includes("버거") && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("burger") ?? findCategoryKeyByToken("버거") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
-    if ((compact.includes("사이드") || compact.includes("감자") || compact.includes("치킨")) && compact.includes("보여")) {
+    if ((compact.includes("사이드") || compact.includes("감자") || compact.includes("치킨")) && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("side") ?? findCategoryKeyByToken("사이드") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
-    if ((compact.includes("음료") || compact.includes("콜라") || compact.includes("커피")) && compact.includes("보여")) {
+    if ((compact.includes("음료") || compact.includes("콜라") || compact.includes("커피")) && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("drink") ?? findCategoryKeyByToken("음료") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
@@ -1444,7 +1666,7 @@ export default function V2VoiceManager({
     // NOTE: when set picker is active, do not navigate category here.
     // Set-option utterances must be resolved as option selections (ADD_MENU) within current picker step.
     const hasDrinkIntent = compact.includes("음료") || compact.includes("콜라") || compact.includes("사이다");
-    if (hasDrinkIntent && !uiMode?.setPickerActive && (compact.includes("보여") || compact.includes("메뉴"))) {
+    if (hasDrinkIntent && !setPickerActive && hasCategoryNavCue) {
       const k = findCategoryKeyByToken("drink") ?? findCategoryKeyByToken("음료") ?? null;
       if (k) return { type: "NAVIGATE_CATEGORY", categoryKey: k };
     }
@@ -1452,6 +1674,22 @@ export default function V2VoiceManager({
     // Generic browsing queries (must be after specific category routing).
     // Let recommendation requests flow to LLM policy instead of local fast-path.
     // This avoids premature CONTINUE_ORDER -> dining gate responses.
+    const wantsAnotherRecommendation =
+      compact.includes("다른추천") ||
+      (compact.includes("다른") && compact.includes("추천")) ||
+      compact.includes("다른추천메뉴") ||
+      compact.includes("다른메뉴추천") ||
+      compact.includes("또추천") ||
+      compact.includes("더추천") ||
+      compact.includes("또뭐있") ||
+      compact.includes("다른거없어") ||
+      compact.includes("다른건없어") ||
+      compact.includes("또없어") ||
+      compact.includes("이거말고") ||
+      compact.includes("그거말고");
+    if (wantsAnotherRecommendation && !setPickerActive && !pendingOptionConfirm && !awaitingCheckoutConfirm) {
+      return { type: "RECOMMEND_MENU" };
+    }
     if (compact.includes("추천")) {
       return { type: "NONE" };
     }
@@ -1508,9 +1746,14 @@ export default function V2VoiceManager({
       return { type: "NONE" };
     }
 
+    const bulkItems = parseBulkAddRequest(tt);
+    if (bulkItems.length >= 2) {
+      return { type: "ADD_MENU_BULK", items: bulkItems };
+    }
+
     // In set-option flow, restrict matching to the active picker domain first.
     let candidateCatalog = menuCatalog;
-    if (uiMode?.setPickerActive) {
+    if (setPickerActive) {
       const sideOnly = menuCatalog.filter((it) => {
         const cat = String(it.category || "").toLowerCase();
         return cat.includes("side") || cat.includes("사이드");
@@ -1566,6 +1809,23 @@ export default function V2VoiceManager({
 
     const best = findBestMenuCatalogMatch(tt, candidateCatalog, { allowLoose: hasAddIntent });
     if (best) {
+      const explicitSetChoice =
+        compact.includes("세트") ||
+        compact.includes("단품") ||
+        compact.includes("버거만") ||
+        compact.includes("세트로") ||
+        compact.includes("단품으로");
+      if (!setPickerActive && !pendingOptionConfirm && !awaitingCheckoutConfirm && !explicitSetChoice) {
+        const variantPair = findSetSingleVariantPair(best);
+        if (variantPair) {
+          return {
+            type: "ASK_SET_OR_SINGLE",
+            singleMenuItemId: variantPair.singleMenuItemId,
+            setMenuItemId: variantPair.setMenuItemId,
+            quantity: qty,
+          };
+        }
+      }
       return { type: "ADD_MENU", menuItemId: best.menuItemId, quantity: qty };
     }
 
@@ -1588,6 +1848,7 @@ export default function V2VoiceManager({
     suggestedMenuCandidates,
     selectedCategory,
     isMenuInfoUtterance,
+    findSetSingleVariantPair,
     uiMode?.setPickerActive,
     uiMode?.setPickerStep,
   ]
@@ -1696,7 +1957,8 @@ const isSetOptionDomainUtterance = useCallback(
     async (
       text: string,
       motion?: MotionCode | null,
-      segments?: Array<{ text: string; motion?: string | null }>
+      segments?: Array<{ text: string; motion?: string | null }>,
+      options?: { forceTts?: boolean }
     ) => {
       const baseMotion =
         motion ??
@@ -1720,6 +1982,25 @@ const isSetOptionDomainUtterance = useCallback(
             }));
 
       if (inlineSegments.length === 0) return;
+
+      if (suppressActionSpeechRef.current) {
+        const firstMotion = inlineSegments[0]?.motion;
+        if (firstMotion) {
+          onPlayMotion?.(firstMotion);
+          addVoiceLog(`MOTION: ${firstMotion}`);
+        }
+        return;
+      }
+
+      if ((realtimeEnabled || realtimeConnected || realtimeConnecting) && !options?.forceTts) {
+        const firstMotion = inlineSegments[0]?.motion;
+        if (firstMotion) {
+          onPlayMotion?.(firstMotion);
+          addVoiceLog(`MOTION: ${firstMotion}`);
+        }
+        addVoiceLog("TTS SKIPPED: realtime mode active");
+        return;
+      }
 
       if (!ttsEnabled) {
         const firstMotion = inlineSegments[0]?.motion;
@@ -1800,6 +2081,7 @@ const isSetOptionDomainUtterance = useCallback(
             }
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
+            activeTtsAudioRef.current = audio;
             audio.volume = 1;
             audio.muted = false;
             try {
@@ -1883,7 +2165,7 @@ const isSetOptionDomainUtterance = useCallback(
                     sum += v * v;
                   }
                   const rms = Math.sqrt(sum / data.length);
-                  const mouth = Math.max(0, Math.min(1, (rms - 0.008) * 22));
+                  const mouth = Math.max(0, Math.min(1, (rms - 0.004) * 36));
                   (window as any).__AIKIOSK_TTS_MOUTH_OPEN = mouth;
                   lipRaf = window.requestAnimationFrame(tick);
                 };
@@ -1895,10 +2177,14 @@ const isSetOptionDomainUtterance = useCallback(
             await new Promise<void>((resolve) => {
               void startLipSync();
               audio.onended = () => resolve();
+              audio.onpause = () => resolve();
               audio.onerror = () => resolve();
               void audio.play().catch(() => resolve());
             });
             await stopLipSync();
+            if (activeTtsAudioRef.current === audio) {
+              activeTtsAudioRef.current = null;
+            }
             URL.revokeObjectURL(audioUrl);
           } catch (e: any) {
             addVoiceLog(`TTS ERROR: ${e?.message || String(e)}`);
@@ -1920,40 +2206,212 @@ const isSetOptionDomainUtterance = useCallback(
         }
       }
     },
-    [addVoiceLog, listeningEnabled, onPlayMotion, selectedOutputDeviceId, sessionId, ttsEnabled]
+    [addVoiceLog, listeningEnabled, onPlayMotion, realtimeConnected, realtimeConnecting, realtimeEnabled, selectedOutputDeviceId, sessionId, ttsEnabled]
   );
 
-  useEffect(() => {
-    const step = String(pageHint?.paymentStep || "").toLowerCase();
-    if (step !== "complete") {
-      lastPaymentCompleteSpokenKeyRef.current = "";
-      return;
+  const clearRealtimePlaybackQueue = useCallback(async () => {
+    for (const source of realtimePlaybackSourcesRef.current) {
+      try {
+        source.stop();
+      } catch {
+        // ignore
+      }
+      try {
+        source.disconnect();
+      } catch {
+        // ignore
+      }
     }
-    const orderNo = pageHint?.paidOrderNumber ?? null;
-    const key = `complete:${orderNo == null ? "-" : String(orderNo)}`;
-    if (lastPaymentCompleteSpokenKeyRef.current === key) return;
-    lastPaymentCompleteSpokenKeyRef.current = key;
+    realtimePlaybackSourcesRef.current = [];
+    realtimePlaybackNextTimeRef.current = 0;
+    const ctx = realtimePlaybackCtxRef.current;
+    if (ctx) {
+      try {
+        const maybeSetSinkId = (ctx as any).setSinkId;
+        if (selectedOutputDeviceId && typeof maybeSetSinkId === "function") {
+          await maybeSetSinkId.call(ctx, selectedOutputDeviceId);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [selectedOutputDeviceId]);
 
-    shouldListenAfterSpeechRef.current = false;
-    setListeningEnabled(false);
+  const ensureRealtimePlaybackContext = useCallback(async () => {
+    let ctx = realtimePlaybackCtxRef.current;
+    if (!ctx || ctx.state === "closed") {
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return null;
+      ctx = new Ctx();
+      realtimePlaybackCtxRef.current = ctx;
+    }
+    try {
+      const maybeSetSinkId = (ctx as any).setSinkId;
+      if (selectedOutputDeviceId && typeof maybeSetSinkId === "function") {
+        await maybeSetSinkId.call(ctx, selectedOutputDeviceId);
+      }
+    } catch {
+      // ignore
+    }
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+    return ctx;
+  }, [selectedOutputDeviceId]);
 
-    void (async () => {
-      const msg =
-        orderNo == null
-          ? "결제가 완료되었습니다."
-          : `결제가 완료되었습니다. 주문 번호는 ${orderNo}번 입니다.`;
-      await say(msg, "m08");
-      recentRecommendedMenuIdsRef.current = [];
-      recommendationCursorRef.current = 0;
-      onPaymentCompleteSpoken?.();
-    })();
-  }, [onPaymentCompleteSpoken, pageHint?.paidOrderNumber, pageHint?.paymentStep, say]);
+  const stopRealtimeLipSync = useCallback(async () => {
+    if (realtimeForcedMouthTimerRef.current != null) {
+      window.clearTimeout(realtimeForcedMouthTimerRef.current);
+      realtimeForcedMouthTimerRef.current = null;
+    }
+    try {
+      if (realtimeLipSyncRafRef.current != null) {
+        window.cancelAnimationFrame(realtimeLipSyncRafRef.current);
+        realtimeLipSyncRafRef.current = null;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      realtimeLipSyncSourceRef.current?.disconnect();
+      realtimeLipSyncStreamSourceRef.current?.disconnect();
+      realtimeLipSyncAnalyserRef.current?.disconnect();
+      realtimeLipSyncGainRef.current?.disconnect();
+    } catch {
+      // ignore
+    }
+    (window as any).__AIKIOSK_TTS_MOUTH_OPEN = 0;
+    (window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE = false;
+    (window as any).__AIKIOSK_RT_FORCE_MOUTH = false;
+    if (realtimeLipSyncCtxRef.current) {
+      try {
+        await realtimeLipSyncCtxRef.current.close();
+      } catch {
+        // ignore
+      }
+    }
+    realtimeLipSyncSourceRef.current = null;
+    realtimeLipSyncStreamSourceRef.current = null;
+    realtimeLipSyncAnalyserRef.current = null;
+    realtimeLipSyncGainRef.current = null;
+    realtimeLipSyncCtxRef.current = null;
+  }, []);
+
+  const startRealtimeLipSync = useCallback(
+    async (audio: HTMLAudioElement, remoteStream?: MediaStream | null) => {
+      await stopRealtimeLipSync();
+      try {
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
+        const ctx: AudioContext = new Ctx();
+        realtimeLipSyncCtxRef.current = ctx;
+        const maybeCtxSetSinkId = (ctx as any).setSinkId;
+        if (selectedOutputDeviceId && typeof maybeCtxSetSinkId === "function") {
+          await maybeCtxSetSinkId.call(ctx, selectedOutputDeviceId);
+        }
+        const analyser = ctx.createAnalyser();
+        const gain = ctx.createGain();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.65;
+        gain.gain.value = 1;
+        if (remoteStream) {
+          const src = ctx.createMediaStreamSource(remoteStream);
+          src.connect(analyser);
+          realtimeLipSyncStreamSourceRef.current = src;
+        } else {
+          const src = ctx.createMediaElementSource(audio);
+          src.connect(analyser);
+          analyser.connect(gain);
+          gain.connect(ctx.destination);
+          realtimeLipSyncSourceRef.current = src;
+          realtimeLipSyncGainRef.current = gain;
+        }
+        realtimeLipSyncAnalyserRef.current = analyser;
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+        (window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE = true;
+        const data = new Uint8Array(analyser.fftSize);
+        const tick = () => {
+          const activeAnalyser = realtimeLipSyncAnalyserRef.current;
+          if (!activeAnalyser) return;
+          activeAnalyser.getByteTimeDomainData(data as any);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / data.length);
+          const mouth = Math.max(0, Math.min(1, (rms - 0.004) * 36));
+          (window as any).__AIKIOSK_TTS_MOUTH_OPEN = mouth;
+          realtimeLipSyncRafRef.current = window.requestAnimationFrame(tick);
+        };
+        tick();
+      } catch {
+        (window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE = false;
+      }
+    },
+    [selectedOutputDeviceId, stopRealtimeLipSync]
+  );
+
+  const enqueueRealtimeAudioDelta = useCallback(async (audioBase64: string) => {
+    const ctx = await ensureRealtimePlaybackContext();
+    if (!ctx) return;
+    const pcm16 = base64ToInt16(String(audioBase64 || ""));
+    if (!pcm16.length) return;
+    const buffer = ctx.createBuffer(1, pcm16.length, 24000);
+    const channel = buffer.getChannelData(0);
+    for (let i = 0; i < pcm16.length; i++) {
+      channel[i] = pcm16[i] / 0x8000;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    const startAt = Math.max(ctx.currentTime + 0.01, realtimePlaybackNextTimeRef.current || 0);
+    source.start(startAt);
+    realtimePlaybackNextTimeRef.current = startAt + buffer.duration;
+    realtimePlaybackSourcesRef.current.push(source);
+    source.onended = () => {
+      realtimePlaybackSourcesRef.current = realtimePlaybackSourcesRef.current.filter((item) => item !== source);
+    };
+  }, [ensureRealtimePlaybackContext]);
+
+  const prepareRecommendationReply = useCallback((): string => {
+    const candidates = menuCatalog.filter((m) => m.menuItemId && m.name);
+    if (!candidates.length) {
+      setAwaitingSuggestionAccept(false);
+      setSuggestedMenu(null);
+      setSuggestedMenuCandidates([]);
+      return "지금 추천할 수 있는 메뉴를 찾지 못했어요. 원하시는 메뉴를 말씀해 주세요.";
+    }
+    const previous = new Set(recentRecommendedMenuIdsRef.current);
+    const preferred = candidates.filter((m) => !previous.has(m.menuItemId));
+    const source = preferred.length >= 3 ? preferred : candidates;
+    const count = Math.min(3, source.length);
+    const start = recommendationCursorRef.current % source.length;
+    const picks: typeof source = [];
+    for (let i = 0; i < count; i++) {
+      picks.push(source[(start + i) % source.length]);
+    }
+    recommendationCursorRef.current = (start + count) % source.length;
+    recentRecommendedMenuIdsRef.current = [
+      ...recentRecommendedMenuIdsRef.current,
+      ...picks.map((m) => m.menuItemId),
+    ].slice(-9);
+    setSuggestedMenuCandidates(picks.map((m) => ({ menuItemId: m.menuItemId, name: m.name })));
+    setSuggestedMenu({ menuItemId: picks[0].menuItemId, name: picks[0].name });
+    setAwaitingSuggestionAccept(true);
+    const spoken = picks.map((m) => m.name).join(", ");
+    return `좋아요. 다른 추천 메뉴는 ${spoken}예요. 원하시는 메뉴를 말씀해 주세요.`;
+  }, [menuCatalog]);
 
   const applyVoiceAction = useCallback(
-    async (action: VoiceAction): Promise<boolean> => {
+    async (action: VoiceAction, options?: VoiceActionExecOptions): Promise<boolean> => {
       if (!action || action.type === "NONE") return false;
       addVoiceLog(`ACTION: ${action.type}`);
       currentActionTypeRef.current = action.type;
+      const prevSuppressSpeech = suppressActionSpeechRef.current;
+      suppressActionSpeechRef.current = Boolean(options?.skipSpeech);
       try {
 
       // If dining type isn't chosen yet, gate ordering/navigation and ask first.
@@ -1979,6 +2437,9 @@ const isSetOptionDomainUtterance = useCallback(
         setSuggestedMenuCandidates([]);
         setPendingSlotClarify(null);
         setPendingOptionConfirm(null);
+        if (uiMode?.setPickerActive) {
+          onCancelSetPicker?.();
+        }
         onContinueOrder();
         const setKey = findCategoryKeyByToken("set") ?? findCategoryKeyByToken("세트");
         if (setKey) onSelectCategory(setKey);
@@ -1989,31 +2450,11 @@ const isSetOptionDomainUtterance = useCallback(
         }
         return true;
       }
+      if (action.type === "NAVIGATE_CATEGORY" && uiMode?.setPickerActive) {
+        onCancelSetPicker?.();
+      }
       if (action.type === "RECOMMEND_MENU") {
-        const candidates = menuCatalog.filter((m) => m.menuItemId && m.name);
-        if (!candidates.length) {
-          await say("지금 추천할 수 있는 메뉴를 찾지 못했어요. 원하시는 메뉴를 말씀해 주세요.");
-          return true;
-        }
-        const previous = new Set(recentRecommendedMenuIdsRef.current);
-        const preferred = candidates.filter((m) => !previous.has(m.menuItemId));
-        const source = preferred.length >= 3 ? preferred : candidates;
-        const count = Math.min(3, source.length);
-        const start = recommendationCursorRef.current % source.length;
-        const picks: typeof source = [];
-        for (let i = 0; i < count; i++) {
-          picks.push(source[(start + i) % source.length]);
-        }
-        recommendationCursorRef.current = (start + count) % source.length;
-        recentRecommendedMenuIdsRef.current = [
-          ...recentRecommendedMenuIdsRef.current,
-          ...picks.map((m) => m.menuItemId),
-        ].slice(-9);
-        setSuggestedMenuCandidates(picks.map((m) => ({ menuItemId: m.menuItemId, name: m.name })));
-        setSuggestedMenu({ menuItemId: picks[0].menuItemId, name: picks[0].name });
-        setAwaitingSuggestionAccept(true);
-        const spoken = picks.map((m) => m.name).join(", ");
-        await say(`좋아요. 다른 추천 메뉴는 ${spoken}예요. 원하시는 메뉴를 말씀해 주세요.`, "m25");
+        await say(prepareRecommendationReply(), "m02");
         return true;
       }
       if (action.type === "ADD_MENU_BULK") {
@@ -2071,6 +2512,7 @@ const isSetOptionDomainUtterance = useCallback(
           return true;
         }
         const confirmed = pendingOptionConfirm;
+        const setSelectionState = explicitSetSelectionRef.current;
         let ok = false;
         if (confirmed.kind === "BOTH") {
           const sideId = String(confirmed.sideMenuItemId || "");
@@ -2089,15 +2531,15 @@ const isSetOptionDomainUtterance = useCallback(
         }
         setPendingOptionConfirm(null);
         if (confirmed.kind === "BOTH") {
-          const sideSpoken = formatMenuNameForTts(confirmed.sideName || "사이드");
-          const drinkSpoken = formatMenuNameForTts(confirmed.drinkName || "음료");
+          explicitSetSelectionRef.current = {
+            menuName: String(uiMode?.setMenuName || setSelectionState.menuName || ""),
+            sideConfirmed: true,
+            drinkConfirmed: true,
+          };
           const setMenuSpoken = formatMenuNameForTts(uiMode?.setMenuName || "");
-          const setLabel = setMenuSpoken
-            ? `${setMenuSpoken}${setMenuSpoken.includes("세트") ? "" : " 세트"}`
-            : "";
-          const summary = setLabel
-            ? `${setLabel}에 ${sideSpoken}, ${drinkSpoken}를 선택해서 장바구니에 담았습니다.`
-            : `${sideSpoken}, ${drinkSpoken}를 선택해서 장바구니에 담았습니다.`;
+          const summary = setMenuSpoken
+            ? `${setMenuSpoken}${setMenuSpoken.includes("세트") ? "" : " 세트"} 구성을 장바구니에 담았습니다.`
+            : "선택하신 세트 구성을 장바구니에 담았습니다.";
           if (!diningType) {
             await say(`${summary} 드시고 가시나요, 포장인가요?`);
           } else {
@@ -2107,22 +2549,46 @@ const isSetOptionDomainUtterance = useCallback(
           return true;
         }
         if (confirmed.kind === "SIDE") {
-          const drinkKey = findCategoryKeyByToken("drink") || findCategoryKeyByToken("음료");
-          if (drinkKey) onSelectCategory(drinkKey);
+          explicitSetSelectionRef.current = {
+            menuName: String(uiMode?.setMenuName || setSelectionState.menuName || ""),
+            sideConfirmed: true,
+            drinkConfirmed: setSelectionState.drinkConfirmed,
+          };
+          if (setSelectionState.drinkConfirmed) {
+            const setMenuSpoken = formatMenuNameForTts(uiMode?.setMenuName || "");
+            const summary = setMenuSpoken
+              ? `${setMenuSpoken}${setMenuSpoken.includes("세트") ? "" : " 세트"} 구성을 장바구니에 담았습니다.`
+              : "선택하신 세트 구성을 장바구니에 담았습니다.";
+            if (!diningType) {
+              await say(`${summary} 드시고 가시나요, 포장인가요?`);
+            } else {
+              await say(summary);
+              setAwaitingCheckoutConfirm(true);
+            }
+            return true;
+          }
           await say(`${formatMenuNameForTts(confirmed.name)} 사이드 맞습니다. 이제 음료를 선택해 주세요.`);
           return true;
         }
-        if (uiMode?.setPickerActive && uiMode.setPickerStep === "side") {
-          const sideKey = findCategoryKeyByToken("side") || findCategoryKeyByToken("사이드");
-          if (sideKey) onSelectCategory(sideKey);
-          await say(`${formatMenuNameForTts(confirmed.name)} 음료 맞습니다. 이제 사이드를 선택해 주세요.`);
+        explicitSetSelectionRef.current = {
+          menuName: String(uiMode?.setMenuName || setSelectionState.menuName || ""),
+          sideConfirmed: setSelectionState.sideConfirmed,
+          drinkConfirmed: true,
+        };
+        if (setSelectionState.sideConfirmed) {
+          const setMenuSpoken = formatMenuNameForTts(uiMode?.setMenuName || "");
+          const summary = setMenuSpoken
+            ? `${setMenuSpoken}${setMenuSpoken.includes("세트") ? "" : " 세트"} 구성을 장바구니에 담았습니다.`
+            : "선택하신 세트 구성을 장바구니에 담았습니다.";
+          if (!diningType) {
+            await say(`${summary} 드시고 가시나요, 포장인가요?`);
+          } else {
+            await say(summary);
+            setAwaitingCheckoutConfirm(true);
+          }
           return true;
         }
-        if (!diningType) {
-          await say(`${formatMenuNameForTts(confirmed.name)} 음료까지 장바구니에 담았습니다. 드시고 가시나요, 포장인가요?`);
-        } else {
-          await say(`${formatMenuNameForTts(confirmed.name)} 음료까지 장바구니에 담았습니다.`);
-        }
+        await say(`${formatMenuNameForTts(confirmed.name)} 음료 맞습니다. 이제 사이드를 선택해 주세요.`);
         return true;
       }
       if (action.type === "REJECT_PENDING_OPTION") {
@@ -2206,6 +2672,7 @@ const isSetOptionDomainUtterance = useCallback(
         }
       }
       if (action.type === "NAVIGATE_CATEGORY") {
+        onContinueOrder();
         onSelectCategory(action.categoryKey);
         if (String(action.categoryKey).toLowerCase().includes("drink")) {
           await say("음료 카테고리로 이동합니다. 사이즈를 고를 수 있는 메뉴는 라지, 미디엄 중에서 선택해 주세요.");
@@ -2341,7 +2808,7 @@ const isSetOptionDomainUtterance = useCallback(
           type: "ADD_MENU",
           menuItemId: suggestedMenu.menuItemId,
           quantity: 1,
-        });
+        }, options);
       }
       if (action.type === "ACCEPT_SUGGESTION_ITEM") {
         setAwaitingSuggestionAccept(false);
@@ -2353,7 +2820,7 @@ const isSetOptionDomainUtterance = useCallback(
           type: "ADD_MENU",
           menuItemId: action.menuItemId,
           quantity: 1,
-        });
+        }, options);
       }
       if (action.type === "REMOVE_MENU_AT") {
         if (!cartSnapshot.length) {
@@ -2388,6 +2855,9 @@ const isSetOptionDomainUtterance = useCallback(
         return true;
       }
       if (action.type === "ADD_MENU") {
+        setAwaitingSuggestionAccept(false);
+        setSuggestedMenu(null);
+        setSuggestedMenuCandidates([]);
         const meta = menuCatalog.find((m) => m.menuItemId === action.menuItemId);
         const isSetLike = !!meta && (String(meta.name || "").includes("세트") || String(meta.category || "").toLowerCase().includes("set"));
         const inferCategoryKey = (categoryText: string): string | null => {
@@ -2519,6 +2989,7 @@ const isSetOptionDomainUtterance = useCallback(
       }
       return false;
       } finally {
+        suppressActionSpeechRef.current = prevSuppressSpeech;
         currentActionTypeRef.current = null;
       }
     },
@@ -2535,6 +3006,7 @@ const isSetOptionDomainUtterance = useCallback(
       onCheckCart,
       onCheckout,
       onContinueOrder,
+      onCancelSetPicker,
       onRemoveAt,
       onRemoveMenu,
       onReplaceLast,
@@ -2554,28 +3026,28 @@ const isSetOptionDomainUtterance = useCallback(
   );
 
   const applyLlmAction = useCallback(
-    async (structuredAction: string, actionData: any): Promise<boolean> => {
+    async (structuredAction: string, actionData: any, options?: VoiceActionExecOptions): Promise<boolean> => {
       const a = String(structuredAction || "NONE").toUpperCase();
       if (a === "NONE") return false;
 
-      if (a === "CALL_STAFF") return applyVoiceAction({ type: "CALL_STAFF" });
-      if (a === "CHECK_CART") return applyVoiceAction({ type: "CHECK_CART" });
-      if (a === "CHECKOUT") return applyVoiceAction({ type: "CHECKOUT" });
-      if (a === "CONTINUE_ORDER") return applyVoiceAction({ type: "CONTINUE_ORDER" });
+      if (a === "CALL_STAFF") return applyVoiceAction({ type: "CALL_STAFF" }, options);
+      if (a === "CHECK_CART") return applyVoiceAction({ type: "CHECK_CART" }, options);
+      if (a === "CHECKOUT") return applyVoiceAction({ type: "CHECKOUT" }, options);
+      if (a === "CONTINUE_ORDER") return applyVoiceAction({ type: "CONTINUE_ORDER" }, options);
       if (a === "SET_DINING") {
         const t = String(actionData?.diningType || "").toUpperCase();
-        if (t === "DINE_IN" || t === "TAKE_OUT") return applyVoiceAction({ type: "SET_DINING", diningType: t });
+        if (t === "DINE_IN" || t === "TAKE_OUT") return applyVoiceAction({ type: "SET_DINING", diningType: t }, options);
       }
       if (a === "NAVIGATE" || a === "NAVIGATE_CATEGORY") {
         const key = String(actionData?.categoryKey || actionData?.categoryId || "");
-        if (key) return applyVoiceAction({ type: "NAVIGATE_CATEGORY", categoryKey: key });
+        if (key) return applyVoiceAction({ type: "NAVIGATE_CATEGORY", categoryKey: key }, options);
       }
       if (a === "ADD_MENU" || a === "ADD_TO_CART") {
         const menuRef = String(actionData?.menuItemId || actionData?.menuName || actionData?.name || "");
         const quantity = Math.max(1, Number(actionData?.quantity || 1));
         const menuItemId = resolveCatalogMenuItemIdInContext(menuRef);
         if (!menuItemId) return false;
-        return applyVoiceAction({ type: "ADD_MENU", menuItemId, quantity });
+        return applyVoiceAction({ type: "ADD_MENU", menuItemId, quantity }, options);
       }
       if (a === "ADD_MENU_BULK" || a === "ADD_TO_CART_BULK") {
         const rawItems = Array.isArray(actionData?.items) ? actionData.items : [];
@@ -2590,7 +3062,7 @@ const isSetOptionDomainUtterance = useCallback(
           else resolved.push({ menuItemId, quantity });
         }
         if (!resolved.length) return false;
-        return applyVoiceAction({ type: "ADD_MENU_BULK", items: resolved });
+        return applyVoiceAction({ type: "ADD_MENU_BULK", items: resolved }, options);
       }
       if (a === "REMOVE_MENU" || a === "REMOVE_FROM_CART") {
         const menuRef = String(actionData?.menuItemId || actionData?.menuName || actionData?.name || "");
@@ -2604,12 +3076,12 @@ const isSetOptionDomainUtterance = useCallback(
             kind: "REMOVE_MENU",
             menuItemId,
             candidateIndexes: matches,
-          });
+          }, options);
         }
-        if (matches.length === 1) return applyVoiceAction({ type: "REMOVE_MENU_AT", cartIndex: matches[0] });
+        if (matches.length === 1) return applyVoiceAction({ type: "REMOVE_MENU_AT", cartIndex: matches[0] }, options);
         const menuItemId = resolveCatalogMenuItemIdInContext(menuRef);
         if (!menuItemId) return false;
-        return applyVoiceAction({ type: "REMOVE_MENU", menuItemId });
+        return applyVoiceAction({ type: "REMOVE_MENU", menuItemId }, options);
       }
       if (a === "CHANGE_QTY") {
         const menuRef = String(actionData?.menuItemId || actionData?.menuName || actionData?.name || "");
@@ -2625,23 +3097,1370 @@ const isSetOptionDomainUtterance = useCallback(
             menuItemId,
             quantity,
             candidateIndexes: matches,
-          });
+          }, options);
         }
-        if (matches.length === 1) return applyVoiceAction({ type: "CHANGE_QTY_AT", cartIndex: matches[0], quantity });
+        if (matches.length === 1) return applyVoiceAction({ type: "CHANGE_QTY_AT", cartIndex: matches[0], quantity }, options);
         const menuItemId = resolveCatalogMenuItemIdInContext(menuRef);
         if (!menuItemId) return false;
-        return applyVoiceAction({ type: "CHANGE_QTY", menuItemId, quantity });
+        return applyVoiceAction({ type: "CHANGE_QTY", menuItemId, quantity }, options);
       }
       if (a === "SELECT_PAYMENT") {
         const method = String(actionData?.method || "").toUpperCase();
         if (method === "CARD" || method === "POINT" || method === "SIMPLE") {
-          return applyVoiceAction({ type: "SELECT_PAYMENT", method });
+          return applyVoiceAction({ type: "SELECT_PAYMENT", method }, options);
         }
       }
       return false;
     },
     [applyVoiceAction, cartSnapshot, resolveCatalogMenuItemIdInContext, resolveCartIndexesByMenuRef]
   );
+
+  const buildVoiceLlmPayload = useCallback(
+    (normalizedText: string) => {
+      const userMsg: Msg = { role: "user", content: normalizedText };
+      const messages = [...conversationHistory, userMsg].slice(-10);
+      const stateMenuCatalog = getContextualCandidateCatalog();
+      const paymentStepLower = String(pageHint?.paymentStep || "").toLowerCase();
+      const stage =
+        paymentStepLower === "select" ||
+        paymentStepLower === "point" ||
+        paymentStepLower === "processing" ||
+        paymentStepLower === "complete"
+          ? "PAYMENT"
+          : pendingOptionConfirm
+            ? pendingOptionConfirm.kind === "SIDE"
+              ? "DRINK_SELECTION"
+              : pendingOptionConfirm.kind === "DRINK"
+                ? "SIDE_SELECTION"
+                : "SIDE_SELECTION"
+            : uiMode?.setPickerActive
+              ? uiMode.setPickerStep === "drink"
+                ? "DRINK_SELECTION"
+                : "SIDE_SELECTION"
+              : awaitingCheckoutConfirm || pageHint?.showOrderView
+                ? "ORDER_REVIEW"
+                : diningType
+                  ? "MAIN_MENU"
+                  : "ASK_DINING_TYPE";
+      const stateForLlm = {
+        stage,
+        diningType,
+        selectedCategory,
+        pageHint,
+        uiMode,
+        awaitingCheckoutConfirm,
+        pendingCheckoutMethod,
+        pendingOptionConfirm,
+        cartItems: cartSnapshot,
+        menuCatalog: (stateMenuCatalog.length ? stateMenuCatalog : menuCatalog).slice(0, 160).map((m) => ({
+          ...m,
+          allergies: getKfcAllergensForMenuName(String(m.name || "")) || [],
+        })),
+        live2dMotionCatalog: LIVE2D_MOTION_CATALOG,
+        llmInstruction:
+          "Return spoken reply text in data.text. The only valid motion ids are idle and m02. If a motion is needed, always return m02 in data.motion. If no motion is needed, return idle or null. If you need mid-sentence motion changes, every segment motion must also be only m02 or idle. Do not include motion tags inside text.",
+      };
+
+      return {
+        messages,
+        body: {
+          messages,
+          sessionId,
+          orderType: diningType,
+          context: {
+            sessionId,
+            kioskState: selectedCategory,
+            state: stateForLlm,
+          },
+        },
+      };
+    },
+    [
+      cartSnapshot,
+      conversationHistory,
+      diningType,
+      getContextualCandidateCatalog,
+      menuCatalog,
+      awaitingCheckoutConfirm,
+      pageHint,
+      pendingCheckoutMethod,
+      pendingOptionConfirm,
+      selectedCategory,
+      sessionId,
+      uiMode,
+    ]
+  );
+
+  const waitForIceGatheringComplete = useCallback(async (pc: RTCPeerConnection, timeoutMs = 1500) => {
+    if (!pc || pc.iceGatheringState === "complete") return;
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        pc.removeEventListener("icegatheringstatechange", handleStateChange);
+        window.clearTimeout(timeoutId);
+        resolve();
+      };
+
+      const handleStateChange = () => {
+        if (pc.iceGatheringState === "complete") finish();
+      };
+
+      const timeoutId = window.setTimeout(finish, timeoutMs);
+      pc.addEventListener("icegatheringstatechange", handleStateChange);
+    });
+  }, []);
+
+  const sendRealtimeEvent = useCallback((payload: Record<string, any>) => {
+    const channel = realtimeDcRef.current;
+    if (!channel || channel.readyState !== "open") {
+      throw new Error("Realtime data channel is not open.");
+    }
+    channel.send(JSON.stringify(payload));
+  }, []);
+
+  const armRealtimeForcedMouth = useCallback((speech: string, extraMs = 0) => {
+    const text = String(speech || "").trim();
+    const charCount = text.replace(/\s+/g, "").length;
+    const estimatedMs = Math.max(1200, Math.min(7000, charCount * 110 + 900 + extraMs));
+    (window as any).__AIKIOSK_RT_FORCE_MOUTH = true;
+    if (realtimeForcedMouthTimerRef.current != null) {
+      window.clearTimeout(realtimeForcedMouthTimerRef.current);
+      realtimeForcedMouthTimerRef.current = null;
+    }
+    realtimeForcedMouthTimerRef.current = window.setTimeout(() => {
+      if (!realtimeResponseActiveRef.current && !(window as any).__AIKIOSK_TTS_LIPSYNC_ACTIVE) {
+        (window as any).__AIKIOSK_RT_FORCE_MOUTH = false;
+        (window as any).__AIKIOSK_TTS_MOUTH_OPEN = 0;
+      }
+      realtimeForcedMouthTimerRef.current = null;
+    }, estimatedMs);
+  }, []);
+
+  const requestRealtimeSpeech = useCallback(
+    async (
+      speech: string,
+      motion?: MotionCode | null,
+      segments?: Array<{ text: string; motion?: string | null }>
+    ) => {
+      const exactSpeech = String(speech || "").trim();
+      realtimePlannedSpeechRef.current = exactSpeech;
+      realtimeAssistantTranscriptRef.current = "";
+      if (!exactSpeech) return;
+      addVoiceLog(`RT SPEAK PLAN: ${exactSpeech}`);
+      setPlanSubtitle(exactSpeech);
+      setSubtitle("");
+      armRealtimeForcedMouth(exactSpeech);
+      if (motion && motion !== "idle") {
+        onPlayMotion?.(motion);
+        addVoiceLog(`MOTION: ${motion}`);
+      } else if (segments?.[0]?.motion) {
+        const firstMotion = normalizeMotionId(segments[0].motion);
+        if (firstMotion && firstMotion !== "idle") {
+          onPlayMotion?.(firstMotion);
+          addVoiceLog(`MOTION: ${firstMotion}`);
+        }
+      }
+      try {
+        sendRealtimeEvent({
+          type: "response.create",
+          response: {
+            instructions: [
+              "Speak exactly and only the following Korean sentence naturally.",
+              exactSpeech,
+              "Do not add, omit, translate, or summarize anything.",
+            ].join("\n"),
+          },
+        });
+      } catch {
+        await say(exactSpeech, motion, segments, { forceTts: true });
+        setPlanSubtitle(exactSpeech);
+        setSubtitle(exactSpeech);
+        addVoiceLog(`RT ASSISTANT(FALLBACK): ${exactSpeech}`);
+        realtimePlannedSpeechRef.current = "";
+      }
+    },
+    [addVoiceLog, armRealtimeForcedMouth, onPlayMotion, say, sendRealtimeEvent]
+  );
+
+  useEffect(() => {
+    const step = String(pageHint?.paymentStep || "").toLowerCase();
+    if (step !== "complete") {
+      lastPaymentCompleteSpokenKeyRef.current = "";
+      return;
+    }
+    const orderNo = pageHint?.paidOrderNumber ?? null;
+    const key = `complete:${orderNo == null ? "-" : String(orderNo)}`;
+    if (lastPaymentCompleteSpokenKeyRef.current === key) return;
+    lastPaymentCompleteSpokenKeyRef.current = key;
+
+    shouldListenAfterSpeechRef.current = false;
+    setListeningEnabled(false);
+
+    void (async () => {
+      const msg =
+        orderNo == null
+          ? "결제가 완료되었습니다."
+          : `결제가 완료되었습니다. 주문 번호는 ${orderNo}번 입니다.`;
+      if (realtimeEnabled && realtimeConnected) {
+        onPlayMotion?.("m08");
+        setPlanSubtitle(msg);
+        addVoiceLog(`RT PAYMENT COMPLETE: ${msg}`);
+        try {
+          await requestRealtimeSpeech(msg, "m08");
+        } catch {
+          await say(msg, "m08");
+        }
+      } else {
+        await say(msg, "m08");
+      }
+      recentRecommendedMenuIdsRef.current = [];
+      recommendationCursorRef.current = 0;
+      onPaymentCompleteSpoken?.();
+    })();
+  }, [
+    addVoiceLog,
+    onPaymentCompleteSpoken,
+    onPlayMotion,
+    pageHint?.paidOrderNumber,
+    pageHint?.paymentStep,
+    realtimeConnected,
+    realtimeEnabled,
+    requestRealtimeSpeech,
+    say,
+  ]);
+
+  const buildRealtimeSessionUpdate = useCallback(() => {
+    const menuPreview = menuCatalog
+      .slice(0, 12)
+      .map((item) => String(item.name || "").trim())
+      .filter(Boolean)
+      .join(", ");
+
+    return {
+      type: "session.update",
+      session: {
+        type: "realtime",
+        output_modalities: ["audio"],
+        instructions: [
+          "You are the Korean voice ordering agent for a hamburger kiosk in Korea.",
+          "Always speak only in natural Korean. Never reply in English, Chinese, or mixed language unless the customer explicitly asks for another language.",
+          "You are not a generic assistant. You are helping a customer place an order at this store.",
+          "For any menu question, order request, cart change, dining type request, payment request, or screen/navigation request, use the run_kiosk_order_flow tool.",
+          "Do not invent menu names, prices, availability, or kiosk state from memory.",
+          "When the tool returns JSON with speech, action, and actionData, treat the speech field as the source of truth for what you should say aloud.",
+          "Speak the tool's speech naturally in Korean without reading JSON keys or mentioning tool names.",
+          "Keep responses short, cashier-like, and relevant to a hamburger ordering kiosk.",
+          menuPreview ? `Current store menu examples: ${menuPreview}` : "",
+        ].join("\n"),
+        audio: {
+          input: {
+            transcription: {
+              model: "gpt-4o-transcribe",
+              language: "ko",
+              prompt:
+                "한국 햄버거 키오스크 주문 대화입니다. 매장식사, 포장, 세트, 단품, 버거, 사이드, 음료, 장바구니, 결제 같은 단어를 정확히 인식하세요.",
+            },
+            turn_detection: {
+              type: "semantic_vad",
+              eagerness: "medium",
+              create_response: true,
+              interrupt_response: true,
+            },
+          },
+        },
+        tools: [
+          {
+            type: "function",
+            name: "run_kiosk_order_flow",
+            description:
+              "Use the existing kiosk ordering brain to interpret the customer's latest Korean speech and return the next order action and spoken reply.",
+            parameters: {
+              type: "object",
+              properties: {
+                userText: {
+                  type: "string",
+                  description: "The customer's latest spoken Korean request, as close to the original wording as possible.",
+                },
+              },
+              additionalProperties: false,
+              required: ["userText"],
+            },
+          },
+        ],
+        tool_choice: "auto",
+      },
+    };
+  }, [menuCatalog]);
+
+  const buildRealtimeActionData = useCallback((action: VoiceAction): Record<string, any> => {
+    switch (action.type) {
+      case "SET_DINING":
+        return { diningType: action.diningType };
+      case "NAVIGATE_CATEGORY":
+        return { categoryKey: action.categoryKey };
+      case "ADD_MENU":
+        return { menuItemId: action.menuItemId, quantity: action.quantity };
+      case "ADD_MENU_BULK":
+        return { items: action.items };
+      case "ASK_CONFIRM_BOTH_OPTIONS":
+        return {
+          sideMenuItemId: action.sideMenuItemId,
+          sideName: action.sideName,
+          drinkMenuItemId: action.drinkMenuItemId,
+          drinkName: action.drinkName,
+          quantity: action.quantity,
+        };
+      case "SELECT_PAYMENT":
+        return { method: action.method };
+      default:
+        return {};
+    }
+  }, []);
+
+  const buildRealtimeFastReply = useCallback(
+    (action: VoiceAction): string => {
+      if (action.type === "SET_DINING") {
+        return action.diningType === "DINE_IN"
+          ? "매장 식사로 설정했습니다. 원하시는 메뉴를 말씀해 주세요."
+          : "포장으로 설정했습니다. 원하시는 메뉴를 말씀해 주세요.";
+      }
+      if (action.type === "CONTINUE_ORDER") {
+        return diningType
+          ? "원하시는 메뉴를 말씀해 주세요."
+          : "드시고 가시나요, 포장인가요? 매장 식사 또는 포장이라고 말씀해 주세요.";
+      }
+      if (action.type === "NAVIGATE_CATEGORY") {
+        return "해당 메뉴 화면으로 이동했습니다. 원하시는 메뉴를 말씀해 주세요.";
+      }
+      if (action.type === "ADD_MENU") {
+        const menuMeta = menuCatalog.find((item) => item.menuItemId === action.menuItemId);
+        const menuName = formatMenuNameForTts(menuMeta?.name || "메뉴");
+        const isSetLike =
+          String(menuMeta?.name || "").includes("세트") ||
+          String(menuMeta?.name || "").includes("코스") ||
+          String(menuMeta?.category || "").toLowerCase().includes("set");
+        if (isSetLike) {
+          return `${menuName} 선택 화면으로 이동했습니다. 사이드와 음료를 선택해 주세요.`;
+        }
+        if (uiMode?.setPickerActive) {
+          const categoryText = String(menuMeta?.category || "").toLowerCase();
+          if (categoryText.includes("side") || categoryText.includes("사이드")) {
+            return `사이드는 ${menuName} 맞으시죠?`;
+          }
+          if (categoryText.includes("drink") || categoryText.includes("음료")) {
+            return `음료는 ${menuName} 맞으시죠?`;
+          }
+        }
+        return diningType
+          ? `${menuName}을 장바구니에 담았습니다. 결제하시겠어요?`
+          : `${menuName}을 장바구니에 담았습니다. 드시고 가시나요, 포장인가요?`;
+      }
+      if (action.type === "ADD_MENU_BULK") {
+        return diningType
+          ? "메뉴를 장바구니에 담았습니다. 결제하시겠어요?"
+          : "메뉴를 장바구니에 담았습니다. 드시고 가시나요, 포장인가요?";
+      }
+      if (action.type === "CHECK_CART") {
+        return cartSnapshot.length ? "현재 장바구니를 확인해 주세요." : "현재 장바구니가 비어 있어요.";
+      }
+      if (action.type === "CHECKOUT") {
+        return cartSnapshot.length
+          ? pageHint?.showOrderView
+            ? "장바구니가 맞으시면 네라고 말씀해 주세요. 수정할 메뉴가 있으면 말씀해 주세요."
+            : "장바구니를 확인해 주세요. 맞으면 결제를 진행할게요."
+          : "장바구니가 비어 있어요. 먼저 메뉴를 담아주세요.";
+      }
+      if (action.type === "ASK_CONFIRM_BOTH_OPTIONS") {
+        const sideName = formatMenuNameForTts(action.sideName);
+        const drinkName = formatMenuNameForTts(action.drinkName);
+        return `사이드는 ${sideName}, 음료는 ${drinkName} 맞으시죠?`;
+      }
+      if (action.type === "ASK_SET_OR_SINGLE") {
+        return "세트로 드릴까요, 단품으로 드릴까요? 세트 또는 단품이라고 말씀해 주세요.";
+      }
+      if (action.type === "CONFIRM_PENDING_OPTION") {
+        if (!pendingOptionConfirm) {
+          return "확인할 선택이 없어요. 다시 말씀해 주세요.";
+        }
+        const setSelectionState = explicitSetSelectionRef.current;
+        const setMenuSpoken = formatMenuNameForTts(uiMode?.setMenuName || "");
+        const setSummary = setMenuSpoken
+          ? `${setMenuSpoken}${setMenuSpoken.includes("세트") ? "" : " 세트"} 구성을 장바구니에 담았습니다.`
+          : "선택하신 세트 구성을 장바구니에 담았습니다.";
+        if (pendingOptionConfirm.kind === "BOTH") {
+          return !diningType
+            ? `${setSummary} 드시고 가시나요, 포장인가요?`
+            : setSummary;
+        }
+        if (pendingOptionConfirm.kind === "SIDE") {
+          if (setSelectionState.drinkConfirmed) {
+            return !diningType
+              ? `${setSummary} 드시고 가시나요, 포장인가요?`
+              : setSummary;
+          }
+          return `${formatMenuNameForTts(pendingOptionConfirm.name)} 사이드 맞습니다. 이제 음료를 선택해 주세요.`;
+        }
+        if (setSelectionState.sideConfirmed) {
+          return !diningType
+            ? `${setSummary} 드시고 가시나요, 포장인가요?`
+            : setSummary;
+        }
+        return `${formatMenuNameForTts(pendingOptionConfirm.name)} 음료 맞습니다. 이제 사이드를 선택해 주세요.`;
+      }
+      if (action.type === "REJECT_PENDING_OPTION") {
+        if (!pendingOptionConfirm) {
+          return "다시 선택하실 메뉴를 말씀해 주세요.";
+        }
+        if (pendingOptionConfirm.kind === "SIDE") {
+          return "그럼 원하시는 사이드를 선택해 주세요.";
+        }
+        if (pendingOptionConfirm.kind === "DRINK") {
+          return "그럼 원하시는 음료를 선택해 주세요.";
+        }
+        return "그럼 사이드와 음료를 다시 말씀해 주세요.";
+      }
+      if (action.type === "CONFIRM_CHECKOUT") {
+        if (!awaitingCheckoutConfirm) {
+          return "결제 확인 중인 내용이 없어요. 결제라고 말씀해 주세요.";
+        }
+        if (pendingCheckoutMethod === "CARD") return "카드 결제를 진행합니다.";
+        if (pendingCheckoutMethod === "POINT") return "포인트 결제를 진행합니다.";
+        if (pendingCheckoutMethod === "SIMPLE") return "간편 결제를 진행합니다.";
+        return "결제 방법을 선택해 주세요.";
+      }
+      if (action.type === "CANCEL_CHECKOUT") {
+        return "알겠습니다. 결제 진행을 취소하고 장바구니를 다시 보여드릴게요.";
+      }
+      if (action.type === "SELECT_PAYMENT") {
+        return action.method === "CARD"
+          ? "카드 결제를 진행합니다."
+          : action.method === "POINT"
+            ? "포인트 결제를 진행합니다."
+            : "간편 결제를 진행합니다.";
+      }
+      if (action.type === "CALL_STAFF") {
+        return "직원을 호출했습니다. 잠시만 기다려 주세요.";
+      }
+      return "원하시는 메뉴를 다시 말씀해 주세요.";
+    },
+    [
+      cartSnapshot.length,
+      diningType,
+      menuCatalog,
+      awaitingCheckoutConfirm,
+      pageHint?.showOrderView,
+      pendingCheckoutMethod,
+      pendingOptionConfirm,
+      uiMode?.setDrinkMenuItemId,
+      uiMode?.setMenuName,
+      uiMode?.setPickerActive,
+      uiMode?.setSideMenuItemId,
+    ]
+  );
+
+  const buildRealtimeSmallTalkReply = useCallback(
+    (normalizedText: string): string | null => {
+      const compact = normalizeTranscript(normalizedText).toLowerCase().replace(/\s+/g, "");
+      if (compact.includes("안녕")) {
+        return diningType
+          ? "안녕하세요. 원하시는 메뉴를 말씀해 주세요."
+          : "안녕하세요. 매장 식사이신가요, 포장이신가요?";
+      }
+      if (compact.includes("누구") || compact.includes("뭐하는")) {
+        return diningType
+          ? "저는 주문 도와드리는 AI 키오스크예요. 원하시는 메뉴를 말씀해 주세요."
+          : "저는 주문 도와드리는 AI 키오스크예요. 매장 식사이신가요, 포장이신가요?";
+      }
+      return null;
+    },
+    [diningType, normalizeTranscript]
+  );
+
+  const parseRealtimeSetOptionAction = useCallback(
+    (normalizedText: string): { action: VoiceAction; speech: string } | null => {
+      const setPickerActive = Boolean(uiMode?.setPickerActive);
+      const pendingSetPicker = Boolean(realtimeSetPickerPendingRef.current);
+      if (!(setPickerActive || pendingSetPicker)) {
+        addVoiceLog(`RT SET OPTION SKIP: inactive | ui=${setPickerActive ? "1" : "0"} pending=${pendingSetPicker ? "1" : "0"} | text=${normalizedText}`);
+        return null;
+      }
+
+      const compact = normalizeTranscript(normalizedText).toLowerCase().replace(/\s+/g, "");
+      const sideCatalog = menuCatalog.filter((item) => String(item.category || "").toLowerCase().includes("side"));
+      const drinkCatalog = menuCatalog.filter((item) => String(item.category || "").toLowerCase().includes("drink"));
+
+      const normalizeOptionKey = (value: string) =>
+        String(value || "")
+          .toLowerCase()
+          .replace(/\s+/g, "")
+          .replace(/[()]/g, "")
+          .replace(/(라지|미디엄|레귤러|스몰|사이즈)/g, "")
+          .replace(/(\d+조각|\d+개|\d+)/g, "")
+          .replace(/조각/g, "")
+          .replace(/치킨안심텐더/g, "치킨텐더")
+          .replace(/치킨안심/g, "치킨텐더")
+          .replace(/([mlr])$/g, "");
+
+      const sidePart =
+        compact.includes("음료") && compact.includes("사이드")
+          ? compact.slice(compact.indexOf("사이드"), compact.indexOf("음료"))
+          : compact;
+      const drinkPart =
+        compact.includes("음료")
+          ? compact.slice(compact.indexOf("음료"))
+          : compact;
+
+      addVoiceLog(
+        `RT SET OPTION STATE: ui=${setPickerActive ? "1" : "0"} pending=${pendingSetPicker ? "1" : "0"} compact=${compact} sidePart=${sidePart} drinkPart=${drinkPart}`
+      );
+
+      const findOption = (items: VoiceMenuCatalogItem[], phrase: string) => {
+        let best: VoiceMenuCatalogItem | null = null;
+        let bestLen = -1;
+        const normalizedPhrase = normalizeOptionKey(phrase)
+          .replace(/(사이드는|사이드를|사이드|음료는|음료를|음료|그리고|이랑|랑|와|과|으로|은|는|이|가|을|를|해주세요|해줘|해주고|주고)/g, "");
+        addVoiceLog(`RT SET OPTION PHRASE: ${normalizedPhrase || "(empty)"}`);
+        for (const item of items) {
+          const key = normalizeOptionKey(item.name || "");
+          if (!key) continue;
+          if (
+            normalizedPhrase.includes(key) ||
+            key.includes(normalizedPhrase) ||
+            normalizedPhrase.includes(key.replace(/(콜라|사이다|텐더|후라이|치즈스틱)/g, "$1"))
+          ) {
+            best = item;
+            bestLen = key.length;
+          }
+        }
+        return best;
+      };
+
+      const side = findOption(sideCatalog, sidePart);
+      const drink = findOption(drinkCatalog, drinkPart);
+      addVoiceLog(`RT SET OPTION MATCH: side=${side?.name || "-"} drink=${drink?.name || "-"}`);
+
+      if (side && drink) {
+        return {
+          action: {
+            type: "ASK_CONFIRM_BOTH_OPTIONS",
+            sideMenuItemId: side.menuItemId,
+            sideName: side.name,
+            drinkMenuItemId: drink.menuItemId,
+            drinkName: drink.name,
+            quantity: 1,
+          },
+          speech: `사이드는 ${formatMenuNameForTts(side.name)}, 음료는 ${formatMenuNameForTts(drink.name)} 맞으시죠?`,
+        };
+      }
+
+      if (side) {
+        return {
+          action: { type: "ADD_MENU", menuItemId: side.menuItemId, quantity: 1 },
+          speech: `사이드는 ${formatMenuNameForTts(side.name)} 맞으시죠?`,
+        };
+      }
+
+      if (drink) {
+        return {
+          action: { type: "ADD_MENU", menuItemId: drink.menuItemId, quantity: 1 },
+          speech: `음료는 ${formatMenuNameForTts(drink.name)} 맞으시죠?`,
+        };
+      }
+
+      addVoiceLog(`RT SET OPTION MISS: ${normalizedText} | sideCatalog=${sideCatalog.length} drinkCatalog=${drinkCatalog.length}`);
+      return null;
+    },
+    [addVoiceLog, menuCatalog, normalizeTranscript, uiMode?.setPickerActive]
+  );
+
+  const buildRealtimeFlowGuardReply = useCallback((): string | null => {
+    const paymentStepLower = String(pageHint?.paymentStep || "").toLowerCase();
+    if (pendingOptionConfirm) {
+      if (pendingOptionConfirm.kind === "SIDE") return "지금은 사이드 확인 단계예요. 맞으면 네라고 말씀하시거나 음료를 말씀해 주세요.";
+      if (pendingOptionConfirm.kind === "DRINK") return "지금은 음료 확인 단계예요. 맞으면 네라고 말씀하시거나 사이드를 말씀해 주세요.";
+      return "지금은 세트 옵션 확인 단계예요. 맞으면 네라고 말씀해 주세요.";
+    }
+    if (uiMode?.setPickerActive) {
+      return uiMode.setPickerStep === "drink"
+        ? "지금은 음료를 선택하는 단계예요. 원하시는 음료를 말씀해 주세요."
+        : "지금은 사이드를 선택하는 단계예요. 원하시는 사이드를 말씀해 주세요.";
+    }
+    if (awaitingCheckoutConfirm || pageHint?.showOrderView) {
+      return "지금은 주문 확인 단계예요. 맞으면 네라고 말씀하시거나 수정할 메뉴를 말씀해 주세요.";
+    }
+    if (paymentStepLower === "select" || paymentStepLower === "point") {
+      return "지금은 결제 수단 선택 단계예요. 카드, 포인트, 간편결제 중에서 말씀해 주세요.";
+    }
+    return null;
+  }, [
+    awaitingCheckoutConfirm,
+    pageHint?.paymentStep,
+    pageHint?.showOrderView,
+    pendingOptionConfirm,
+    uiMode?.setPickerActive,
+    uiMode?.setPickerStep,
+  ]);
+
+  const runRealtimeCentralBrain = useCallback(
+    async (
+      normalizedText: string,
+      fallbackSpeech: string
+    ): Promise<{ reply: string; action: string; actionData: Record<string, any> } | null> => {
+      const { messages, body } = buildVoiceLlmPayload(normalizedText);
+      const response = await fetch(AI_V2_CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-AI-Client-Source": "frontend-v2-realtime",
+        },
+        body: JSON.stringify(body),
+      });
+      const json = await response.json().catch(() => null);
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.error?.message || `Realtime tool bridge failed (${response.status})`);
+      }
+
+      const reply = String(json.data?.text || json.data?.reply || fallbackSpeech).trim() || fallbackSpeech;
+      const structuredAction = String(json.data?.action || "NONE");
+      const structuredActionData = json.data?.actionData || {};
+      const genericFallbackReply =
+        reply === "원하시는 메뉴를 다시 말씀해 주세요." || reply === "죄송해요. 다시 말씀해 주세요.";
+      const aiHandled = structuredAction !== "NONE" || !genericFallbackReply;
+      if (!aiHandled) {
+        return null;
+      }
+
+      setConversationHistory([...messages, { role: "assistant", content: reply }]);
+      setPlanSubtitle(reply);
+      addVoiceLog(`RT CENTRAL ACTION: ${structuredAction}`);
+      addVoiceLog(`RT TOOL ACTION: ${structuredAction}`);
+      addVoiceLog(`RT TOOL OUT: ${reply}`);
+      await applyLlmAction(structuredAction, structuredActionData, { skipSpeech: true });
+      return { reply, action: structuredAction, actionData: structuredActionData };
+    },
+    [AI_V2_CHAT_URL, addVoiceLog, applyLlmAction, buildVoiceLlmPayload]
+  );
+
+  const executeRealtimeToolCall = useCallback(
+    async (callId: string, userText: string) => {
+      const normalizedText = normalizeTranscript(userText);
+      const fallbackSpeech = "죄송해요. 주문 내용을 다시 한 번 말씀해 주세요.";
+
+      if (!normalizedText) {
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({ speech: fallbackSpeech, action: "NONE", actionData: {} }),
+          },
+        });
+        sendRealtimeEvent({ type: "response.create" });
+        return;
+      }
+
+      addVoiceLog(`RT TOOL REQ: ${normalizedText}`);
+      addVoiceLog(
+        `RT TOOL STATE: uiSet=${uiMode?.setPickerActive ? "1" : "0"} pendingSet=${realtimeSetPickerPendingRef.current ? "1" : "0"} dining=${diningType || "-"} cart=${cartSnapshot.length}`
+      );
+      const hasStructuredUiFlow = Boolean(
+        uiMode?.setPickerActive ||
+          pendingOptionConfirm ||
+          awaitingCheckoutConfirm ||
+          pendingCheckoutMethod ||
+          pageHint?.showOrderView
+      );
+      const smallTalkReply = buildRealtimeSmallTalkReply(normalizedText);
+      if (smallTalkReply && !hasStructuredUiFlow) {
+        setPlanSubtitle(smallTalkReply);
+        addVoiceLog("RT SMALLTALK: handled locally");
+        addVoiceLog(`RT TOOL ACTION: NONE`);
+        addVoiceLog(`RT TOOL OUT: ${smallTalkReply}`);
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({ speech: smallTalkReply, action: "NONE", actionData: {} }),
+          },
+        });
+        requestRealtimeSpeech(smallTalkReply);
+        return;
+      }
+      if (smallTalkReply && hasStructuredUiFlow) {
+        const guardReply = buildRealtimeFlowGuardReply() || "지금 단계에 맞는 주문 내용을 말씀해 주세요.";
+        setPlanSubtitle(guardReply);
+        addVoiceLog("RT FLOW GUARD: structured-step");
+        addVoiceLog(`RT TOOL ACTION: NONE`);
+        addVoiceLog(`RT TOOL OUT: ${guardReply}`);
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({ speech: guardReply, action: "NONE", actionData: {} }),
+          },
+        });
+        requestRealtimeSpeech(guardReply);
+        return;
+      }
+
+      const fastAction = parseFastAction(normalizedText);
+      if (fastAction.type === "RECOMMEND_MENU") {
+        const fastReply = prepareRecommendationReply();
+        setPlanSubtitle(fastReply);
+        setConversationHistory((prev) =>
+          [...prev, { role: "user", content: normalizedText }, { role: "assistant", content: fastReply }].slice(-10)
+        );
+        addVoiceLog(`RT FAST ACTION: ${fastAction.type}`);
+        addVoiceLog(`RT TOOL ACTION: ${fastAction.type}`);
+        addVoiceLog(`RT TOOL OUT: ${fastReply}`);
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({
+              speech: fastReply,
+              action: fastAction.type,
+              actionData: buildRealtimeActionData(fastAction),
+            }),
+          },
+        });
+        requestRealtimeSpeech(fastReply, "m02");
+        return;
+      }
+
+      const shouldPreferCentralBrain = !uiMode?.setPickerActive && !pendingOptionConfirm && !awaitingCheckoutConfirm;
+      if (shouldPreferCentralBrain) {
+        try {
+          const handled = await runRealtimeCentralBrain(normalizedText, fallbackSpeech);
+          if (handled) {
+            sendRealtimeEvent({
+              type: "conversation.item.create",
+              item: {
+                type: "function_call_output",
+                call_id: callId,
+                output: JSON.stringify({
+                  speech: handled.reply,
+                  action: handled.action,
+                  actionData: handled.actionData,
+                }),
+              },
+            });
+            requestRealtimeSpeech(handled.reply);
+            return;
+          }
+        } catch (error: any) {
+          addVoiceLog(`RT CENTRAL ERROR: ${error?.message || String(error)}`);
+        }
+      }
+
+      if (fastAction.type !== "NONE") {
+        if (fastAction.type === "ADD_MENU") {
+          const menuMeta = menuCatalog.find((item) => item.menuItemId === fastAction.menuItemId);
+          const isSetLike =
+            String(menuMeta?.name || "").includes("세트") ||
+            String(menuMeta?.name || "").includes("코스") ||
+            String(menuMeta?.category || "").toLowerCase().includes("set");
+          if (isSetLike) {
+            realtimeSetPickerPendingRef.current = true;
+            addVoiceLog(`RT SET OPTION ARM: ${menuMeta?.name || fastAction.menuItemId}`);
+          }
+        }
+        const fastReply = buildRealtimeFastReply(fastAction);
+        await applyVoiceAction(fastAction, { skipSpeech: true });
+        setPlanSubtitle(fastReply);
+        setConversationHistory((prev) =>
+          [...prev, { role: "user", content: normalizedText }, { role: "assistant", content: fastReply }].slice(-10)
+        );
+        addVoiceLog(`RT FAST ACTION: ${fastAction.type}`);
+        addVoiceLog(`RT TOOL ACTION: ${fastAction.type}`);
+        addVoiceLog(`RT TOOL OUT: ${fastReply}`);
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({
+              speech: fastReply,
+              action: fastAction.type,
+              actionData: buildRealtimeActionData(fastAction),
+            }),
+          },
+        });
+        requestRealtimeSpeech(fastReply);
+        return;
+      }
+
+      const setOptionTurn = parseRealtimeSetOptionAction(normalizedText);
+      if (setOptionTurn) {
+        await applyVoiceAction(setOptionTurn.action, { skipSpeech: true });
+        setPlanSubtitle(setOptionTurn.speech);
+        addVoiceLog(`RT SET OPTION: ${setOptionTurn.action.type}`);
+        addVoiceLog(`RT TOOL ACTION: ${setOptionTurn.action.type}`);
+        addVoiceLog(`RT TOOL OUT: ${setOptionTurn.speech}`);
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({
+              speech: setOptionTurn.speech,
+              action: setOptionTurn.action.type,
+              actionData: buildRealtimeActionData(setOptionTurn.action),
+            }),
+          },
+        });
+        requestRealtimeSpeech(setOptionTurn.speech);
+        return;
+      }
+
+      try {
+        const handled = await runRealtimeCentralBrain(normalizedText, fallbackSpeech);
+        if (!handled) {
+          throw new Error("central_brain_returned_none");
+        }
+
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({
+              speech: handled.reply,
+              action: handled.action,
+              actionData: handled.actionData,
+            }),
+          },
+        });
+        requestRealtimeSpeech(handled.reply);
+      } catch (error: any) {
+        const message = String(error?.message || fallbackSpeech);
+        addVoiceLog(`RT TOOL ERROR: ${message}`);
+        sendRealtimeEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify({ speech: fallbackSpeech, action: "NONE", actionData: {}, error: message }),
+          },
+        });
+        requestRealtimeSpeech(fallbackSpeech);
+      }
+    },
+    [
+      AI_V2_CHAT_URL,
+      addVoiceLog,
+      applyLlmAction,
+      applyVoiceAction,
+      buildRealtimeActionData,
+      buildRealtimeFastReply,
+      buildRealtimeSmallTalkReply,
+      parseRealtimeSetOptionAction,
+      buildVoiceLlmPayload,
+      normalizeTranscript,
+      parseFastAction,
+      requestRealtimeSpeech,
+      sendRealtimeEvent,
+    ]
+  );
+
+  const handleRealtimeEventPayload = useCallback(
+    async (event: Record<string, any>) => {
+      const type = String(event?.type || "");
+      if (!type) return;
+
+      if (type === "session.created" || type === "session.updated") {
+        setRealtimeStatusText(type);
+        addVoiceLog(`RT EVENT: ${type}`);
+        return;
+      }
+
+      if (type === "input_audio_buffer.speech_started") {
+        if (activeTtsAudioRef.current) {
+          try {
+            activeTtsAudioRef.current.pause();
+            activeTtsAudioRef.current.currentTime = 0;
+          } catch {
+            // ignore
+          }
+          activeTtsAudioRef.current = null;
+        }
+        void clearRealtimePlaybackQueue();
+        if (realtimeResponseActiveRef.current) {
+          try {
+            sendRealtimeEvent({ type: "response.cancel" });
+          } catch {
+            // ignore
+          }
+        }
+        setSpeaking(false);
+        setRealtimeStatusText("listening");
+        return;
+      }
+
+      if (type === "input_audio_buffer.speech_stopped") {
+        setRealtimeStatusText("thinking");
+        return;
+      }
+
+      if (type === "conversation.item.input_audio_transcription.completed") {
+        const transcript = String(event?.transcript || "").trim();
+        if (transcript) {
+          addVoiceLog(`RT USER: ${transcript}`);
+        }
+        return;
+      }
+
+      if (type === "response.function_call_arguments.done") {
+        const callId = String(event?.call_id || "").trim();
+        const toolName = String(event?.name || "").trim();
+        if (!callId || toolName !== "run_kiosk_order_flow") return;
+        if (realtimeHandledCallIdsRef.current.has(callId)) return;
+        realtimeHandledCallIdsRef.current.add(callId);
+        let userText = "";
+        try {
+          const parsed = JSON.parse(String(event?.arguments || "{}"));
+          userText = String(parsed?.userText || "").trim();
+        } catch {
+          userText = "";
+        }
+        await executeRealtimeToolCall(callId, userText);
+        return;
+      }
+
+      if (type === "response.output_item.done") {
+        const item = event?.item;
+        if (item?.type !== "function_call") return;
+        const callId = String(item?.call_id || "").trim();
+        const toolName = String(item?.name || "").trim();
+        if (!callId || toolName !== "run_kiosk_order_flow") return;
+        if (realtimeHandledCallIdsRef.current.has(callId)) return;
+        realtimeHandledCallIdsRef.current.add(callId);
+        let userText = "";
+        try {
+          const parsed = JSON.parse(String(item?.arguments || "{}"));
+          userText = String(parsed?.userText || "").trim();
+        } catch {
+          userText = "";
+        }
+        await executeRealtimeToolCall(callId, userText);
+        return;
+      }
+
+      if (type === "kiosk.response") {
+        const transcript = String(event?.transcript || "").trim();
+        const action = String(event?.action || "NONE").toUpperCase();
+        const actionData = event?.actionData && typeof event.actionData === "object" ? event.actionData : {};
+        const speech = String(event?.speech || "").trim() || "원하시는 메뉴를 다시 말씀해 주세요.";
+        const motion = normalizeMotionId(event?.motion) ?? null;
+        const segments = Array.isArray(event?.segments)
+          ? event.segments
+              .map((seg: any) => ({
+                text: String(seg?.text || "").trim(),
+                motion: normalizeMotionId(seg?.motion),
+              }))
+              .filter((seg: { text: string }) => seg.text.length > 0)
+          : [];
+
+        addVoiceLog(`RT TOOL REQ: ${transcript || "(empty)"}`);
+        addVoiceLog(
+          `RT TOOL STATE: uiSet=${uiMode?.setPickerActive ? "1" : "0"} pendingSet=${realtimeSetPickerPendingRef.current ? "1" : "0"} dining=${diningType || "-"} cart=${cartSnapshot.length}`
+        );
+        await applyLlmAction(action, actionData);
+        addVoiceLog(`RT TOOL ACTION: ${action}`);
+        addVoiceLog(`RT TOOL OUT: ${speech}`);
+        realtimePlannedSpeechRef.current = speech;
+        setPlanSubtitle(speech);
+        addVoiceLog(`RT SPEAK PLAN: ${speech}`);
+        if (motion && motion !== "idle") {
+          onPlayMotion?.(motion);
+          addVoiceLog(`MOTION: ${motion}`);
+        }
+        if (segments.length > 0 && !motion) {
+          const firstMotion = segments[0]?.motion;
+          if (firstMotion && firstMotion !== "idle") {
+            onPlayMotion?.(firstMotion);
+            addVoiceLog(`MOTION: ${firstMotion}`);
+          }
+        }
+        return;
+      }
+
+      if (type === "response.output_audio.delta") {
+        const delta = String(event?.delta || "");
+        if (delta) {
+          realtimeResponseActiveRef.current = true;
+          setSpeaking(true);
+          if (realtimeWsRef.current) {
+            void enqueueRealtimeAudioDelta(delta);
+          }
+        }
+        return;
+      }
+
+      if (type === "response.output_audio_transcript.delta" || type === "response.text.delta") {
+        const delta = String(event?.delta || "").trimStart();
+        if (delta) {
+          realtimeAssistantTranscriptRef.current += delta;
+          setSubtitle(realtimeAssistantTranscriptRef.current);
+        }
+        return;
+      }
+
+      if (type === "response.output_audio_transcript.done" || type === "response.text.done") {
+        const transcript = String(event?.transcript || event?.text || realtimeAssistantTranscriptRef.current || "").trim();
+        realtimeAssistantTranscriptRef.current = "";
+        if (transcript) {
+          const finalSubtitle = transcript || realtimePlannedSpeechRef.current;
+          setSubtitle(finalSubtitle);
+          addVoiceLog(`RT ASSISTANT: ${finalSubtitle}`);
+          realtimePlannedSpeechRef.current = "";
+        }
+        return;
+      }
+
+      if (type === "response.created") {
+        realtimeResponseActiveRef.current = true;
+        (window as any).__AIKIOSK_RT_FORCE_MOUTH = true;
+        setSpeaking(true);
+        setRealtimeStatusText("speaking");
+        addVoiceLog("RT RESPONSE: started");
+        return;
+      }
+
+      if (type === "response.done") {
+        realtimeResponseActiveRef.current = false;
+        setSpeaking(false);
+        addVoiceLog("RT RESPONSE: done");
+        if (realtimePlannedSpeechRef.current) {
+          setPlanSubtitle(realtimePlannedSpeechRef.current);
+          setSubtitle(realtimePlannedSpeechRef.current);
+          addVoiceLog(`RT ASSISTANT(FALLBACK): ${realtimePlannedSpeechRef.current}`);
+          realtimePlannedSpeechRef.current = "";
+        }
+        setRealtimeStatusText("idle");
+        return;
+      }
+
+      if (type === "error") {
+        const message = String(event?.error?.message || "Realtime 오류").trim();
+        if (message === "Cancellation failed: no active response found") {
+          return;
+        }
+        addVoiceLog(`RT ERROR: ${message}`);
+        setRealtimeStatusText(message);
+      }
+    },
+    [addVoiceLog, applyLlmAction, cartSnapshot.length, clearRealtimePlaybackQueue, diningType, enqueueRealtimeAudioDelta, executeRealtimeToolCall, onPlayMotion, sendRealtimeEvent, uiMode?.setPickerActive]
+  );
+
+  useEffect(() => {
+    realtimeEventHandlerRef.current = (event: Record<string, any>) => {
+      void handleRealtimeEventPayload(event);
+    };
+  }, [handleRealtimeEventPayload]);
+
+  const disconnectRealtime = useCallback(
+    async (reason?: string) => {
+      realtimeAssistantTranscriptRef.current = "";
+      realtimePlannedSpeechRef.current = "";
+      setPlanSubtitle("");
+      realtimeHandledCallIdsRef.current.clear();
+      realtimeSetPickerPendingRef.current = false;
+      realtimeSentChunkCountRef.current = 0;
+
+      if (activeTtsAudioRef.current) {
+        try {
+          activeTtsAudioRef.current.pause();
+          activeTtsAudioRef.current.currentTime = 0;
+        } catch {
+          // ignore
+        }
+        activeTtsAudioRef.current = null;
+      }
+      if (realtimeMicProcessorRef.current) {
+        try {
+          realtimeMicProcessorRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+      }
+      if (realtimeMicSourceRef.current) {
+        try {
+          realtimeMicSourceRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+      }
+      if (realtimeMicContextRef.current) {
+        try {
+          await realtimeMicContextRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      if (realtimeMicStreamRef.current) {
+        realtimeMicStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (realtimeStreamRef.current) {
+        realtimeStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (realtimeDcRef.current) {
+        try {
+          realtimeDcRef.current.onopen = null;
+          realtimeDcRef.current.onclose = null;
+          realtimeDcRef.current.onmessage = null;
+          realtimeDcRef.current.onerror = null;
+          realtimeDcRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      if (realtimePcRef.current) {
+        try {
+          realtimePcRef.current.ontrack = null;
+          realtimePcRef.current.oniceconnectionstatechange = null;
+          realtimePcRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      if (realtimeAudioRef.current) {
+        try {
+          realtimeAudioRef.current.pause();
+          realtimeAudioRef.current.srcObject = null;
+        } catch {
+          // ignore
+        }
+      }
+      if (realtimeWsRef.current) {
+        try {
+          realtimeWsRef.current.onopen = null;
+          realtimeWsRef.current.onclose = null;
+          realtimeWsRef.current.onmessage = null;
+          realtimeWsRef.current.onerror = null;
+          realtimeWsRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+
+      realtimeMicProcessorRef.current = null;
+      realtimeMicSourceRef.current = null;
+      realtimeMicContextRef.current = null;
+      realtimeMicStreamRef.current = null;
+      realtimeStreamRef.current = null;
+      realtimeDcRef.current = null;
+      realtimePcRef.current = null;
+      realtimeAudioRef.current = null;
+      realtimeWsRef.current = null;
+      for (const source of realtimePlaybackSourcesRef.current) {
+        try {
+          source.stop();
+        } catch {
+          // ignore
+        }
+        try {
+          source.disconnect();
+        } catch {
+          // ignore
+        }
+      }
+      realtimePlaybackSourcesRef.current = [];
+      realtimePlaybackNextTimeRef.current = 0;
+      realtimeResponseActiveRef.current = false;
+      (window as any).__AIKIOSK_RT_FORCE_MOUTH = false;
+      await stopRealtimeLipSync();
+      if (realtimePlaybackCtxRef.current) {
+        try {
+          await realtimePlaybackCtxRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      realtimePlaybackCtxRef.current = null;
+      realtimeConnectInFlightRef.current = false;
+      realtimeConnectingRef.current = false;
+      if (sessionId && window.__AIKIOSK_RT_AUTO_CONNECT_SESSION__ === sessionId) {
+        delete window.__AIKIOSK_RT_AUTO_CONNECT_SESSION__;
+      }
+      setRealtimeConnected(false);
+      setRealtimeConnecting(false);
+      setRealtimeStatusText(reason || "idle");
+      setSpeaking(false);
+    },
+    [sessionId]
+  );
+
+  const connectRealtime = useCallback(async () => {
+    if (realtimeConnectedRef.current || realtimeConnectingRef.current || realtimeConnectInFlightRef.current) return;
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection !== "function") {
+      setRealtimeStatusText("브라우저가 Realtime 음성을 지원하지 않습니다.");
+      return;
+    }
+
+    realtimeConnectInFlightRef.current = true;
+    realtimeConnectingRef.current = true;
+    setRealtimeConnecting(true);
+    setRealtimeStatusText("connecting");
+    addVoiceLog("RT CONNECT: preparing");
+
+    try {
+      const configResponse = await fetch(AI_V2_REALTIME_CONFIG_URL);
+      if (configResponse.ok) {
+        const configJson = await configResponse.json().catch(() => null);
+        const model = String(configJson?.data?.model || "");
+        const voice = String(configJson?.data?.voice || "");
+        const transport = String(configJson?.data?.transport || "");
+        if (model || voice) {
+          addVoiceLog(`RT CONFIG: ${model || "unknown"} / ${voice || "default"}`);
+        }
+        if (transport) {
+          addVoiceLog(`RT TRANSPORT: ${transport}`);
+        }
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      const pc = new RTCPeerConnection();
+      const remoteAudio = new Audio();
+      remoteAudio.autoplay = true;
+      remoteAudio.playsInline = true;
+      try {
+        const anyAudio = remoteAudio as HTMLAudioElement & {
+          setSinkId?: (deviceId: string) => Promise<void>;
+        };
+        if (selectedOutputDeviceId && typeof anyAudio.setSinkId === "function") {
+          await anyAudio.setSinkId(selectedOutputDeviceId);
+        }
+      } catch {
+        // ignore sink selection failures
+      }
+
+      realtimePcRef.current = pc;
+      realtimeStreamRef.current = stream;
+      realtimeAudioRef.current = remoteAudio;
+
+      pc.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+        if (!remoteStream) return;
+        remoteAudio.srcObject = remoteStream;
+        void remoteAudio.play().catch(() => undefined);
+        void startRealtimeLipSync(remoteAudio, remoteStream);
+      };
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "closed") {
+          void disconnectRealtime(pc.iceConnectionState);
+        }
+      };
+
+      stream.getTracks().forEach((track) => {
+        pc.addTrack(track, stream);
+      });
+
+      const channel = pc.createDataChannel("oai-events");
+      realtimeDcRef.current = channel;
+      channel.onopen = () => {
+        setRealtimeConnected(true);
+        setRealtimeConnecting(false);
+        realtimeConnectedRef.current = true;
+        realtimeConnectingRef.current = false;
+        setRealtimeStatusText("connected");
+        addVoiceLog("RT CONNECTED");
+        try {
+          channel.send(JSON.stringify(buildRealtimeSessionUpdate()));
+        } catch (error: any) {
+          addVoiceLog(`RT SEND ERROR: ${error?.message || String(error)}`);
+        }
+      };
+      channel.onclose = () => {
+        void disconnectRealtime("disconnected");
+      };
+      channel.onerror = () => {
+        addVoiceLog("RT EVENT ERROR: data-channel");
+      };
+      channel.onmessage = (messageEvent) => {
+        try {
+          const event = JSON.parse(String(messageEvent.data || "{}"));
+          realtimeEventHandlerRef.current(event);
+        } catch {
+          addVoiceLog("RT EVENT ERROR: invalid JSON");
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await waitForIceGatheringComplete(pc);
+
+      const finalSdp = pc.localDescription?.sdp || offer.sdp || "";
+      const response = await fetch(AI_V2_REALTIME_SESSION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/sdp",
+          ...(sessionId ? { "X-Session-Id": sessionId } : {}),
+        },
+        body: finalSdp,
+      });
+      const responseText = await response.text();
+      if (!response.ok) {
+        let errorMessage = `Realtime setup failed (${response.status})`;
+        try {
+          const json = JSON.parse(responseText);
+          errorMessage = String(json?.error?.message || json?.message || errorMessage);
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      await pc.setRemoteDescription({
+        type: "answer",
+        sdp: responseText,
+      });
+    } catch (error: any) {
+      addVoiceLog(`RT CONNECT ERROR: ${error?.message || String(error)}`);
+      await disconnectRealtime(error?.message || "connect failed");
+    } finally {
+      realtimeConnectInFlightRef.current = false;
+      if (!realtimeConnectedRef.current) {
+        realtimeConnectingRef.current = false;
+      }
+      setRealtimeConnecting(false);
+    }
+  }, [
+    AI_V2_REALTIME_SESSION_URL,
+    AI_V2_REALTIME_CONFIG_URL,
+    addVoiceLog,
+    buildRealtimeSessionUpdate,
+    disconnectRealtime,
+    realtimeConnected,
+    realtimeConnecting,
+    selectedDeviceId,
+    selectedOutputDeviceId,
+    sessionId,
+    sendRealtimeEvent,
+    startRealtimeLipSync,
+    stopRealtimeLipSync,
+    waitForIceGatheringComplete,
+  ]);
+
+  useEffect(() => {
+    connectRealtimeRef.current = connectRealtime;
+  }, [connectRealtime]);
 
   const doLLM = useCallback(
     async (text: string) => {
@@ -2832,8 +4651,7 @@ const isSetOptionDomainUtterance = useCallback(
       }
 
       try {
-        const userMsg: Msg = { role: "user", content: normalizedText };
-        const messages = [...conversationHistory, userMsg].slice(-10);
+        const { messages, body } = buildVoiceLlmPayload(normalizedText);
         addVoiceLog(`LLM REQ: ${messages.length} messages`);
         holdListeningDuringLlmRef.current = true;
         llmRequestInFlightRef.current = true;
@@ -2853,21 +4671,6 @@ const isSetOptionDomainUtterance = useCallback(
             .then(() => undefined);
         }, 2200);
 
-        const stateMenuCatalog = getContextualCandidateCatalog();
-        const stateForLlm = {
-          diningType,
-          selectedCategory,
-    pageHint,
-          cartItems: cartSnapshot,
-          menuCatalog: (stateMenuCatalog.length ? stateMenuCatalog : menuCatalog).slice(0, 160).map((m) => ({
-            ...m,
-            allergies: getKfcAllergensForMenuName(String(m.name || "")) || [],
-          })),
-          live2dMotionCatalog: LIVE2D_MOTION_CATALOG,
-          llmInstruction:
-            "Return spoken reply text in data.text. Choose one motion id from live2dMotionCatalog and return in data.motion (idle or m01~m26). If you need mid-sentence motion changes, return data.segments as [{text, motion}] and do not include motion tags inside text.",
-        };
-
         const ac = new AbortController();
         const llmTimeout = window.setTimeout(() => ac.abort(), 15000);
         let json: any = null;
@@ -2878,16 +4681,7 @@ const isSetOptionDomainUtterance = useCallback(
               "Content-Type": "application/json",
               "X-AI-Client-Source": "frontend-v2-voice",
             },
-            body: JSON.stringify({
-              messages,
-              sessionId,
-              orderType: diningType,
-              context: {
-                sessionId,
-                kioskState: selectedCategory,
-                state: stateForLlm,
-              },
-            }),
+            body: JSON.stringify(body),
             signal: ac.signal,
           });
           if (!res.ok) {
@@ -3015,18 +4809,13 @@ const isSetOptionDomainUtterance = useCallback(
       addVoiceLog,
       applyLlmAction,
       applyVoiceAction,
-      cartSnapshot,
-      conversationHistory,
-      diningType,
+      buildVoiceLlmPayload,
       isOrderDomainUtterance,
       llmEnabled,
-      menuCatalog,
-      getContextualCandidateCatalog,
       normalizeTranscript,
       pageHint,
       parseFastAction,
       say,
-      selectedCategory,
       sessionId,
       shouldIgnoreTranscript,
       isSetOptionDomainUtterance,
@@ -3042,8 +4831,57 @@ const isSetOptionDomainUtterance = useCallback(
     ]
   );
 
+  useEffect(() => {
+    if (!realtimeEnabled && (realtimeConnected || realtimeConnecting)) {
+      void disconnectRealtime("realtime off");
+    }
+  }, [disconnectRealtime, realtimeConnected, realtimeConnecting, realtimeEnabled]);
+
+  useEffect(() => {
+    if (!realtimeEnabled) return;
+    if (realtimeConnected || realtimeConnecting) return;
+    if (!sessionId) return;
+    if (window.__AIKIOSK_RT_AUTO_CONNECT_SESSION__ === sessionId) return;
+    window.__AIKIOSK_RT_AUTO_CONNECT_SESSION__ = sessionId;
+    void connectRealtime();
+  }, [connectRealtime, realtimeConnected, realtimeConnecting, realtimeEnabled, sessionId]);
+
+  useEffect(() => {
+    if (uiMode?.setPickerActive) {
+      addVoiceLog("RT SET OPTION UI: active");
+      realtimeSetPickerPendingRef.current = false;
+    }
+  }, [addVoiceLog, uiMode?.setPickerActive]);
+
+  useEffect(() => {
+    if (realtimeEnabled && ttsEnabled) {
+      setTtsEnabled(false);
+    }
+  }, [realtimeEnabled, ttsEnabled]);
+
+  useEffect(() => {
+    return () => {
+      void disconnectRealtime();
+    };
+  }, [disconnectRealtime]);
+
+  useEffect(() => {
+    const currentMenuName = String(uiMode?.setMenuName || "");
+    if (!uiMode?.setPickerActive) {
+      explicitSetSelectionRef.current = { menuName: "", sideConfirmed: false, drinkConfirmed: false };
+      return;
+    }
+    if (currentMenuName !== explicitSetSelectionRef.current.menuName) {
+      explicitSetSelectionRef.current = {
+        menuName: currentMenuName,
+        sideConfirmed: false,
+        drinkConfirmed: false,
+      };
+    }
+  }, [uiMode?.setMenuName, uiMode?.setPickerActive]);
+
   useMicStreamer({
-    enabled: listeningEnabled && sttEnabled,
+    enabled: listeningEnabled && sttEnabled && !realtimeEnabled,
     deviceId: selectedDeviceId,
     inputLang: "ko",
     outputs: [],
@@ -3083,6 +4921,13 @@ const isSetOptionDomainUtterance = useCallback(
     // Prevent the "auto voice start on diningType set" effect from firing again after a manual start.
     autoVoiceStartedRef.current = true;
 
+    if (realtimeEnabled) {
+      shouldListenAfterSpeechRef.current = false;
+      setListeningEnabled(true);
+      await connectRealtime();
+      return;
+    }
+
     const ok = await pingAiServer();
     if (!ok) {
       addVoiceLog(`VOICE ERROR: AI server unreachable (${AI_BASE_URL})`);
@@ -3096,7 +4941,7 @@ const isSetOptionDomainUtterance = useCallback(
       await say("음성 주문을 시작합니다. 원하시는 메뉴를 말씀해 주세요.");
     }
     setListeningEnabled(true);
-  }, [addVoiceLog, diningType, pingAiServer, say, selectedDeviceId, selectedOutputDeviceId]);
+  }, [addVoiceLog, connectRealtime, diningType, pingAiServer, realtimeEnabled, say, selectedDeviceId, selectedOutputDeviceId]);
 
   const handleVoiceStop = useCallback(() => {
     addVoiceLog("VOICE STOP");
@@ -3105,8 +4950,11 @@ const isSetOptionDomainUtterance = useCallback(
       window.clearTimeout(listenResumeTimerRef.current);
       listenResumeTimerRef.current = null;
     }
+    if (realtimeEnabled) {
+      void disconnectRealtime("stopped");
+    }
     setListeningEnabled(false);
-  }, [addVoiceLog]);
+  }, [addVoiceLog, disconnectRealtime, realtimeEnabled]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -3211,6 +5059,22 @@ const isSetOptionDomainUtterance = useCallback(
       // when dining type gets chosen later in the same conversation.
       autoVoiceStartedRef.current = true;
       // Proactive hesitation help should keep the character calm rather than triggering a recommendation gesture.
+      if (realtimeEnabled) {
+        try {
+          if (!realtimeConnectedRef.current && !realtimeConnectingRef.current) {
+            await connectRealtimeRef.current?.();
+          }
+          for (let attempt = 0; attempt < 20 && !realtimeConnectedRef.current; attempt += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 100));
+          }
+          if (realtimeConnectedRef.current) {
+            await requestRealtimeSpeech(speech);
+            return;
+          }
+        } catch (e: any) {
+          addVoiceLog(`HESITATION RT WARN: ${e?.message || String(e)}`);
+        }
+      }
       await say(speech, "idle");
     },
     [
@@ -3224,6 +5088,10 @@ const isSetOptionDomainUtterance = useCallback(
       pendingOptionConfirm,
       pendingSetChoice,
       pageHint,
+      realtimeConnected,
+      realtimeConnecting,
+      realtimeEnabled,
+      requestRealtimeSpeech,
       say,
       selectedCategory,
       sessionId,
@@ -3296,12 +5164,34 @@ const isSetOptionDomainUtterance = useCallback(
     };
   }, []);
 
+  const trimmedPlanSubtitle = useMemo(() => planSubtitle.trim(), [planSubtitle]);
   const trimmedSubtitle = useMemo(() => subtitle.trim(), [subtitle]);
 
   return (
     <>
+      {trimmedPlanSubtitle ? (
+        <div
+          className="fixed z-[4500] left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{ bottom: `${Math.max(92, Math.round(688 * uiScale))}px` }}
+        >
+          <div
+            className="px-5 py-2.5 rounded-2xl bg-slate-900/78 text-slate-100 text-sm md:text-base font-semibold shadow-lg w-[min(92vw,960px)] leading-snug break-words text-center"
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            <span className="mr-2 text-[10px] md:text-xs font-bold uppercase tracking-[0.18em] text-cyan-300/90">
+              PLAN
+            </span>
+            {trimmedPlanSubtitle}
+          </div>
+        </div>
+      ) : null}
+
       {trimmedSubtitle ? (
-        // Place the TTS subtitle slightly above the menu panel for better context.
         <div
           className="fixed z-[4500] left-1/2 -translate-x-1/2 pointer-events-none"
           style={{ bottom: `${Math.max(24, Math.round(610 * uiScale))}px` }}
@@ -3315,6 +5205,9 @@ const isSetOptionDomainUtterance = useCallback(
               overflow: "hidden",
             }}
           >
+            <span className="mr-2 text-[10px] md:text-xs font-bold uppercase tracking-[0.18em] text-amber-300/90">
+              SPOKEN
+            </span>
             {trimmedSubtitle}
           </div>
         </div>
@@ -3334,10 +5227,14 @@ const isSetOptionDomainUtterance = useCallback(
         sttEnabled={sttEnabled}
         ttsEnabled={ttsEnabled}
         llmEnabled={llmEnabled}
+        realtimeEnabled={realtimeEnabled}
+        realtimeConnected={realtimeConnected}
+        realtimeStatusText={realtimeStatusText}
         listeningEnabled={listeningEnabled}
         onToggleStt={setSttEnabled}
         onToggleTts={setTtsEnabled}
         onToggleLlm={setLlmEnabled}
+        onToggleRealtime={setRealtimeEnabled}
         onStartVoice={handleVoiceStart}
         onStopVoice={handleVoiceStop}
         micDevices={micDevices}

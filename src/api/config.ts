@@ -8,6 +8,15 @@ export const AI_V2_BASE_URL =
   import.meta.env.VITE_AI_V2_URL ||
   AI_BASE_URL.replace(/\/api\/v1\/?$/i, "/api/v2");
 export const AI_V2_CHAT_URL = `${AI_V2_BASE_URL.replace(/\/+$/, "")}/llm/chat`;
+export const AI_V2_REALTIME_SESSION_URL =
+  import.meta.env.VITE_AI_REALTIME_SESSION_URL ||
+  `${AI_V2_BASE_URL.replace(/\/+$/, "")}/realtime/session`;
+export const AI_V2_REALTIME_CONFIG_URL =
+  import.meta.env.VITE_AI_REALTIME_CONFIG_URL ||
+  `${AI_V2_BASE_URL.replace(/\/+$/, "")}/realtime/config`;
+export const AI_V2_REALTIME_WS_URL =
+  import.meta.env.VITE_AI_REALTIME_WS_URL ||
+  `${AI_V2_BASE_URL.replace(/^http/i, "ws").replace(/\/+$/, "")}/realtime/ws`;
 
 // API 요청 기본 설정
 export const apiConfig = {

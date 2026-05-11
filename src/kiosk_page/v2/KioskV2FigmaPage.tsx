@@ -2534,7 +2534,13 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
         selectedCategory={selectedCategory}
         categories={categories}
         pageHint={{ selectedCategory, showOrderView, paymentStep, paidOrderNumber }}
-        uiMode={{ setPickerActive: !!setSideTarget, setPickerStep, setMenuName: setSideTarget?.name ?? null }}
+        uiMode={{
+          setPickerActive: !!setSideTarget,
+          setPickerStep,
+          setMenuName: setSideTarget?.name ?? null,
+          setSideMenuItemId: setPickerSide?.menuItemId ?? null,
+          setDrinkMenuItemId: setPickerDrink?.menuItemId ?? null,
+        }}
         menuCatalog={voiceMenuCatalog}
         cartSnapshot={voiceCartSnapshot}
         onSetDining={(t) => {
@@ -2554,6 +2560,15 @@ const loadMenuDetail = async (item: V2MenuItem): Promise<MenuDetailData> => {
           setPaymentPhase("idle");
           setShowOrderView(false);
           if (diningType == null) setBrowseWithoutDining(true);
+        }}
+        onCancelSetPicker={() => {
+          setSetSideTarget(null);
+          setSetPickerStep("side");
+          setSetPickerSide(null);
+          setSetPickerDrink(null);
+          setPickerSideRef.current = null;
+          setPickerDrinkRef.current = null;
+          setSetPickerQty(1);
         }}
         onCheckCart={() => {
           // Voice-first cart confirmation should not be blocked by payment overlay.
